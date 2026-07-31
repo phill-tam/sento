@@ -399,3 +399,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# ─── Python (Sento backend) ───
+.venv/
+.env
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
