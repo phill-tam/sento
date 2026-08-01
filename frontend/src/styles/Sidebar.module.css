@@ -1,0 +1,44 @@
+.brand {
+  padding: 0 24px 18px 24px;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+.brand .kanji {
+  font-size: 24px;
+  color: var(--gold-light);
+  display: block;
+}
+
+.brand .sub {
+  font-size: 10.5px;
+  color: var(--mist);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
+}
+
+.searchWrap {
+  padding: 0 18px 16px 18px;
+}
+
+.searchWrap input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--mist-line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sky);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+
+.searchWrap input::placeholder {
+  color: #8fb3b1;
+}
+
+.searchWrap input:focus {
+  border-color: var(--gold);
+}
