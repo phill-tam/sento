@@ -1,0 +1,57 @@
+.modeToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.modeBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--mist-line);
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modeBtn.active {
+  background: var(--teal-deep);
+  color: var(--gold-light);
+  border-color: var(--teal-deep);
+}
+
+.modeBtn:hover:not(.active) {
+  border-color: var(--gold);
+}
+
+/* Sentence Generator toggle: animated glow border to signal "AI powered" —
+   visually distinct from the plain Study/Quiz buttons. */
+.modeBtnAi {
+  position: relative;
+  border-color: transparent;
+  background: var(--cream);
+  background-clip: padding-box;
+}
+
+.modeBtnAi::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 22px;
+  z-index: -1;
+  background: linear-gradient(120deg, var(--gold), var(--good), var(--gold-light), var(--gold));
+  background-size: 300% 300%;
+  animation: aiGlowShift 3.5s ease-in-out infinite, aiGlowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes aiGlowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes aiGlowPulse {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(211, 165, 76, 0.5)); }
+  50% { filter: drop-shadow(0 0 7px rgba(211, 165, 76, 0.9)); }
+}
