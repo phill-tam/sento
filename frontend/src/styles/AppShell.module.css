@@ -1,0 +1,38 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 900px 500px at 80% -10%, rgba(255, 255, 255, 0.55), transparent 60%),
+    /* b9dadf: mockup's own hardcoded gradient stop, not a defined token */
+    linear-gradient(180deg, var(--sky) 0%, var(--sky-2) 55%, #b9dadf 100%);
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.lineRail {
+  width: 284px;
+  flex: 0 0 284px;
+  background: linear-gradient(180deg, var(--teal-deep), var(--teal-mid));
+  color: var(--sky);
+  padding: 26px 0 28px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid rgba(212, 168, 74, 0.25);
+}
+
+.platform {
+  flex: 1;
+  padding: 36px 44px 60px 44px;
+  min-width: 0;
+  max-width: 960px;
+}
