@@ -8,7 +8,7 @@ import styles from "./styles/Sidebar.module.css";
 function App() {
   const [mode, setMode] = useState("study");
 
-  if (!FEATURE_FLAGS.APP_SHELL) {
+  if (!FEATURE_FLAGS.FEATURE_FOUNDATION_SHELL) {
     return <p>Sento — scaffold running</p>;
   }
 
