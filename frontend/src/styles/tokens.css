@@ -1,0 +1,27 @@
+/* src/styles/tokens.css
+   Design tokens ported from sento-ui-mockup.html.
+   Palette, typography, and shared status colors — no component-specific rules here. */
+
+:root {
+  /* Core palette */
+  --teal-deep: #0f2c2e;
+  --teal-mid: #164042;
+  --teal-mid-2: #1c4b4d;
+  --gold: #d3a54c;
+  --gold-light: #f0d38f;
+  --sky: #dcedf0;
+  --sky-2: #c7e2e7;
+  --cream: #faf6ec;
+  --ink: #183332;
+  --mist: #6f9c9a;
+  --mist-line: #3a5f5e;
+
+  /* Status */
+  --good: #5f9e7a;
+  --bad: #c76b56;
+
+  /* Typography */
+  --font-display: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP",
+    -apple-system, "Segoe UI", sans-serif;
+}
