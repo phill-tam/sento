@@ -12,3 +12,48 @@ async function request(path, options = {}) {
 
   return response.json();
 }
+
+async function uploadCsv(path, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    body: formData,
+    // no Content-Type header here — the browser sets multipart/form-data
+    // with the correct boundary itself; setting it manually breaks the upload
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export function uploadKanjiCsv(file) {
+  return uploadCsv("/api/v1/kanji/upload", file);
+}
+
+export function uploadVocabCsv(file) {
+  return uploadCsv("/api/v1/vocab/upload", file);
+}
+
+export function uploadGrammarCsv(file) {
+  return uploadCsv("/api/v1/grammar/upload", file);
+}
+
+export function getKanji(category) {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  return request(`/api/v1/kanji${query}`);
+}
+
+export function getVocab(category) {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  return request(`/api/v1/vocab${query}`);
+}
+
+export function getGrammar(category) {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  return request(`/api/v1/grammar${query}`);
+}
