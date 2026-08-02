@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import select
@@ -59,8 +59,11 @@ async def upload_kanji_csv(
 def get_kanji(
     db: Annotated[Session, Depends(get_db)],
     category: Annotated[str | None, Query()] = None,
+    status: Annotated[ContentStatus | Literal["all"], Query()] = ContentStatus.APPROVED,
 ) -> list[KanjiEntry]:
-    stmt = select(KanjiEntry).where(KanjiEntry.status == ContentStatus.APPROVED)
+    stmt = select(KanjiEntry)
+    if status != "all":
+        stmt = stmt.where(KanjiEntry.status == status)
     if category is not None:
         stmt = stmt.where(KanjiEntry.category == category)
     return list(db.scalars(stmt))
