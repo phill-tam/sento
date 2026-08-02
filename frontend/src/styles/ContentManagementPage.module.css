@@ -1,0 +1,21 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.treeSection {
+  margin-top: 8px;
+}
+
+.loading {
+  color: var(--mist);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
