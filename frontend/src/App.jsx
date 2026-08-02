@@ -12,6 +12,12 @@ function App() {
     return <p>Sento — scaffold running</p>;
   }
 
+  // CMS is rendered inside AppShell — it has no shell of its own, so it can
+  // only ever be reachable when FOUNDATION_SHELL is also on. This flag stays
+  // independent (not folded into FOUNDATION_SHELL) per epic 002's naming
+  // convention (ADR 005) — only its *effect* is gated here.
+  const contentManagementEnabled = FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT;
+
   return (
     <AppShell
       sidebar={

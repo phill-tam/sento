@@ -1,3 +1,4 @@
 export const FEATURE_FLAGS = {
   FEATURE_FOUNDATION_SHELL: import.meta.env.VITE_FEATURE_FOUNDATION_SHELL === "true",
+  FEATURE_CONTENT_MANAGEMENT: false,
 };

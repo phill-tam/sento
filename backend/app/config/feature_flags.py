@@ -6,5 +6,7 @@ class FeatureFlags(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", env_prefix="FEATURE_"
     )
 
+    content_management: bool = False
+
 
 flags = FeatureFlags()
