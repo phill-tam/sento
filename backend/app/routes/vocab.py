@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import select
@@ -52,8 +52,11 @@ async def upload_vocab_csv(
 def get_vocab(
     db: Annotated[Session, Depends(get_db)],
     category: Annotated[str | None, Query()] = None,
+    status: Annotated[ContentStatus | Literal["all"], Query()] = ContentStatus.APPROVED,
 ) -> list[VocabEntry]:
-    stmt = select(VocabEntry).where(VocabEntry.status == ContentStatus.APPROVED)
+    stmt = select(VocabEntry)
+    if status != "all":
+        stmt = stmt.where(VocabEntry.status == status)
     if category is not None:
         stmt = stmt.where(VocabEntry.category == category)
     return list(db.scalars(stmt))
