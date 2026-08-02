@@ -1,7 +1,12 @@
 from fastapi import APIRouter
 
+from app.config.feature_flags import flags
+
 router = APIRouter(prefix="/api/v1")
 
-# Route modules attach here once the feature branch adds them, e.g.:
-# from app.routes import items
-# router.include_router(items.router)
+if flags.content_management:
+    from app.routes import grammar, kanji, vocab
+
+    router.include_router(kanji.router)
+    router.include_router(vocab.router)
+    router.include_router(grammar.router)
