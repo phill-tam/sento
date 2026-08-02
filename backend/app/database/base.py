@@ -7,6 +7,6 @@ class Base(DeclarativeBase):
 
 # Imported here (not used directly) so Alembic's autogenerate can discover
 # them via Base.metadata.
-from app.models.kanji_entry import KanjiEntry  # noqa: E402, F401
-from app.models.vocab_entry import VocabEntry  # noqa: E402, F401
-from app.models.grammar_entry import GrammarEntry  # noqa: E402, F401
+from app.models.grammar_entry import GrammarEntry  # noqa: F401
+from app.models.kanji_entry import KanjiEntry  # noqa: F401
+from app.models.vocab_entry import VocabEntry  # noqa: F401
