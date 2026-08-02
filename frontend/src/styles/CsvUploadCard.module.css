@@ -1,0 +1,47 @@
+.card {
+  border: 2px dashed var(--mist-line);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--cream);
+  transition: all 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--gold);
+}
+
+.card.dragging {
+  border-color: var(--gold);
+  background: rgba(212, 168, 74, 0.08);
+}
+
+.card.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+}
+
+.promptSub {
+  font-size: 11.5px;
+  color: var(--mist);
+}
+
+.error {
+  margin-top: 12px;
+  color: var(--bad);
+  font-size: 12.5px;
+}
