@@ -43,17 +43,22 @@ export function uploadGrammarCsv(file) {
   return uploadCsv("/api/v1/grammar/upload", file);
 }
 
-export function getKanji(category) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return request(`/api/v1/kanji${query}`);
+function buildListQuery({ category, status } = {}) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (status) params.set("status", status);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
-export function getVocab(category) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return request(`/api/v1/vocab${query}`);
+export function getKanji(options) {
+  return request(`/api/v1/kanji${buildListQuery(options)}`);
 }
 
-export function getGrammar(category) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return request(`/api/v1/grammar${query}`);
+export function getVocab(options) {
+  return request(`/api/v1/vocab${buildListQuery(options)}`);
+}
+
+export function getGrammar(options) {
+  return request(`/api/v1/grammar${buildListQuery(options)}`);
 }
