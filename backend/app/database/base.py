@@ -2,11 +2,12 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    """Shared declarative base for all ORM models."""
+    """Shared declarative base for all ORM models.
 
-
-# Imported here (not used directly) so Alembic's autogenerate can discover
-# them via Base.metadata.
-from app.models.grammar_entry import GrammarEntry  # noqa: F401
-from app.models.kanji_entry import KanjiEntry  # noqa: F401
-from app.models.vocab_entry import VocabEntry  # noqa: F401
+    Intentionally does NOT import models here — that created a circular
+    import (models import Base; if a model module is the first thing
+    imported anywhere in the app, Base then tries to re-import that same
+    partially-initialized module and fails). Model registration for
+    Alembic's autogenerate lives in app/models/__init__.py instead, which
+    has no reverse dependency on this file.
+    """
