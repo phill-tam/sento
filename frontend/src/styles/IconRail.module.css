@@ -1,0 +1,45 @@
+.rail {
+  width: 64px;
+  flex: 0 0 64px;
+  background: var(--teal-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 26px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  border-right: 1px solid rgba(212, 168, 74, 0.25);
+}
+
+.railBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.railBtn:hover {
+  background: rgba(212, 168, 74, 0.08);
+  color: var(--sky);
+}
+
+.railBtn.active {
+  background: rgba(212, 168, 74, 0.16);
+  border-color: rgba(212, 168, 74, 0.3);
+  color: var(--gold-light);
+}
+
+.icon {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+}
