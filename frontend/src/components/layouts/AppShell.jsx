@@ -1,15 +1,27 @@
 import styles from "../../styles/AppShell.module.css";
 
 /**
- * Structural shell: fixed decorative backdrop + sticky sidebar rail + main panel.
- * Purely layout — no knowledge of what's rendered in either slot.
+ * Structural shell: fixed decorative backdrop + optional icon rail +
+ * sticky content sidebar + main panel. Purely layout — no knowledge of
+ * what's rendered in any slot.
+ *
+ * rail: optional (epic 002's IconRail). Omitted entirely in contexts
+ * that don't need top-level view switching — existing callers passing
+ * only sidebar/children are unaffected.
+ * sidebarCollapsed: collapses the content sidebar's width to zero rather
+ * than unmounting it, so the collapse animates (epic 002).
  */
-export default function AppShell({ sidebar, children }) {
+export default function AppShell({ rail, sidebar, sidebarCollapsed = false, children }) {
   return (
     <>
       <div className={styles.backdrop} aria-hidden="true" />
       <div className={styles.shell}>
-        <aside className={styles.lineRail}>{sidebar}</aside>
+        {rail}
+        <aside
+          className={`${styles.lineRail} ${sidebarCollapsed ? styles.collapsed : ""}`}
+        >
+          {sidebar}
+        </aside>
         <main className={styles.platform}>{children}</main>
       </div>
     </>

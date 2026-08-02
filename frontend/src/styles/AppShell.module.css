@@ -28,6 +28,16 @@
   height: 100vh;
   overflow-y: auto;
   border-right: 1px solid rgba(212, 168, 74, 0.25);
+  transition: flex-basis 0.25s ease, width 0.25s ease, padding 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.lineRail.collapsed {
+  width: 0;
+  flex: 0 0 0;
+  padding: 0;
+  border-right-color: transparent;
+  overflow: hidden;
 }
 
 .platform {
