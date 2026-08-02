@@ -6,9 +6,19 @@ load_dotenv()
 
 from sqlalchemy import engine_from_config, pool
 
+import app.models  # noqa: F401 — registers all models on Base.metadata
 from alembic import context
 from app.config.settings import settings
 from app.database.base import Base
+
+config = context.config
+config.set_main_option("sqlalchemy.url", settings.resolved_migrations_url())
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+# ... rest of file (run_migrations_offline/online) is unchanged
 
 # Importing Base also registers all models on Base.metadata, via the model
 # imports at the bottom of base.py. No separate model import list here —
