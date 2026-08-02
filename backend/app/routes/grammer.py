@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import select
@@ -57,8 +57,11 @@ async def upload_grammar_csv(
 def get_grammar(
     db: Annotated[Session, Depends(get_db)],
     category: Annotated[str | None, Query()] = None,
+    status: Annotated[ContentStatus | Literal["all"], Query()] = ContentStatus.APPROVED,
 ) -> list[GrammarEntry]:
-    stmt = select(GrammarEntry).where(GrammarEntry.status == ContentStatus.APPROVED)
+    stmt = select(GrammarEntry)
+    if status != "all":
+        stmt = stmt.where(GrammarEntry.status == status)
     if category is not None:
         stmt = stmt.where(GrammarEntry.category == category)
     return list(db.scalars(stmt))
