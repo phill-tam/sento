@@ -1,12 +1,14 @@
 from typing import Annotated, Literal
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
 from app.models.content_status import ContentSource, ContentStatus
 from app.models.kanji_entry import KanjiEntry
+from app.schemas.content_status_update import ContentStatusUpdate
 from app.schemas.content_upload import BatchUploadResponse
 from app.schemas.kanji_entry import KanjiEntryRead
 from app.services.content_upload_service import RowValidationError, process_csv_upload
@@ -67,3 +69,18 @@ def get_kanji(
     if category is not None:
         stmt = stmt.where(KanjiEntry.category == category)
     return list(db.scalars(stmt))
+
+
+@router.patch("/{entry_id}/status", response_model=KanjiEntryRead)
+def update_kanji_status(
+    entry_id: UUID,
+    payload: ContentStatusUpdate,
+    db: Annotated[Session, Depends(get_db)],
+) -> KanjiEntry:
+    entry = db.get(KanjiEntry, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="kanji entry not found")
+    entry.status = payload.status
+    db.commit()
+    db.refresh(entry)
+    return entry
