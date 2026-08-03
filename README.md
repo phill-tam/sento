@@ -15,7 +15,7 @@ translation revealed on demand.
 | Epic | Scope | Status |
 |---|---|---|
 | 001 — Foundation | Visual design system & app shell (frontend) | Complete |
-| 002 — Content Management | CSV upload + inventory tree (backend + frontend) | Planned |
+| 002 — Content Management | CSV upload + inventory tree (backend + frontend) | Complete |
 | 003–004 — Flashcards / Quiz | — | Planned |
 | 005 — Sentence Generator | — | Planned |
 
@@ -64,6 +64,11 @@ instance (see [Environment Variables](#environment-variables) below).
 # Run database migrations
 alembic upgrade head
 
+# Seed initial N5 content (Kanji, Vocabulary, Grammar) — without this,
+# the database is empty and GET /kanji, /vocab, /grammar will return
+# empty lists even though the tables and API are working correctly
+uv run python -m app.seed_data.seed_content
+
 # Start the dev server
 uvicorn app.main:app --reload
 ```
@@ -96,6 +101,7 @@ pointing it at a different backend URL (see below).
 |---|---|---|
 | `DATABASE_URL` | Yes | App runtime connection. Local dev: `postgresql+psycopg://sento:sento@localhost:5432/sento_db`. Supabase: use the transaction pooler (port `6543`). |
 | `MIGRATIONS_DATABASE_URL` | No | Used for Alembic migrations only. Leave blank for local dev — falls back to `DATABASE_URL` automatically. Supabase: use the direct, non-pooler connection (port `5432`). |
+| `FEATURE_CONTENT_MANAGEMENT` | No | Toggles the Content Management API (epic 002) on/off. Default `false` — the upload/list routes are entirely absent from the API schema when unset. See [Feature Flags](#feature-flags) below for what enabling this does and does not protect against. |
 
 ### Frontend (`frontend/.env`, optional)
 
@@ -112,14 +118,23 @@ named per-epic (`FEATURE_<EPIC_NAME>`) rather than per-component — see
 `docs/adrs/005-feature-flags-per-epic-naming.md` for the reasoning.
 
 - **Frontend:** a plain object in `frontend/src/config/featureFlags.js`
-  (`FEATURE_FLAGS.FOUNDATION_SHELL`, etc.) — no env var required.
+  (`FEATURE_FLAGS.FEATURE_FOUNDATION_SHELL`,
+  `FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT`) — no env var required; set
+  directly in code.
 - **Backend:** `.env`-backed via Pydantic Settings
   (`config/feature_flags.py`).
 
 | Flag | Layer | Default | Status |
 |---|---|---|---|
-| `FOUNDATION_SHELL` | Frontend | `true` | Shipped (epic 001) |
-| `CONTENT_MANAGEMENT` | Frontend + Backend | `false` | Planned (epic 002) |
+| `FEATURE_FOUNDATION_SHELL` | Frontend | `true` | Shipped (epic 001) |
+| `FEATURE_CONTENT_MANAGEMENT` | Frontend + Backend | `false` | Shipped (epic 002) |
+
+**Content Management is not access-controlled.** Enabling
+`FEATURE_CONTENT_MANAGEMENT` exposes CSV upload and content-editing
+endpoints with no authentication — there is no `User` model or auth
+mechanism anywhere in this project yet. The flag controls *visibility*,
+not *access*. Do not enable this flag in any environment reachable by
+anyone other than yourself. See `docs/adrs/011-no-auth-feature-flag-gated-only.md`.
 
 ---
 
