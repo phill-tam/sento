@@ -1,0 +1,125 @@
+.card {
+  position: relative;
+  height: 200px;
+  cursor: pointer;
+  perspective: 1000px;
+  outline: none;
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.4s ease;
+  transform-style: preserve-3d;
+}
+
+.card.flipped .inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--mist-line);
+  background: var(--cream);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.back {
+  transform: rotateY(180deg);
+  justify-content: flex-start;
+  align-items: stretch;
+  text-align: left;
+}
+
+.backScroll {
+  overflow-y: auto;
+  max-height: 100%;
+  padding-right: 4px;
+}
+
+.masteredBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--mist-line);
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.masteredBtn:hover {
+  border-color: var(--gold);
+}
+
+.masteredBtn.mastered {
+  background: var(--good);
+  border-color: var(--good);
+  color: var(--cream);
+}
+
+.prompt {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.reading {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--mist);
+}
+
+.answer {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.example {
+  border-top: 1px dashed var(--mist-line);
+  padding-top: 10px;
+}
+
+.exampleJp {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.exampleReading {
+  font-size: 11px;
+  color: var(--mist);
+  margin-top: 2px;
+}
+
+.exampleEn {
+  font-size: 12px;
+  color: var(--mist);
+  margin-top: 6px;
+}
+
+.exampleFallback {
+  font-size: 12px;
+  color: var(--mist);
+  font-style: italic;
+  border-top: 1px dashed var(--mist-line);
+  padding-top: 10px;
+}
