@@ -72,3 +72,21 @@
   background: rgba(199, 107, 86, 0.12);
   color: var(--bad);
 }
+
+.nextBtn {
+  display: block;
+  margin: 20px auto 0 auto;
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: 1px solid var(--teal-deep);
+  background: var(--teal-deep);
+  color: var(--gold-light);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nextBtn:hover {
+  background: var(--teal-mid);
+}

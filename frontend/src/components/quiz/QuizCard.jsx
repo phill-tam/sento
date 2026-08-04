@@ -4,17 +4,21 @@ import styles from "../../styles/QuizCard.module.css";
  * Single quiz question — 4 shuffled options (question.options), feedback
  * shown once phase is "answered". Purely controlled: useQuiz (owned by
  * StudyPage) drives phase/selectedOptionId, this component only renders
- * and reports clicks via onAnswer.
+ * and reports clicks via onAnswer/onNext.
  *
  * question: { item: FlashcardItem, options: FlashcardItem[] } — from
  * useQuiz's currentQuestion. Correct answer is question.item.id.
  * phase: "answering" | "answered" — QuizCard doesn't render for idle/complete.
+ * onNext: advances to the next question, or to "complete" on the last one —
+ * same useQuiz.next() call either way, QuizRunner/useQuiz decide what
+ * happens next. Button label just previews that for the user.
  */
 export default function QuizCard({
   question,
   phase,
   selectedOptionId,
   onAnswer,
+  onNext,
   questionNumber,
   totalQuestions,
 }) {
@@ -22,6 +26,7 @@ export default function QuizCard({
 
   const { item, options } = question;
   const isAnswered = phase === "answered";
+  const isLastQuestion = questionNumber === totalQuestions;
 
   return (
     <div className={styles.card}>
@@ -58,6 +63,12 @@ export default function QuizCard({
           );
         })}
       </div>
+
+      {isAnswered && (
+        <button type="button" className={styles.nextBtn} onClick={onNext}>
+          {isLastQuestion ? "See results" : "Next question"}
+        </button>
+      )}
     </div>
   );
 }
