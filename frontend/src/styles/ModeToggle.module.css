@@ -55,3 +55,8 @@
   0%, 100% { filter: drop-shadow(0 0 2px rgba(211, 165, 76, 0.5)); }
   50% { filter: drop-shadow(0 0 7px rgba(211, 165, 76, 0.9)); }
 }
+
+.modeBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
