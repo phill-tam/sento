@@ -39,6 +39,7 @@ function QuizRunner({ selectedItems, categoryPool, onFinish }) {
       phase={quiz.phase}
       selectedOptionId={quiz.selectedOptionId}
       onAnswer={quiz.answer}
+      onNext={quiz.next}
       questionNumber={quiz.questionNumber}
       totalQuestions={quiz.totalQuestions}
     />
