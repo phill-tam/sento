@@ -3,6 +3,7 @@
   height: 200px;
   cursor: pointer;
   outline: none;
+  border-radius: 10px;
 }
 
 .inner {
