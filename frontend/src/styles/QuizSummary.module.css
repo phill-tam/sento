@@ -1,0 +1,46 @@
+.card {
+  background: var(--cream);
+  border: 1px solid var(--mist-line);
+  border-radius: 12px;
+  padding: 32px 24px;
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.scoreLabel {
+  font-size: 11px;
+  color: var(--mist-line);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.score {
+  font-family: var(--font-display);
+  font-size: 40px;
+  color: var(--ink);
+}
+
+.pct {
+  font-size: 13px;
+  color: var(--mist-line);
+  margin-top: 6px;
+  margin-bottom: 24px;
+}
+
+.finishBtn {
+  padding: 10px 24px;
+  border-radius: 20px;
+  border: 1px solid var(--teal-deep);
+  background: var(--teal-deep);
+  color: var(--gold-light);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.finishBtn:hover {
+  background: var(--teal-mid);
+}
