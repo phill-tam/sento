@@ -22,6 +22,10 @@ const VIEWS = [
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
 
+// Quiz selection cap (epic 004) — enforced in toggleSelectItem below,
+// independent of FlashcardGrid's own UI-level selectDisabled check.
+const SELECTION_CAP = 20;
+
 /**
  * Maps one line's raw entries into FlashcardCard's normalized item shape.
  * Moved here from StudyPage.jsx along with the rest of study state — still
@@ -81,10 +85,15 @@ function App() {
   const [activeLineId, setActiveLineId] = useState(null);
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
- 
+
+  // Quiz state (epic 004) — owned here rather than in StudyPage because
+  // the sidebar's navigation handlers below need to check quizPhase
+  // before acting (guardNavigation), and those handlers live in App.jsx.
   const [quizPhase, setQuizPhase] = useState("idle");
-  const [selectedIds, setSelectedIds] = useState(new Set())
-  
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // holds a closure for whatever navigation action triggered the confirm
+  // dialog — null means the dialog is closed.
   const [pendingAction, setPendingAction] = useState(null);
 
   const quizInProgress = quizPhase === "selecting" || quizPhase === "active";
@@ -108,6 +117,22 @@ function App() {
 
   function cancelDiscardQuiz() {
     setPendingAction(null);
+  }
+
+  function toggleSelectItem(itemId) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        // cap enforced here too, not just via FlashcardGrid's selectDisabled —
+        // this prevents the state update itself from ever exceeding the cap
+        // regardless of caller
+        if (next.size >= SELECTION_CAP) return prev;
+        next.add(itemId);
+      }
+      return next;
+    });
   }
 
   const kanjiMastered = useMastered("kanji");
@@ -165,16 +190,7 @@ function App() {
   const visibleViews = contentManagementEnabled ? VIEWS : VIEWS.filter((v) => v.id === "study");
   const showStudySidebar = studyFlashcardsEnabled && view === "study";
 
-  function handleSelectView(nextView) {
-    if (nextView === view) {
-      setSidebarCollapsed((prev) => !prev);
-    } else {
-      setView(nextView);
-      setSidebarCollapsed(false);
-    }
-  }
-
-function toggleLine(lineId) {
+  function toggleLine(lineId) {
     guardNavigation(() => {
       setOpenLineIds((prev) => {
         const next = new Set(prev);
@@ -210,8 +226,10 @@ function toggleLine(lineId) {
   function handleModeChange(nextMode) {
     guardNavigation(() => {
       setMode(nextMode);
-      setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
-      setSelectedIds(new Set());
+      if (FEATURE_FLAGS.FEATURE_QUIZ_MODE) {
+        setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
+        setSelectedIds(new Set());
+      }
     });
   }
 
@@ -219,10 +237,10 @@ function toggleLine(lineId) {
     setQuizPhase("active");
   }
 
-  function selectCategory(lineId, categoryId) {
-    setActiveLineId(lineId);
-    setActiveCategoryId(categoryId);
-    setOpenLineIds((prev) => new Set(prev).add(lineId));
+  function handleFinishQuiz() {
+    setQuizPhase("idle");
+    setSelectedIds(new Set());
+    setMode("study");
   }
 
   function handleSelectSearchResult(lineId, categoryId) {
@@ -291,6 +309,7 @@ function toggleLine(lineId) {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
+            onFinishQuiz={handleFinishQuiz}
           />
         ) : (
           <div className="platform-head">
