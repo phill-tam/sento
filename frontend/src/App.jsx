@@ -160,12 +160,18 @@ function App() {
     });
   }
 
+  const SELECTION_CAP = 20;
+
   function toggleSelectItem(itemId) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
       } else {
+        // cap enforced here too, not just via FlashcardGrid's selectDisabled —
+        // the disabled button prevents the click, this prevents the state
+        // update itself from ever exceeding the cap regardless of caller
+        if (next.size >= SELECTION_CAP) return prev;
         next.add(itemId);
       }
       return next;
