@@ -166,3 +166,22 @@
   border-color: rgba(255, 255, 255, 0.4);
   color: rgba(255, 255, 255, 0.7);
 }
+
+.masteredBadge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--good);
+  background: rgba(95, 158, 122, 0.12);
+  border: 1px solid rgba(95, 158, 122, 0.3);
+  border-radius: 10px;
+  padding: 2px 7px;
+}
+
+.markBtn.disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
