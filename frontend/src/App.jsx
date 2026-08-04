@@ -12,6 +12,7 @@ import IconRail from "./components/layouts/IconRail";
 import SearchResults from "./components/study/SearchResults";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
+import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
 
 const VIEWS = [
@@ -84,6 +85,31 @@ function App() {
   const [quizPhase, setQuizPhase] = useState("idle");
   const [selectedIds, setSelectedIds] = useState(new Set())
   
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const quizInProgress = quizPhase === "selecting" || quizPhase === "active";
+
+  function guardNavigation(action) {
+    if (quizInProgress) {
+      setPendingAction(() => action);
+    } else {
+      action();
+    }
+  }
+
+  function confirmDiscardQuiz() {
+    setQuizPhase("idle");
+    setSelectedIds(new Set());
+    setMode("study");
+    const action = pendingAction;
+    setPendingAction(null);
+    if (action) action();
+  }
+
+  function cancelDiscardQuiz() {
+    setPendingAction(null);
+  }
+
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
@@ -148,44 +174,45 @@ function App() {
     }
   }
 
-  function toggleLine(lineId) {
-    setOpenLineIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(lineId)) {
-        next.delete(lineId);
-      } else {
-        next.add(lineId);
-      }
-      return next;
+function toggleLine(lineId) {
+    guardNavigation(() => {
+      setOpenLineIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(lineId)) {
+          next.delete(lineId);
+        } else {
+          next.add(lineId);
+        }
+        return next;
+      });
     });
   }
 
-  const SELECTION_CAP = 20;
-
-  function toggleSelectItem(itemId) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        // cap enforced here too, not just via FlashcardGrid's selectDisabled —
-        // the disabled button prevents the click, this prevents the state
-        // update itself from ever exceeding the cap regardless of caller
-        if (next.size >= SELECTION_CAP) return prev;
-        next.add(itemId);
-      }
-      return next;
+  function selectCategory(lineId, categoryId) {
+    guardNavigation(() => {
+      setActiveLineId(lineId);
+      setActiveCategoryId(categoryId);
+      setOpenLineIds((prev) => new Set(prev).add(lineId));
     });
   }
 
-  // Replaces the bare `setMode` previously passed to StudyPage — switching
-  // into "quiz" starts the selecting phase with a clean slate; switching
-  // back to "study" clears it. Navigation-guard check (Step 12) wraps this
-  // later; for now it always proceeds.
+  function handleSelectView(nextView) {
+    guardNavigation(() => {
+      if (nextView === view) {
+        setSidebarCollapsed((prev) => !prev);
+      } else {
+        setView(nextView);
+        setSidebarCollapsed(false);
+      }
+    });
+  }
+
   function handleModeChange(nextMode) {
-    setMode(nextMode);
-    setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
-    setSelectedIds(new Set());
+    guardNavigation(() => {
+      setMode(nextMode);
+      setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
+      setSelectedIds(new Set());
+    });
   }
 
   function handleStartQuiz() {
@@ -211,68 +238,76 @@ function App() {
   const progressPct = activeItems.length > 0 ? Math.round((masteredCount / activeItems.length) * 100) : 0;
 
   return (
-    <AppShell
-      rail={
-        contentManagementEnabled ? (
-          <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
-        ) : undefined
-      }
-      sidebarCollapsed={sidebarCollapsed}
-      sidebar={
-        <>
-          <div className={styles.brand}>
-            <span className={styles.kanji}>N5 路線図</span>
-            <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
-          </div>
-          <div className={styles.searchWrap}>
-            <input
-              type="text"
-              placeholder="Search everything…"
-              value={showStudySidebar ? searchQuery : ""}
-              onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
-              readOnly={!showStudySidebar}
-            />
-          </div>
-          {showStudySidebar ? (
-            searchQuery.trim() ? (
-              <SearchResults results={searchResults} onSelectResult={handleSelectSearchResult} />
+    <>
+      <AppShell
+        rail={
+          contentManagementEnabled ? (
+            <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
+          ) : undefined
+        }
+        sidebarCollapsed={sidebarCollapsed}
+        sidebar={
+          <>
+            <div className={styles.brand}>
+              <span className={styles.kanji}>N5 路線図</span>
+              <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
+            </div>
+            <div className={styles.searchWrap}>
+              <input
+                type="text"
+                placeholder="Search everything…"
+                value={showStudySidebar ? searchQuery : ""}
+                onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
+                readOnly={!showStudySidebar}
+              />
+            </div>
+            {showStudySidebar ? (
+              searchQuery.trim() ? (
+                <SearchResults results={searchResults} onSelectResult={handleSelectSearchResult} />
+              ) : (
+                <CategoryTree categories={tree} onToggleCategory={toggleLine} onSelectItem={selectCategory} />
+              )
             ) : (
-              <CategoryTree categories={tree} onToggleCategory={toggleLine} onSelectItem={selectCategory} />
-            )
-          ) : (
-            <CategoryTree categories={[]} onToggleCategory={() => {}} onSelectItem={() => {}} />
-          )}
-        </>
-      }
-    >
-      {view === "cms" && contentManagementEnabled ? (
-        <ContentManagementPage />
-      ) : view === "study" && studyFlashcardsEnabled ? (
-        <StudyPage
-          activeLine={activeLine}
-          activeCategoryId={activeCategoryId}
-          items={activeItems}
-          mastered={activeMastered}
-          onToggleMastered={activeLineId ? toggleByLine[activeLineId] : () => {}}
-          masteredCount={masteredCount}
-          progressPct={progressPct}
-          isLoading={isLoadingStudy}
-          mode={mode}
-          onModeChange={handleModeChange}
-          quizPhase={quizPhase}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelectItem}
-          onStartQuiz={handleStartQuiz}
-        />
-      ) : (
-        <div className="platform-head">
-          <div>
-            <h1>Foundation shell — no content lines yet</h1>
+              <CategoryTree categories={[]} onToggleCategory={() => {}} onSelectItem={() => {}} />
+            )}
+          </>
+        }
+      >
+        {view === "cms" && contentManagementEnabled ? (
+          <ContentManagementPage />
+        ) : view === "study" && studyFlashcardsEnabled ? (
+          <StudyPage
+            activeLine={activeLine}
+            activeCategoryId={activeCategoryId}
+            items={activeItems}
+            mastered={activeMastered}
+            onToggleMastered={activeLineId ? toggleByLine[activeLineId] : () => {}}
+            masteredCount={masteredCount}
+            progressPct={progressPct}
+            isLoading={isLoadingStudy}
+            mode={mode}
+            onModeChange={handleModeChange}
+            quizPhase={quizPhase}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelectItem}
+            onStartQuiz={handleStartQuiz}
+          />
+        ) : (
+          <div className="platform-head">
+            <div>
+              <h1>Foundation shell — no content lines yet</h1>
+            </div>
+            <ModeToggle mode={mode} onModeChange={setMode} onGeneratorClick={() => {}} />
           </div>
-          <ModeToggle mode={mode} onModeChange={setMode} onGeneratorClick={() => {}} />
-        </div>
-      )}
-    </AppShell>
+        )}
+      </AppShell>
+      <ConfirmDialog
+        open={pendingAction !== null}
+        message="This will end your current quiz and discard your progress. Continue?"
+        onConfirm={confirmDiscardQuiz}
+        onCancel={cancelDiscardQuiz}
+      />
+    </>
   );
 }
 
