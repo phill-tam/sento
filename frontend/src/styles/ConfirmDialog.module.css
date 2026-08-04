@@ -1,0 +1,65 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(15, 44, 46, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog {
+  background: var(--cream);
+  border-radius: 12px;
+  border: 1px solid var(--mist-line);
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(22, 51, 50, 0.18);
+}
+
+.message {
+  margin: 0 0 20px 0;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--mist-line);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancelBtn:hover {
+  border-color: var(--gold);
+}
+
+.confirmBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--teal-deep);
+  background: var(--teal-deep);
+  color: var(--gold-light);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirmBtn:hover {
+  background: var(--teal-mid);
+}
