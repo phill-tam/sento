@@ -1,8 +1,7 @@
 .card {
-  position: relative;
+  perspective: 1000px;
   height: 200px;
   cursor: pointer;
-  perspective: 1000px;
   outline: none;
 }
 
@@ -10,7 +9,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
   transform-style: preserve-3d;
 }
 
@@ -22,104 +21,148 @@
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
-  border-radius: 12px;
-  border: 1px solid var(--mist-line);
-  background: var(--cream);
-  padding: 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(58, 95, 94, 0.25);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 14px;
   text-align: center;
+  background: var(--cream);
+  box-shadow: 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
+}
+
+.front {
+  /* fffdf6: mockup's own hardcoded gradient start, not a defined token */
+  background: linear-gradient(160deg, #fffdf6, var(--cream));
 }
 
 .back {
   transform: rotateY(180deg);
+  background: linear-gradient(160deg, var(--teal-mid), var(--teal-deep));
+  color: var(--sky);
   justify-content: flex-start;
-  align-items: stretch;
-  text-align: left;
-}
-
-.backScroll {
+  padding-top: 26px;
+  /* not in the mockup — kept as a robustness net for future longer content;
+     invisible unless a face actually overflows its fixed 200px height */
   overflow-y: auto;
-  max-height: 100%;
-  padding-right: 4px;
 }
 
-.masteredBtn {
+.tag {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--mist-line);
-  background: transparent;
-  color: transparent;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  transition: all 0.15s ease;
+  top: 8px;
+  left: 10px;
+  font-size: 9px;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.masteredBtn:hover {
-  border-color: var(--gold);
-}
-
-.masteredBtn.mastered {
-  background: var(--good);
-  border-color: var(--good);
-  color: var(--cream);
-}
-
-.prompt {
+.kanjiBig {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 44px;
+  line-height: 1;
   color: var(--ink);
+}
+
+.yomi {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--mist-line);
+  line-height: 1.6;
+}
+
+.yomi b {
+  color: var(--gold);
+  font-weight: 600;
+  margin-right: 3px;
+}
+
+.jp {
+  font-family: var(--font-display);
+  font-size: 23px;
   line-height: 1.2;
+  color: var(--ink);
+  word-break: keep-all;
 }
 
 .reading {
-  margin-top: 8px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  color: var(--mist);
+  font-size: 11px;
+  color: var(--mist-line);
+  margin-top: 6px;
+  letter-spacing: 0.02em;
 }
 
-.answer {
+.meaning {
+  font-family: var(--font-body);
   font-size: 15px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--gold-light);
   margin-bottom: 10px;
 }
 
-.example {
-  border-top: 1px dashed var(--mist-line);
-  padding-top: 10px;
-}
-
-.exampleJp {
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  color: var(--ink);
-}
-
-.exampleReading {
-  font-size: 11px;
-  color: var(--mist);
-  margin-top: 2px;
-}
-
-.exampleEn {
-  font-size: 12px;
-  color: var(--mist);
+.meaningReading {
+  /* 9fc2c0: mockup's own hardcoded value, not a defined token */
+  font-size: 10.5px;
+  color: #9fc2c0;
   margin-top: 6px;
 }
 
-.exampleFallback {
-  font-size: 12px;
-  color: var(--mist);
+.example {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(240, 211, 143, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.exampleWord {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: var(--sky);
+}
+
+.exampleReading {
+  /* 9fc2c0: mockup's own hardcoded value, not a defined token */
+  font-size: 10px;
+  color: #9fc2c0;
+  margin-top: 2px;
+}
+
+.exampleMeaning {
+  /* cfe6e4: mockup's own hardcoded value, not a defined token */
+  font-size: 11px;
+  color: #cfe6e4;
+  margin-top: 4px;
   font-style: italic;
-  border-top: 1px dashed var(--mist-line);
-  padding-top: 10px;
+}
+
+.markBtn {
+  position: absolute;
+  bottom: 7px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--mist-line);
+  background: transparent;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--mist-line);
+}
+
+.markBtn.on {
+  background: var(--good);
+  border-color: var(--good);
+  color: #fff;
+}
+
+.markBtnBack {
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.7);
 }

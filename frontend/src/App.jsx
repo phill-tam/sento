@@ -33,6 +33,8 @@ function toFlashcardItems(lineId, entries) {
       lineId,
       prompt: e.character,
       reading: [e.onyomi, e.kunyomi].filter(Boolean).join(", "),
+      onyomi: e.onyomi,
+      kunyomi: e.kunyomi,
       answer: e.meaning_en,
       example: e.compound_word
         ? { jp: e.compound_word, reading: e.compound_reading, en: e.compound_meaning_en }
