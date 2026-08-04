@@ -4,29 +4,34 @@ import styles from "../../styles/QuizCard.module.css";
  * Single quiz question — 4 shuffled options (question.options), feedback
  * shown once phase is "answered". Purely controlled: useQuiz (owned by
  * StudyPage) drives phase/selectedOptionId, this component only renders
- * and reports clicks via onAnswer.
+ * and reports clicks via onAnswer/onNext.
  *
- * question: { item: FlashcardItem, options: FlashcardItem[] } — from
- * useQuiz's currentQuestion. Correct answer is question.item.id.
- * phase: "answering" | "answered" — QuizCard doesn't render for idle/complete.
+ * score/questionNumber/totalQuestions: score reflects fully-graded
+ * questions only — the current question counts toward the displayed
+ * denominator once it's answered, not before (matches the running-tally
+ * UX in the mockup, e.g. "Score: 0/2" while sitting on question 3).
  */
 export default function QuizCard({
   question,
   phase,
   selectedOptionId,
   onAnswer,
+  onNext,
   questionNumber,
   totalQuestions,
+  score,
 }) {
   if (!question) return null;
 
   const { item, options } = question;
   const isAnswered = phase === "answered";
+  const isLastQuestion = questionNumber === totalQuestions;
+  const answeredCount = isAnswered ? questionNumber : questionNumber - 1;
 
   return (
     <div className={styles.card}>
-      <div className={styles.progress}>
-        Question {questionNumber} / {totalQuestions}
+      <div className={styles.header}>
+        Stop {questionNumber} of {totalQuestions} — what does this mean?
       </div>
 
       <div className={styles.prompt}>
@@ -57,6 +62,17 @@ export default function QuizCard({
             </button>
           );
         })}
+      </div>
+
+      <div className={styles.footer}>
+        <div className={styles.score}>
+          Score: {score} / {answeredCount}
+        </div>
+        {isAnswered && (
+          <button type="button" className={styles.nextBtn} onClick={onNext}>
+            {isLastQuestion ? "See results" : "Next question"}
+          </button>
+        )}
       </div>
     </div>
   );
