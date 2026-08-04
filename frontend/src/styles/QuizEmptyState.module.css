@@ -1,0 +1,8 @@
+.wrapper {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px dashed var(--mist-line);
+  color: var(--mist-line);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+}
