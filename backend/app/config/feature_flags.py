@@ -10,6 +10,7 @@ class FeatureFlags(BaseSettings):
     )
 
     content_management: bool = False
+    sentence_generator: bool = False
 
 
 flags = FeatureFlags()
