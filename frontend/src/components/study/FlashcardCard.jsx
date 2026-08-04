@@ -11,8 +11,25 @@ import styles from "../../styles/FlashcardCard.module.css";
  * string so the front face can label them (mockup's yomiHtml: 音/訓 prefixes).
  * categoryLabel: active category's display label — mockup's .card-tag shows
  * this (theme.en) on every card in the grid.
+ *
+ * selectionMode (epic 004): when true, the ✓ button means "select for quiz"
+ * instead of "toggle mastered" — isSelected/onToggleSelect drive it instead
+ * of isMastered/onToggleMastered. The mastered badge keeps rendering off
+ * isMastered regardless of mode; the two are structurally independent.
+ * selectDisabled: true when the quiz selection cap (20) is reached and this
+ * card isn't already selected — never disables an already-selected card,
+ * so deselecting to free a slot always stays possible.
  */
-export default function FlashcardCard({ item, categoryLabel, isMastered, onToggleMastered }) {
+export default function FlashcardCard({
+  item,
+  categoryLabel,
+  isMastered,
+  onToggleMastered,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect,
+  selectDisabled = false,
+}) {
   const [isFlipped, setIsFlipped] = useState(false);
   const isKanji = item.lineId === "kanji";
 
@@ -22,8 +39,22 @@ export default function FlashcardCard({ item, categoryLabel, isMastered, onToggl
 
   function handleMarkClick(e) {
     e.stopPropagation();
-    onToggleMastered(item.id);
+    if (selectionMode) {
+      if (selectDisabled) return;
+      onToggleSelect(item.id);
+    } else {
+      onToggleMastered(item.id);
+    }
   }
+
+  const markOn = selectionMode ? isSelected : isMastered;
+  const markLabel = selectionMode
+    ? isSelected
+      ? "Deselect for quiz"
+      : "Select for quiz"
+    : isMastered
+    ? "Mark as not mastered"
+    : "Mark as mastered";
 
   return (
     <div
@@ -41,6 +72,7 @@ export default function FlashcardCard({ item, categoryLabel, isMastered, onToggl
       <div className={styles.inner}>
         <div className={`${styles.face} ${styles.front}`}>
           <span className={styles.tag}>{categoryLabel}</span>
+          {isMastered && <span className={styles.masteredBadge}>Mastered</span>}
 
           {isKanji ? (
             <>
@@ -70,10 +102,13 @@ export default function FlashcardCard({ item, categoryLabel, isMastered, onToggl
 
           <button
             type="button"
-            className={`${styles.markBtn} ${isMastered ? styles.on : ""}`}
+            className={`${styles.markBtn} ${markOn ? styles.on : ""} ${
+              selectionMode && selectDisabled ? styles.disabled : ""
+            }`}
             onClick={handleMarkClick}
-            aria-label={isMastered ? "Mark as not mastered" : "Mark as mastered"}
-            aria-pressed={isMastered}
+            aria-label={markLabel}
+            aria-pressed={markOn}
+            disabled={selectionMode && selectDisabled}
           >
             ✓
           </button>
@@ -96,10 +131,13 @@ export default function FlashcardCard({ item, categoryLabel, isMastered, onToggl
 
           <button
             type="button"
-            className={`${styles.markBtn} ${styles.markBtnBack} ${isMastered ? styles.on : ""}`}
+            className={`${styles.markBtn} ${styles.markBtnBack} ${markOn ? styles.on : ""} ${
+              selectionMode && selectDisabled ? styles.disabled : ""
+            }`}
             onClick={handleMarkClick}
-            aria-label={isMastered ? "Mark as not mastered" : "Mark as mastered"}
-            aria-pressed={isMastered}
+            aria-label={markLabel}
+            aria-pressed={markOn}
+            disabled={selectionMode && selectDisabled}
           >
             ✓
           </button>
