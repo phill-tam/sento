@@ -2,6 +2,12 @@ import ModeToggle from "../components/layouts/ModeToggle";
 import FlashcardGrid from "../components/study/FlashcardGrid";
 import styles from "../styles/StudyPage.module.css";
 
+/**
+ * quizPhase/selectedIds/onToggleSelect/onStartQuiz (epic 004): owned by
+ * App.jsx, threaded straight through. Wires the "selecting" phase only —
+ * FlashcardGrid switches into selection mode; "active"/"complete" phases
+ * (QuizCard/QuizSummary) are wired in Step 13.
+ */
 export default function StudyPage({
   activeLine,
   activeCategoryId,
@@ -13,6 +19,10 @@ export default function StudyPage({
   isLoading,
   mode,
   onModeChange,
+  quizPhase = "idle",
+  selectedIds = new Set(),
+  onToggleSelect,
+  onStartQuiz,
 }) {
   const categoryLabel = activeCategoryId
     ? activeCategoryId
@@ -20,6 +30,8 @@ export default function StudyPage({
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ")
     : "Select a category";
+
+  const isSelecting = quizPhase === "selecting";
 
   return (
     <div className={styles.page}>
@@ -34,7 +46,14 @@ export default function StudyPage({
             <span>{items.length} items</span>
           </p>
         </div>
-        <ModeToggle mode={mode} onModeChange={onModeChange} onGeneratorClick={() => {}} />
+        <ModeToggle
+          mode={mode}
+          onModeChange={onModeChange}
+          onGeneratorClick={() => {}}
+          quizPhase={quizPhase}
+          selectedCount={selectedIds.size}
+          onStartQuiz={onStartQuiz}
+        />
       </div>
 
       <div className={styles.progressStrip}>
@@ -54,6 +73,9 @@ export default function StudyPage({
           categoryLabel={categoryLabel}
           mastered={mastered}
           onToggleMastered={onToggleMastered}
+          selectionMode={isSelecting}
+          selectedIds={selectedIds}
+          onToggleSelect={onToggleSelect}
         />
       )}
     </div>

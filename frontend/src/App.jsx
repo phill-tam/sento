@@ -80,7 +80,10 @@ function App() {
   const [activeLineId, setActiveLineId] = useState(null);
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+ 
+  const [quizPhase, setQuizPhase] = useState("idle");
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
@@ -157,6 +160,32 @@ function App() {
     });
   }
 
+  function toggleSelectItem(itemId) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }
+
+  // Replaces the bare `setMode` previously passed to StudyPage — switching
+  // into "quiz" starts the selecting phase with a clean slate; switching
+  // back to "study" clears it. Navigation-guard check (Step 12) wraps this
+  // later; for now it always proceeds.
+  function handleModeChange(nextMode) {
+    setMode(nextMode);
+    setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
+    setSelectedIds(new Set());
+  }
+
+  function handleStartQuiz() {
+    setQuizPhase("active");
+  }
+
   function selectCategory(lineId, categoryId) {
     setActiveLineId(lineId);
     setActiveCategoryId(categoryId);
@@ -223,7 +252,11 @@ function App() {
           progressPct={progressPct}
           isLoading={isLoadingStudy}
           mode={mode}
-          onModeChange={setMode}
+          onModeChange={handleModeChange}
+          quizPhase={quizPhase}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelectItem}
+          onStartQuiz={handleStartQuiz}
         />
       ) : (
         <div className="platform-head">
