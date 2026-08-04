@@ -7,10 +7,9 @@ import styles from "../../styles/ModeToggle.module.css";
  * (`onGeneratorClick`), styled as a toggle button but semantically a link out.
  *
  * quizPhase/selectedCount/onStartQuiz (epic 004): when quizPhase is
- * "selecting", the Quiz button becomes "Start Quiz (n/20)" and calls
- * onStartQuiz instead of onModeChange — disabled below minSelection.
- * ModeToggle stays generic: it has no idea what a "quiz" is beyond these
- * props, matching the existing fully-controlled component pattern.
+ * "selecting", the Quiz button becomes "Start Quiz (n/20)" with two
+ * visual sub-states — dimmed/pending below minSelection, gold/ready at
+ * or above it — so the count itself signals readiness without extra text.
  */
 export default function ModeToggle({
   mode,
@@ -23,6 +22,7 @@ export default function ModeToggle({
   onStartQuiz,
 }) {
   const isSelecting = quizPhase === "selecting";
+  const quizReady = selectedCount >= minSelection;
 
   return (
     <div className={styles.modeToggle}>
@@ -36,8 +36,8 @@ export default function ModeToggle({
       {isSelecting ? (
         <button
           type="button"
-          className={styles.modeBtn}
-          disabled={selectedCount < minSelection}
+          className={`${styles.modeBtn} ${quizReady ? styles.quizReady : styles.quizPending}`}
+          disabled={!quizReady}
           onClick={onStartQuiz}
         >
           Start Quiz ({selectedCount}/{selectionCap})

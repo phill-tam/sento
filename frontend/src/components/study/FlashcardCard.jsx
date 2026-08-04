@@ -58,7 +58,9 @@ export default function FlashcardCard({
 
   return (
     <div
-      className={`${styles.card} ${isFlipped ? styles.flipped : ""}`}
+      className={`${styles.card} ${isFlipped ? styles.flipped : ""} ${
+        selectionMode ? styles.selectable : ""
+      } ${selectionMode && isSelected ? styles.selected : ""}`}
       onClick={handleFlip}
       role="button"
       tabIndex={0}

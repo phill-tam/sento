@@ -42,6 +42,7 @@ function QuizRunner({ selectedItems, categoryPool, onFinish }) {
       onNext={quiz.next}
       questionNumber={quiz.questionNumber}
       totalQuestions={quiz.totalQuestions}
+      score={quiz.score}
     />
   );
 }
