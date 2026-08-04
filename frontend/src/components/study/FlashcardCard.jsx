@@ -41,6 +41,7 @@ export default function FlashcardCard({ item, categoryLabel, isMastered, onToggl
       <div className={styles.inner}>
         <div className={`${styles.face} ${styles.front}`}>
           <span className={styles.tag}>{categoryLabel}</span>
+          {isMastered && <span className={styles.masteredBadge}>Mastered</span>}
 
           {isKanji ? (
             <>
