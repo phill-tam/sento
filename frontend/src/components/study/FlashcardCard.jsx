@@ -2,69 +2,107 @@ import { useState } from "react";
 import styles from "../../styles/FlashcardCard.module.css";
 
 /**
- * One flip card for any content line, driven by a normalized item shape —
- * StudyPage (step 9) is responsible for mapping raw entries into this
- * shape per line:
- *   kanji:   example = { jp: compound_word, reading: compound_reading, en: compound_meaning_en }
- *   vocab:   example = null (vocab entries have no example sentence field)
- *   grammar: example = { jp: example_jp, reading: example_reading, en: example_en }
+ * Flip card matching sento-ui-mockup.html's .card/.card-face design exactly
+ * (colors, sizes, tag/mark-btn placement — see mockup lines 153-183).
  *
- * item: { id, lineId, prompt, reading, answer, example: {jp, reading, en} | null }
- * isMastered / onToggleMastered: lifted from useMastered (step 5) by StudyPage.
- *
- * Back face is a fixed max-height with internal scroll — grammar's longest
- * seeded example (39 chars EN / 19 chars JP) fits without scrolling today,
- * but this keeps future longer content (N4+) from breaking the grid layout.
+ * item: { id, lineId, prompt, reading, answer, example: {jp, reading, en} | null,
+ *          onyomi?, kunyomi? }
+ * onyomi/kunyomi are kanji-only, kept separate from the combined `reading`
+ * string so the front face can label them (mockup's yomiHtml: 音/訓 prefixes).
+ * categoryLabel: active category's display label — mockup's .card-tag shows
+ * this (theme.en) on every card in the grid.
  */
-export default function FlashcardCard({ item, isMastered, onToggleMastered }) {
+export default function FlashcardCard({ item, categoryLabel, isMastered, onToggleMastered }) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const isKanji = item.lineId === "kanji";
+
+  function handleFlip() {
+    setIsFlipped((prev) => !prev);
+  }
+
+  function handleMarkClick(e) {
+    e.stopPropagation();
+    onToggleMastered(item.id);
+  }
 
   return (
     <div
       className={`${styles.card} ${isFlipped ? styles.flipped : ""}`}
-      onClick={() => setIsFlipped((prev) => !prev)}
+      onClick={handleFlip}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          setIsFlipped((prev) => !prev);
+          handleFlip();
         }
       }}
     >
       <div className={styles.inner}>
-        <div className={styles.face}>
+        <div className={`${styles.face} ${styles.front}`}>
+          <span className={styles.tag}>{categoryLabel}</span>
+
+          {isKanji ? (
+            <>
+              <div className={styles.kanjiBig}>{item.prompt}</div>
+              <div className={styles.yomi}>
+                {item.onyomi && (
+                  <>
+                    <b>音</b>
+                    {item.onyomi}
+                  </>
+                )}
+                {item.onyomi && item.kunyomi && "\u3000"}
+                {item.kunyomi && (
+                  <>
+                    <b>訓</b>
+                    {item.kunyomi}
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.jp}>{item.prompt}</div>
+              {item.reading && <div className={styles.reading}>{item.reading}</div>}
+            </>
+          )}
+
           <button
             type="button"
-            className={`${styles.masteredBtn} ${isMastered ? styles.mastered : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleMastered(item.id);
-            }}
+            className={`${styles.markBtn} ${isMastered ? styles.on : ""}`}
+            onClick={handleMarkClick}
             aria-label={isMastered ? "Mark as not mastered" : "Mark as mastered"}
             aria-pressed={isMastered}
           >
             ✓
           </button>
-          <div className={styles.prompt}>{item.prompt}</div>
-          {item.reading && <div className={styles.reading}>{item.reading}</div>}
         </div>
 
         <div className={`${styles.face} ${styles.back}`}>
-          <div className={styles.backScroll}>
-            <div className={styles.answer}>{item.answer}</div>
-            {item.example ? (
-              <div className={styles.example}>
-                <div className={styles.exampleJp}>{item.example.jp}</div>
-                {item.example.reading && (
-                  <div className={styles.exampleReading}>{item.example.reading}</div>
-                )}
-                <div className={styles.exampleEn}>{item.example.en}</div>
-              </div>
-            ) : (
-              <div className={styles.exampleFallback}>No example available</div>
-            )}
-          </div>
+          <div className={styles.meaning}>{item.answer}</div>
+
+          {item.example ? (
+            <div className={styles.example}>
+              <div className={styles.exampleWord}>{item.example.jp}</div>
+              {item.example.reading && (
+                <div className={styles.exampleReading}>{item.example.reading}</div>
+              )}
+              <div className={styles.exampleMeaning}>{item.example.en}</div>
+            </div>
+          ) : (
+            item.reading && <div className={styles.meaningReading}>{item.reading}</div>
+          )}
+
+          <button
+            type="button"
+            className={`${styles.markBtn} ${styles.markBtnBack} ${isMastered ? styles.on : ""}`}
+            onClick={handleMarkClick}
+            aria-label={isMastered ? "Mark as not mastered" : "Mark as mastered"}
+            aria-pressed={isMastered}
+          >
+            ✓
+          </button>
         </div>
       </div>
     </div>
