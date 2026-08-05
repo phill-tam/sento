@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { FEATURE_FLAGS } from "./config/featureFlags";
-import { getGrammar, getKanji, getVocab } from "./api";
+import { 
+  getGrammar,
+  getKanji,
+  getVocab,
+  createSentenceFolder,
+  deleteSentence,
+  deleteSentenceFolder,
+  getSentenceFolders,
+  getSentences,
+  moveSentence,
+  renameSentenceFolder,
+} from "./api";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
@@ -9,6 +20,7 @@ import AppShell from "./components/layouts/AppShell";
 import ModeToggle from "./components/layouts/ModeToggle";
 import CategoryTree from "./components/layouts/CategoryTree";
 import IconRail from "./components/layouts/IconRail";
+import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
@@ -110,6 +122,14 @@ function App() {
   const [generatorSelectedIds, setGeneratorSelectedIds] = useState(new Set());
   const [generatorWorkflowPhase, setGeneratorWorkflowPhase] = useState("browsing");
   const [generatorSourceItemRefs, setGeneratorSourceItemRefs] = useState([]);
+
+  // Folder + saved-sentence data, lifted here for the same reason
+  // dataByLine is: the sidebar slot renders in App.jsx, so whatever it
+  // displays (SentenceFolderTree, here) needs its data owned here too.
+  const [generatorFolders, setGeneratorFolders] = useState([]);
+  const [activeSentenceFolderId, setActiveSentenceFolderId] = useState(null);
+  const [generatorSentences, setGeneratorSentences] = useState([]);
+  const [isLoadingGeneratorSentences, setIsLoadingGeneratorSentences] = useState(true);
 
   // holds a closure for whatever navigation action triggered the confirm
   // dialog — null means the dialog is closed.
@@ -219,6 +239,44 @@ function App() {
    setGeneratorSourceItemRefs([]);
  }
 
+  async function loadGeneratorFolders() {
+    const data = await getSentenceFolders();
+    setGeneratorFolders(data);
+  }
+
+  async function loadGeneratorSentences(folderId) {
+    setIsLoadingGeneratorSentences(true);
+    const data = await getSentences(folderId ? { folderId } : undefined);
+    setGeneratorSentences(data);
+    setIsLoadingGeneratorSentences(false);
+  }
+
+  async function handleCreateFolder(name) {
+    await createSentenceFolder(name);
+    await loadGeneratorFolders();
+  }
+
+  async function handleRenameFolder(folderId, name) {
+    await renameSentenceFolder(folderId, name);
+    await loadGeneratorFolders();
+  }
+
+  async function handleDeleteFolder(folderId) {
+    await deleteSentenceFolder(folderId);
+    if (activeSentenceFolderId === folderId) setActiveSentenceFolderId(null);
+    await loadGeneratorFolders();
+  }
+
+  async function handleRelocateSentence(sentenceId, folderId) {
+    await moveSentence(sentenceId, folderId);
+    await loadGeneratorSentences(activeSentenceFolderId);
+  }
+
+  async function handleDeleteSentence(sentenceId) {
+    await deleteSentence(sentenceId);
+    await loadGeneratorSentences(activeSentenceFolderId);
+  }
+
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
@@ -258,6 +316,18 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!sentenceGeneratorEnabled) return;
+    loadGeneratorFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!sentenceGeneratorEnabled) return;
+    loadGeneratorSentences(activeSentenceFolderId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sentenceGeneratorEnabled, activeSentenceFolderId]);
+
   const tree = useMemo(
     () =>
       toStudyTreeShape(dataByLine, { masteredByLine, openLineIds, activeLineId, activeCategoryId }),
@@ -282,6 +352,23 @@ function App() {
     return true;
   });
   const showStudySidebar = studyFlashcardsEnabled && view === "study";
+  const showGeneratorSidebar = sentenceGeneratorEnabled && view === "generate";
+
+  // Approximated the same way GeneratePage previously did: exact for
+  // whichever folder is currently open (activeSentenceFolderId), since
+  // that's the only folder SentenceFolderTree's delete-gate can ever act
+  // on (delete UI only appears for the open, empty folder). See original
+  // Step 15 commit note — /sentence-folders still doesn't return counts.
+  const generatorFolderCounts = Object.fromEntries(
+    generatorFolders.map((f) => [
+      f.id,
+      f.id === activeSentenceFolderId ? generatorSentences.length : 1,
+    ])
+  );
+  const generatorFoldersWithCounts = generatorFolders.map((f) => ({
+    ...f,
+    sentenceCount: generatorFolderCounts[f.id],
+  }));
 
   function toggleLine(lineId) {
     guardNavigation(() => {
@@ -378,6 +465,15 @@ function App() {
               ) : (
                 <CategoryTree categories={tree} onToggleCategory={toggleLine} onSelectItem={selectCategory} />
               )
+            ) : showGeneratorSidebar ? (
+              <SentenceFolderTree
+                folders={generatorFoldersWithCounts}
+                activeFolderId={activeSentenceFolderId}
+                onSelectFolder={setActiveSentenceFolderId}
+                onCreateFolder={handleCreateFolder}
+                onRenameFolder={handleRenameFolder}
+                onDeleteFolder={handleDeleteFolder}
+              />
             ) : (
               <CategoryTree categories={[]} onToggleCategory={() => {}} onSelectItem={() => {}} />
             )}
@@ -416,6 +512,11 @@ function App() {
             workflowPhase={generatorWorkflowPhase}
             sourceItemRefs={generatorSourceItemRefs}
             onRunComplete={handleGeneratorRunComplete}
+            folders={generatorFolders}
+            sentences={generatorSentences}
+            isLoadingSentences={isLoadingGeneratorSentences}
+            onRelocateSentence={handleRelocateSentence}
+            onDeleteSentence={handleDeleteSentence}          
           />
 
         ) : (
