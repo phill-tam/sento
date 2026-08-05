@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # services/sentence_generation_service.py for the switch itself.
     environment: str = "development"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.5-flash"
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-5"
 
