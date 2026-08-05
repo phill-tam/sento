@@ -59,14 +59,15 @@ export function useSentenceGenerator(sourceItemRefs) {
     [sourceItemRefs, hasResults]
   );
 
-  const keepCandidate = useCallback((tempId) => {
-    setCandidates((prev) => {
-      const target = prev.find((c) => c._tempId === tempId);
-      if (!target) return prev;
-      setKeptSentences((keptPrev) => [...keptPrev, target]);
-      return prev.filter((c) => c._tempId !== tempId);
-    });
-  }, []);
+  const keepCandidate = useCallback(
+    (tempId) => {
+      const target = candidates.find((c) => c._tempId === tempId);
+      if (!target) return;
+      setCandidates((prev) => prev.filter((c) => c._tempId !== tempId));
+      setKeptSentences((prev) => [...prev, target]);
+    },
+    [candidates]
+  );
 
   const discardCandidate = useCallback((tempId) => {
     setCandidates((prev) => prev.filter((c) => c._tempId !== tempId));
