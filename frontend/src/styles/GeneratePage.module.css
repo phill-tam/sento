@@ -12,20 +12,6 @@
   color: var(--ink);
 }
 
-.browseLayout {
-  display: flex;
-  gap: 28px;
-}
-
-.folderPane {
-  flex: 0 0 260px;
-}
-
-.listPane {
-  flex: 1;
-  min-width: 0;
-}
-
 .loading {
   color: var(--mist);
   font-family: var(--font-body);
