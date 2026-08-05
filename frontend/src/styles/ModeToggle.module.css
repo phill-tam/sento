@@ -86,3 +86,22 @@
 .modeBtn.quizReady:hover {
   background: var(--gold-light);
 }
+
+/* Sentence Generator selecting phase (epic 005) — same pending/ready
+   two-state treatment as Quiz's, layered on top of .modeBtnAi so the
+   glow border stays even while the button is transformed. */
+.modeBtn.generatorPending {
+  opacity: 0.55;
+  filter: blur(0.3px);
+  cursor: not-allowed;
+}
+
+.modeBtn.generatorPending:disabled {
+  opacity: 0.55;
+}
+
+.modeBtn.generatorReady {
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 0 3px rgba(212, 168, 74, 0.22);
+}

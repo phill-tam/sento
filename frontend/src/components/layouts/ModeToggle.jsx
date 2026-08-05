@@ -4,12 +4,21 @@ import styles from "../../styles/ModeToggle.module.css";
  * Shared Study / Quiz / Sentence Generator toggle.
  * Study and Quiz are page-scoped view modes (controlled via `mode` + `onModeChange`).
  * Generator is not a mode of the current page — it's a navigation action
- * (`onGeneratorClick`), styled as a toggle button but semantically a link out.
+ * (`onGeneratorClick`) UNLESS generatorPhase is "selecting", in which case
+ * it behaves like Quiz's own selecting phase: the button transforms into
+ * a live "Continue (n/5)" counter instead of firing onGeneratorClick.
  *
  * quizPhase/selectedCount/onStartQuiz (epic 004): when quizPhase is
  * "selecting", the Quiz button becomes "Start Quiz (n/20)" with two
  * visual sub-states — dimmed/pending below minSelection, gold/ready at
  * or above it — so the count itself signals readiness without extra text.
+ *
+ * generatorPhase/generatorSelectedCount/onContinueGenerator (epic 005):
+ * same pending/ready treatment, parameterized with the Generator's own
+ * cap (default 5) and minimum (default 2) instead of Quiz's 20/4. Kept
+ * as fully separate props from Quiz's — selecting for Quiz and selecting
+ * for Generator are mutually exclusive phases owned by App.jsx, never
+ * simultaneously active, but the two aren't the same state machine.
  */
 export default function ModeToggle({
   mode,
@@ -20,9 +29,17 @@ export default function ModeToggle({
   selectionCap = 20,
   minSelection = 4,
   onStartQuiz,
+  generatorPhase = "idle",
+  generatorSelectedCount = 0,
+  generatorSelectionCap = 5,
+  generatorMinSelection = 2,
+  onContinueGenerator,
 }) {
   const isSelecting = quizPhase === "selecting";
   const quizReady = selectedCount >= minSelection;
+
+  const isGeneratorSelecting = generatorPhase === "selecting";
+  const generatorReady = generatorSelectedCount >= generatorMinSelection;
 
   return (
     <div className={styles.modeToggle}>
@@ -51,14 +68,28 @@ export default function ModeToggle({
           Quiz me
         </button>
       )}
-      <button
-        type="button"
-        className={`${styles.modeBtn} ${styles.modeBtnAi}`}
-        title="AI-powered — generates a sentence using your studied items"
-        onClick={onGeneratorClick}
-      >
-        ✨ Sentence Generator
-      </button>
+
+      {isGeneratorSelecting ? (
+        <button
+          type="button"
+          className={`${styles.modeBtn} ${styles.modeBtnAi} ${
+            generatorReady ? styles.generatorReady : styles.generatorPending
+          }`}
+          disabled={!generatorReady}
+          onClick={onContinueGenerator}
+        >
+          Continue ({generatorSelectedCount}/{generatorSelectionCap})
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={`${styles.modeBtn} ${styles.modeBtnAi}`}
+          title="AI-powered — generates a sentence using your studied items"
+          onClick={onGeneratorClick}
+        >
+          ✨ Sentence Generator
+        </button>
+      )}
     </div>
   );
 }
