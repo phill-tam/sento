@@ -49,6 +49,7 @@ function QuizRunner({ selectedItems, categoryPool, onFinish }) {
 
 export default function StudyPage({
   activeLine,
+  activeLineId,
   activeCategoryId,
   items,
   mastered,
@@ -92,9 +93,25 @@ export default function StudyPage({
   // never both select at once, so this is a plain either/or, not a merge.
   const activeSelectionMode = isSelecting ? "quiz" : isGeneratorSelecting ? "generator" : null;
 
+  // selectedIds is now a global, composite-key Set ("lineId:itemId") —
+  // FlashcardGrid stays generic and only ever deals in bare ids for
+  // whichever line is currently on screen, so this derives that subset.
+  // See App.jsx's makeSelectionKey / Step 1 decision note.
+  const quizSelectedIdsForLine = useMemo(() => {
+    const prefix = `${activeLineId}:`;
+    const bareIds = [...selectedIds]
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.slice(prefix.length));
+    return new Set(bareIds);
+  }, [selectedIds, activeLineId]);
+
+  function handleToggleQuizSelect(itemId) {
+    onToggleSelect(activeLineId, itemId);
+  }
+
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedIds.has(item.id)),
-    [items, selectedIds]
+    () => items.filter((item) => quizSelectedIdsForLine.has(item.id)),
+    [items, quizSelectedIdsForLine]
   );
 
   // StudyPage owns the too-small-to-quiz decision; ModeToggle stays
@@ -160,7 +177,7 @@ export default function StudyPage({
           selectionMode={activeSelectionMode !== null}
           selectedIds={
             activeSelectionMode === "quiz"
-              ? selectedIds
+              ? quizSelectedIdsForLine
               : activeSelectionMode === "generator"
               ? generatorSelectedIds
               : new Set()
