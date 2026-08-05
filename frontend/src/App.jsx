@@ -174,17 +174,29 @@ function App() {
     setPendingAction(null);
   }
 
-  function toggleSelectItem(itemId) {
+  // Composite key "${itemType}:${itemId}" — itemType is one of
+  // "kanji"/"vocab"/"grammar" (matches CONTENT_LINES ids). Needed since
+  // epic 6 makes quiz selection span every content line simultaneously —
+  // a bare id can no longer disambiguate which table it belongs to.
+  // "sentence" is reserved here for Step 3, when SentenceList becomes
+  // selectable too; unused until then.
+  function makeSelectionKey(itemType, itemId) {
+    return `${itemType}:${itemId}`;
+  }
+
+  function toggleSelectItem(itemType, itemId) {
+    const key = makeSelectionKey(itemType, itemId);
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
         // cap enforced here too, not just via FlashcardGrid's selectDisabled —
         // this prevents the state update itself from ever exceeding the cap
-        // regardless of caller
+        // regardless of caller. Cap is global across all lines (epic 6),
+        // same Set, same check, no per-line accounting.
         if (next.size >= SELECTION_CAP) return prev;
-        next.add(itemId);
+        next.add(key);
       }
       return next;
     });
@@ -485,6 +497,7 @@ function App() {
         ) : view === "study" && studyFlashcardsEnabled ? (
           <StudyPage
             activeLine={activeLine}
+            activeLineId={activeLineId}
             activeCategoryId={activeCategoryId}
             items={activeItems}
             mastered={activeMastered}
