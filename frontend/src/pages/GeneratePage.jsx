@@ -1,15 +1,17 @@
+import { useMemo } from "react";
+import ModeToggle from "../components/layouts/ModeToggle";
+import QuizEmptyState from "../components/quiz/QuizEmptyState";
 import { useSentenceGenerator } from "../hooks/useSentenceGenerator";
 import SentenceList from "../components/generator/SentenceList";
 import GenerateConfigForm from "../components/generator/GenerateConfigForm";
 import SentenceReviewPanel from "../components/generator/SentenceReviewPanel";
 import styles from "../styles/GeneratePage.module.css";
 
-/**
- * Folder tree now lives in App.jsx's sidebar (fix: folder-tree-sidebar) —
- * this page only renders the main-panel content for each workflow phase.
- * folders/sentences/isLoadingSentences and the relocate/delete handlers
- * are owned by App.jsx and passed straight through.
- */
+// Display-only fallback for QuizEmptyState's copy, mirrors StudyPage's
+// own local constant — gating itself uses the canQuiz/quizPoolSize
+// props (global pool, owned by App.jsx).
+const MIN_QUIZ_ITEMS = 4;
+
 export default function GeneratePage({
   workflowPhase,
   sourceItemRefs,
@@ -19,6 +21,22 @@ export default function GeneratePage({
   isLoadingSentences,
   onRelocateSentence,
   onDeleteSentence,
+  // epic 6 — same ModeToggle-driving props StudyPage receives, so
+  // Study/Quiz/Generator work identically from this page too.
+  mode,
+  onModeChange,
+  canQuiz,
+  quizPoolSize = 0,
+  quizPhase = "idle",
+  selectedIds = new Set(),
+  onToggleSelect,
+  onStartQuiz,
+  generatorSelectionPhase = "idle",
+  generatorSelectedIds = new Set(),
+  generatorMinSelection = 2,
+  generatorSelectionCap = 5,
+  onGeneratorClick,
+  onContinueGenerator,
 }) {
   const generator = useSentenceGenerator(sourceItemRefs);
 
@@ -29,15 +47,54 @@ export default function GeneratePage({
       ? "configuring"
       : generator.phase;
 
+  const isQuizSelecting = quizPhase === "selecting";
+
+  // Bare sentence ids selected for quiz, derived from the global
+  // composite-key Set — same translation StudyPage does for its own
+  // line (see App.jsx's makeSelectionKey / Step 1 decision note).
+  const quizSelectedSentenceIds = useMemo(() => {
+    const prefix = "sentence:";
+    return new Set(
+      [...selectedIds].filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length))
+    );
+  }, [selectedIds]);
+
+  function handleToggleQuizSelectSentence(sentenceId) {
+    onToggleSelect("sentence", sentenceId);
+  }
+
   async function handleSave(folderId) {
     await generator.save(folderId);
     onRunComplete();
   }
 
+  const header = (
+    <div className={styles.header}>
+      <h1 className={styles.title}>Sentence Generator</h1>
+      {!canQuiz ? (
+        <QuizEmptyState itemCount={quizPoolSize} minRequired={MIN_QUIZ_ITEMS} />
+      ) : (
+        <ModeToggle
+          mode={mode}
+          onModeChange={onModeChange}
+          onGeneratorClick={onGeneratorClick}
+          quizPhase={quizPhase}
+          selectedCount={selectedIds.size}
+          onStartQuiz={onStartQuiz}
+          generatorPhase={generatorSelectionPhase}
+          generatorSelectedCount={generatorSelectedIds.size}
+          generatorSelectionCap={generatorSelectionCap}
+          generatorMinSelection={generatorMinSelection}
+          onContinueGenerator={onContinueGenerator}
+        />
+      )}
+    </div>
+  );
+
   if (runPhase === "browsing") {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>Sentence Generator</h1>
+        {header}
         {isLoadingSentences ? (
           <p className={styles.loading}>Loading…</p>
         ) : (
@@ -46,6 +103,10 @@ export default function GeneratePage({
             folders={folders}
             onRelocate={onRelocateSentence}
             onDelete={onDeleteSentence}
+            selectionMode={isQuizSelecting}
+            selectedIds={quizSelectedSentenceIds}
+            onToggleSelect={handleToggleQuizSelectSentence}
+            selectionCap={20}
           />
         )}
       </div>
@@ -55,7 +116,7 @@ export default function GeneratePage({
   if (runPhase === "configuring") {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>Sentence Generator</h1>
+        {header}
         <GenerateConfigForm
           sourceItemCount={sourceItemRefs.length}
           isGenerating={false}
@@ -67,7 +128,7 @@ export default function GeneratePage({
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Sentence Generator</h1>
+      {header}
       <SentenceReviewPanel
         candidates={generator.candidates}
         keptSentences={generator.keptSentences}
