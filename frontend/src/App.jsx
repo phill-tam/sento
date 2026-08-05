@@ -12,6 +12,7 @@ import IconRail from "./components/layouts/IconRail";
 import SearchResults from "./components/study/SearchResults";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
+import GeneratePage from "./pages/GeneratePage";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
 
@@ -207,6 +208,17 @@ function App() {
     setView("generate");
   }
 
+ // Called by GeneratePage once a save completes (Section 2 UX flow:
+ // "workflow phase resets; the page shows the saved sentences in the
+ // browsing view"). This is the only workflow-phase transition App.jsx
+ // needs to know about — guardNavigation treats configuring/generating/
+ // reviewing identically (generatorInProgress = phase !== "browsing"),
+ // so GeneratePage never needs to report intermediate sub-states back up.
+ function handleGeneratorRunComplete() {
+   setGeneratorWorkflowPhase("browsing");
+   setGeneratorSourceItemRefs([]);
+ }
+
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
@@ -400,13 +412,12 @@ function App() {
             onContinueGenerator={handleContinueGenerator}
           />
         ) : view === "generate" && sentenceGeneratorEnabled ? (
-          // TODO(Step 15): replace with the real GeneratePage, wired to
-          // useSentenceGenerator and generatorWorkflowPhase/
-          // generatorSourceItemRefs above.
-          <div className="platform-head">
-            <h1>Sentence Generator</h1>
-            <p>Coming soon.</p>
-          </div>
+          <GeneratePage
+            workflowPhase={generatorWorkflowPhase}
+            sourceItemRefs={generatorSourceItemRefs}
+            onRunComplete={handleGeneratorRunComplete}
+          />
+
         ) : (
           <div className="platform-head">
             <div>
