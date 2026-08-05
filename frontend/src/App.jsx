@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FEATURE_FLAGS } from "./config/featureFlags";
-import { 
+import {
   getGrammar,
   getKanji,
   getVocab,
@@ -14,6 +14,7 @@ import {
 } from "./api";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
+import { useQuiz } from "./hooks/useQuiz";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
 import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
 import AppShell from "./components/layouts/AppShell";
@@ -22,6 +23,8 @@ import CategoryTree from "./components/layouts/CategoryTree";
 import IconRail from "./components/layouts/IconRail";
 import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
+import QuizCard from "./components/quiz/QuizCard";
+import QuizSummary from "./components/quiz/QuizSummary";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
@@ -36,19 +39,19 @@ const VIEWS = [
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
 
-// Quiz selection cap (epic 004) — enforced in toggleSelectItem below,
-// independent of FlashcardGrid's own UI-level selectDisabled check.
 const SELECTION_CAP = 20;
+// epic 6 — quiz eligibility is now global (all lines + sentences), not
+// per-category, so this gates the whole pool, not one category's items.
+const MIN_QUIZ_ITEMS = 4;
 
-// Sentence Generator selection cap (epic 5) — distinct from Quiz's 20/4,
-// per the epic's explicit "minimum 2, maximum 5" decision.
 const GENERATOR_SELECTION_CAP = 5;
 const GENERATOR_MIN_SELECTION = 2;
 
 /**
  * Maps one line's raw entries into FlashcardCard's normalized item shape.
- * Moved here from StudyPage.jsx along with the rest of study state — still
- * local, App.jsx is the only caller.
+ * Unchanged from epic 3/5 — still used both for the active category's
+ * display items AND (epic 6) as an input to the global quiz pool below,
+ * called once per line over ALL of that line's entries in the latter case.
  */
 function toFlashcardItems(lineId, entries) {
   if (lineId === "kanji") {
@@ -87,6 +90,61 @@ function toFlashcardItems(lineId, entries) {
   }));
 }
 
+/**
+ * Maps saved GeneratedSentence rows into the same shared quiz-item shape
+ * (epic 6) — lineId "sentence" is what useQuiz's buildOptions branches on
+ * to resolve distractors from source_item_refs instead of same-line peers.
+ */
+function toSentenceQuizItems(sentences) {
+  return sentences.map((s) => ({
+    id: s.id,
+    lineId: "sentence",
+    prompt: s.jp_text,
+    reading: s.reading,
+    answer: s.meaning_en,
+    example: null,
+    source_item_refs: s.source_item_refs,
+  }));
+}
+
+/**
+ * Active-quiz view, promoted from StudyPage (epic 6) so it renders
+ * regardless of which page (Study or Generate) the quiz was launched
+ * from — App.jsx intercepts quizPhase === "active" above the view
+ * switch, so StudyPage/GeneratePage never mount while a quiz is active.
+ */
+function QuizRunner({ selectedItems, globalPool, onFinish }) {
+  const quiz = useQuiz(selectedItems, globalPool);
+
+  useEffect(() => {
+    quiz.start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (quiz.phase === "complete") {
+    return (
+      <QuizSummary score={quiz.score} totalQuestions={quiz.totalQuestions} onFinish={onFinish} />
+    );
+  }
+
+  if (quiz.phase === "idle") {
+    return null;
+  }
+
+  return (
+    <QuizCard
+      question={quiz.currentQuestion}
+      phase={quiz.phase}
+      selectedOptionId={quiz.selectedOptionId}
+      onAnswer={quiz.answer}
+      onNext={quiz.next}
+      questionNumber={quiz.questionNumber}
+      totalQuestions={quiz.totalQuestions}
+      score={quiz.score}
+    />
+  );
+}
+
 function App() {
   const [mode, setMode] = useState("study");
   const [view, setView] = useState("study");
@@ -96,9 +154,6 @@ function App() {
   const studyFlashcardsEnabled = FEATURE_FLAGS.FEATURE_STUDY_FLASHCARDS;
   const sentenceGeneratorEnabled = FEATURE_FLAGS.FEATURE_SENTENCE_GENERATOR;
 
-  // Study state, lifted from StudyPage.jsx — App.jsx owns this because the
-  // real sidebar's search input and CategoryTree need it too, and both
-  // live here, not inside StudyPage.
   const [dataByLine, setDataByLine] = useState({ kanji: [], vocab: [], grammar: [] });
   const [isLoadingStudy, setIsLoadingStudy] = useState(true);
   const [openLineIds, setOpenLineIds] = useState(new Set());
@@ -106,40 +161,28 @@ function App() {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Quiz state (epic 004) — owned here rather than in StudyPage because
-  // the sidebar's navigation handlers below need to check quizPhase
-  // before acting (guardNavigation), and those handlers live in App.jsx.
   const [quizPhase, setQuizPhase] = useState("idle");
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Sentence Generator state (epic 5). Two separate phase concepts, not
-  // one: generatorSelectionPhase parallels quizPhase (Study-page
-  // selection step); generatorWorkflowPhase governs the Generate page
-  // itself once the user arrives there. Both live here for the same
-  // reason quizPhase does — guardNavigation and the side nav need to
-  // read them.
   const [generatorSelectionPhase, setGeneratorSelectionPhase] = useState("idle");
   const [generatorSelectedIds, setGeneratorSelectedIds] = useState(new Set());
   const [generatorWorkflowPhase, setGeneratorWorkflowPhase] = useState("browsing");
   const [generatorSourceItemRefs, setGeneratorSourceItemRefs] = useState([]);
 
-  // Folder + saved-sentence data, lifted here for the same reason
-  // dataByLine is: the sidebar slot renders in App.jsx, so whatever it
-  // displays (SentenceFolderTree, here) needs its data owned here too.
   const [generatorFolders, setGeneratorFolders] = useState([]);
   const [activeSentenceFolderId, setActiveSentenceFolderId] = useState(null);
   const [generatorSentences, setGeneratorSentences] = useState([]);
   const [isLoadingGeneratorSentences, setIsLoadingGeneratorSentences] = useState(true);
 
-  // holds a closure for whatever navigation action triggered the confirm
-  // dialog — null means the dialog is closed.
+  // epic 6 — every saved sentence, unscoped by folder, feeding the
+  // global quiz pool. Distinct from generatorSentences (the
+  // folder-scoped browsing list) — different audience, different
+  // refetch triggers (a folder switch shouldn't refetch this).
+  const [allGeneratorSentences, setAllGeneratorSentences] = useState([]);
+
   const [pendingAction, setPendingAction] = useState(null);
 
   const quizInProgress = quizPhase === "selecting" || quizPhase === "active";
-  // "browsing" is not in-progress — the epic explicitly says navigating
-  // to the Generate page directly (side nav) defaults there with no
-  // guard needed; only an active run (configuring/generating/reviewing)
-  // is guarded, same as Quiz's selecting/active.
   const generatorInProgress =
     generatorWorkflowPhase === "configuring" ||
     generatorWorkflowPhase === "generating" ||
@@ -154,10 +197,6 @@ function App() {
   }
 
   function confirmDiscardInProgress() {
-    // Reset whichever flow is actually in progress — mutually exclusive
-    // in practice (App.jsx never lets both be active at once), but
-    // resetting both defensively costs nothing and avoids a stale phase
-    // surviving into the next session if that assumption is ever broken.
     setQuizPhase("idle");
     setSelectedIds(new Set());
     setGeneratorSelectionPhase("idle");
@@ -175,11 +214,8 @@ function App() {
   }
 
   // Composite key "${itemType}:${itemId}" — itemType is one of
-  // "kanji"/"vocab"/"grammar" (matches CONTENT_LINES ids). Needed since
-  // epic 6 makes quiz selection span every content line simultaneously —
-  // a bare id can no longer disambiguate which table it belongs to.
-  // "sentence" is reserved here for Step 3, when SentenceList becomes
-  // selectable too; unused until then.
+  // "kanji"/"vocab"/"grammar"/"sentence". A bare id can't disambiguate
+  // its source table once selection spans every line + saved sentences.
   function makeSelectionKey(itemType, itemId) {
     return `${itemType}:${itemId}`;
   }
@@ -191,10 +227,6 @@ function App() {
       if (next.has(key)) {
         next.delete(key);
       } else {
-        // cap enforced here too, not just via FlashcardGrid's selectDisabled —
-        // this prevents the state update itself from ever exceeding the cap
-        // regardless of caller. Cap is global across all lines (epic 6),
-        // same Set, same check, no per-line accounting.
         if (next.size >= SELECTION_CAP) return prev;
         next.add(key);
       }
@@ -224,10 +256,6 @@ function App() {
   }
 
   function handleContinueGenerator() {
-    // Captures the current selection as this run's fixed source item
-    // refs. Assumes every selected id belongs to activeLineId — true
-    // today since FlashcardGrid only ever shows one line/category's
-    // items at a time (same assumption Quiz's selectedItems makes).
     const refs = [...generatorSelectedIds].map((itemId) => ({
       line_id: activeLineId,
       item_id: itemId,
@@ -240,16 +268,13 @@ function App() {
     setView("generate");
   }
 
- // Called by GeneratePage once a save completes (Section 2 UX flow:
- // "workflow phase resets; the page shows the saved sentences in the
- // browsing view"). This is the only workflow-phase transition App.jsx
- // needs to know about — guardNavigation treats configuring/generating/
- // reviewing identically (generatorInProgress = phase !== "browsing"),
- // so GeneratePage never needs to report intermediate sub-states back up.
- function handleGeneratorRunComplete() {
-   setGeneratorWorkflowPhase("browsing");
-   setGeneratorSourceItemRefs([]);
- }
+  function handleGeneratorRunComplete() {
+    setGeneratorWorkflowPhase("browsing");
+    setGeneratorSourceItemRefs([]);
+    // a save just happened — the global sentence pool used for quizzing
+    // needs the newly-saved rows too, not just the folder-scoped list
+    getSentences().then(setAllGeneratorSentences);
+  }
 
   async function loadGeneratorFolders() {
     const data = await getSentenceFolders();
@@ -287,6 +312,7 @@ function App() {
   async function handleDeleteSentence(sentenceId) {
     await deleteSentence(sentenceId);
     await loadGeneratorSentences(activeSentenceFolderId);
+    setAllGeneratorSentences((prev) => prev.filter((s) => s.id !== sentenceId));
   }
 
   const kanjiMastered = useMastered("kanji");
@@ -304,8 +330,6 @@ function App() {
   };
 
   useEffect(() => {
-    // skip entirely when the flag is off — avoids fetching study data on
-    // every app load just because App.jsx now owns this state
     if (!studyFlashcardsEnabled) return;
     let cancelled = false;
     async function loadAll() {
@@ -340,6 +364,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sentenceGeneratorEnabled, activeSentenceFolderId]);
 
+  useEffect(() => {
+    // Unscoped — every saved sentence regardless of folder, for the
+    // global quiz pool. Refreshed on save/delete (see
+    // handleGeneratorRunComplete / handleDeleteSentence), not on every
+    // folder switch — a relocate doesn't change which sentences exist.
+    if (!sentenceGeneratorEnabled) return;
+    getSentences().then(setAllGeneratorSentences);
+  }, [sentenceGeneratorEnabled]);
+
   const tree = useMemo(
     () =>
       toStudyTreeShape(dataByLine, { masteredByLine, openLineIds, activeLineId, activeCategoryId }),
@@ -349,14 +382,29 @@ function App() {
   const flatIndex = useMemo(() => buildSearchIndex(dataByLine), [dataByLine]);
   const searchResults = useMemo(() => searchIndex(flatIndex, searchQuery), [flatIndex, searchQuery]);
 
+  // epic 6 — global, mixed-type quiz pool: every kanji/vocab/grammar
+  // entry across every category, plus every saved sentence, normalized
+  // into the shared quiz-item shape. No longer scoped to activeLineId/
+  // activeCategoryId the way it was pre-epic-6.
+  const globalQuizPool = useMemo(() => {
+    const regularItems = CONTENT_LINES.flatMap((line) =>
+      toFlashcardItems(line.id, dataByLine[line.id] ?? [])
+    );
+    const sentenceItems = sentenceGeneratorEnabled ? toSentenceQuizItems(allGeneratorSentences) : [];
+    return [...regularItems, ...sentenceItems];
+  }, [dataByLine, allGeneratorSentences, sentenceGeneratorEnabled]);
+
+  const selectedQuizItems = useMemo(
+    () => globalQuizPool.filter((item) => selectedIds.has(makeSelectionKey(item.lineId, item.id))),
+    [globalQuizPool, selectedIds]
+  );
+
+  const canQuizGlobally = globalQuizPool.length >= MIN_QUIZ_ITEMS;
+
   if (!FEATURE_FLAGS.FEATURE_FOUNDATION_SHELL) {
     return <p>Sento — scaffold running</p>;
   }
 
-  // Rail shows if either CMS or the Generator has a view to switch to —
-  // previously gated on contentManagementEnabled alone, which would have
-  // hidden the Generate entry entirely once it existed (epic 5, Section 6
-  // note).
   const showIconRail = contentManagementEnabled || sentenceGeneratorEnabled;
   const visibleViews = VIEWS.filter((v) => {
     if (v.id === "cms") return contentManagementEnabled;
@@ -366,11 +414,6 @@ function App() {
   const showStudySidebar = studyFlashcardsEnabled && view === "study";
   const showGeneratorSidebar = sentenceGeneratorEnabled && view === "generate";
 
-  // Approximated the same way GeneratePage previously did: exact for
-  // whichever folder is currently open (activeSentenceFolderId), since
-  // that's the only folder SentenceFolderTree's delete-gate can ever act
-  // on (delete UI only appears for the open, empty folder). See original
-  // Step 15 commit note — /sentence-folders still doesn't return counts.
   const generatorFolderCounts = Object.fromEntries(
     generatorFolders.map((f) => [
       f.id,
@@ -492,7 +535,13 @@ function App() {
           </>
         }
       >
-        {view === "cms" && contentManagementEnabled ? (
+        {quizPhase === "active" ? (
+          <QuizRunner
+            selectedItems={selectedQuizItems}
+            globalPool={globalQuizPool}
+            onFinish={handleFinishQuiz}
+          />
+        ) : view === "cms" && contentManagementEnabled ? (
           <ContentManagementPage />
         ) : view === "study" && studyFlashcardsEnabled ? (
           <StudyPage
@@ -507,11 +556,12 @@ function App() {
             isLoading={isLoadingStudy}
             mode={mode}
             onModeChange={handleModeChange}
+            canQuiz={canQuizGlobally}
+            quizPoolSize={globalQuizPool.length}
             quizPhase={quizPhase}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
-            onFinishQuiz={handleFinishQuiz}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}
@@ -529,9 +579,8 @@ function App() {
             sentences={generatorSentences}
             isLoadingSentences={isLoadingGeneratorSentences}
             onRelocateSentence={handleRelocateSentence}
-            onDeleteSentence={handleDeleteSentence}          
+            onDeleteSentence={handleDeleteSentence}
           />
-
         ) : (
           <div className="platform-head">
             <div>
