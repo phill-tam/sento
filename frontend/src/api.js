@@ -104,3 +104,25 @@ export function getVocab(options) {
 export function getGrammar(options) {
   return request(`/api/v1/grammar${buildListQuery(options)}`);
 }
+
+export function getSentenceFolders() {
+  return request("/api/v1/sentence-folders");
+}
+
+export function createSentenceFolder(name) {
+  return request("/api/v1/sentence-folders", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function renameSentenceFolder(folderId, name) {
+  return request(`/api/v1/sentence-folders/${folderId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function deleteSentenceFolder(folderId) {
+  return request(`/api/v1/sentence-folders/${folderId}`, { method: "DELETE" });
+}
