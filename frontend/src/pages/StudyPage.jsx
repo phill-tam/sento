@@ -184,7 +184,7 @@ export default function StudyPage({
           }
           onToggleSelect={
             activeSelectionMode === "quiz"
-              ? onToggleSelect
+              ? handleToggleQuizSelect
               : activeSelectionMode === "generator"
               ? onToggleGeneratorSelect
               : undefined
