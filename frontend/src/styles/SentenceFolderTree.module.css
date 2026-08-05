@@ -1,0 +1,110 @@
+.tree {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px;
+}
+
+.folder {
+  margin-bottom: 2px;
+}
+
+.folderHead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease;
+}
+
+.folderHead:hover {
+  background: rgba(212, 168, 74, 0.08);
+}
+
+.folder.activeCat .folderHead {
+  background: rgba(212, 168, 74, 0.1);
+}
+
+.ficon {
+  flex: 0 0 26px;
+  height: 26px;
+  width: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 168, 74, 0.12);
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--gold-light);
+  border: 1px solid rgba(212, 168, 74, 0.25);
+}
+
+.fname {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--sky);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fcount {
+  font-size: 10px;
+  color: var(--mist);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--gold);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sky);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.folderHead:hover .actions {
+  opacity: 1;
+}
+
+.iconBtn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--mist-line);
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.iconBtn:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
+.iconBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
