@@ -18,6 +18,7 @@ import styles from "./styles/Sidebar.module.css";
 const VIEWS = [
   { id: "study", icon: "学", label: "Study" },
   { id: "cms", icon: "文", label: "Manage Content" },
+  { id: "generate", icon: "✨", label: "Generate" },
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
@@ -25,6 +26,11 @@ const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
 // Quiz selection cap (epic 004) — enforced in toggleSelectItem below,
 // independent of FlashcardGrid's own UI-level selectDisabled check.
 const SELECTION_CAP = 20;
+
+// Sentence Generator selection cap (epic 5) — distinct from Quiz's 20/4,
+// per the epic's explicit "minimum 2, maximum 5" decision.
+const GENERATOR_SELECTION_CAP = 5;
+const GENERATOR_MIN_SELECTION = 2;
 
 /**
  * Maps one line's raw entries into FlashcardCard's normalized item shape.
@@ -75,6 +81,7 @@ function App() {
 
   const contentManagementEnabled = FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT;
   const studyFlashcardsEnabled = FEATURE_FLAGS.FEATURE_STUDY_FLASHCARDS;
+  const sentenceGeneratorEnabled = FEATURE_FLAGS.FEATURE_SENTENCE_GENERATOR;
 
   // Study state, lifted from StudyPage.jsx — App.jsx owns this because the
   // real sidebar's search input and CategoryTree need it too, and both
@@ -92,30 +99,57 @@ function App() {
   const [quizPhase, setQuizPhase] = useState("idle");
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  // Sentence Generator state (epic 5). Two separate phase concepts, not
+  // one: generatorSelectionPhase parallels quizPhase (Study-page
+  // selection step); generatorWorkflowPhase governs the Generate page
+  // itself once the user arrives there. Both live here for the same
+  // reason quizPhase does — guardNavigation and the side nav need to
+  // read them.
+  const [generatorSelectionPhase, setGeneratorSelectionPhase] = useState("idle");
+  const [generatorSelectedIds, setGeneratorSelectedIds] = useState(new Set());
+  const [generatorWorkflowPhase, setGeneratorWorkflowPhase] = useState("browsing");
+  const [generatorSourceItemRefs, setGeneratorSourceItemRefs] = useState([]);
+
   // holds a closure for whatever navigation action triggered the confirm
   // dialog — null means the dialog is closed.
   const [pendingAction, setPendingAction] = useState(null);
 
   const quizInProgress = quizPhase === "selecting" || quizPhase === "active";
+  // "browsing" is not in-progress — the epic explicitly says navigating
+  // to the Generate page directly (side nav) defaults there with no
+  // guard needed; only an active run (configuring/generating/reviewing)
+  // is guarded, same as Quiz's selecting/active.
+  const generatorInProgress =
+    generatorWorkflowPhase === "configuring" ||
+    generatorWorkflowPhase === "generating" ||
+    generatorWorkflowPhase === "reviewing";
 
   function guardNavigation(action) {
-    if (quizInProgress) {
+    if (quizInProgress || generatorInProgress) {
       setPendingAction(() => action);
     } else {
       action();
     }
   }
 
-  function confirmDiscardQuiz() {
+  function confirmDiscardInProgress() {
+    // Reset whichever flow is actually in progress — mutually exclusive
+    // in practice (App.jsx never lets both be active at once), but
+    // resetting both defensively costs nothing and avoids a stale phase
+    // surviving into the next session if that assumption is ever broken.
     setQuizPhase("idle");
     setSelectedIds(new Set());
+    setGeneratorSelectionPhase("idle");
+    setGeneratorSelectedIds(new Set());
+    setGeneratorWorkflowPhase("browsing");
+    setGeneratorSourceItemRefs([]);
     setMode("study");
     const action = pendingAction;
     setPendingAction(null);
     if (action) action();
   }
 
-  function cancelDiscardQuiz() {
+  function cancelPendingDiscard() {
     setPendingAction(null);
   }
 
@@ -133,6 +167,44 @@ function App() {
       }
       return next;
     });
+  }
+
+  function toggleGeneratorSelectItem(itemId) {
+    setGeneratorSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        if (next.size >= GENERATOR_SELECTION_CAP) return prev;
+        next.add(itemId);
+      }
+      return next;
+    });
+  }
+
+  function handleGeneratorClick() {
+    guardNavigation(() => {
+      setMode("generate");
+      setGeneratorSelectionPhase("selecting");
+      setGeneratorSelectedIds(new Set());
+    });
+  }
+
+  function handleContinueGenerator() {
+    // Captures the current selection as this run's fixed source item
+    // refs. Assumes every selected id belongs to activeLineId — true
+    // today since FlashcardGrid only ever shows one line/category's
+    // items at a time (same assumption Quiz's selectedItems makes).
+    const refs = [...generatorSelectedIds].map((itemId) => ({
+      line_id: activeLineId,
+      item_id: itemId,
+    }));
+    setGeneratorSourceItemRefs(refs);
+    setGeneratorSelectionPhase("idle");
+    setGeneratorSelectedIds(new Set());
+    setMode("study");
+    setGeneratorWorkflowPhase("configuring");
+    setView("generate");
   }
 
   const kanjiMastered = useMastered("kanji");
@@ -187,7 +259,16 @@ function App() {
     return <p>Sento — scaffold running</p>;
   }
 
-  const visibleViews = contentManagementEnabled ? VIEWS : VIEWS.filter((v) => v.id === "study");
+  // Rail shows if either CMS or the Generator has a view to switch to —
+  // previously gated on contentManagementEnabled alone, which would have
+  // hidden the Generate entry entirely once it existed (epic 5, Section 6
+  // note).
+  const showIconRail = contentManagementEnabled || sentenceGeneratorEnabled;
+  const visibleViews = VIEWS.filter((v) => {
+    if (v.id === "cms") return contentManagementEnabled;
+    if (v.id === "generate") return sentenceGeneratorEnabled;
+    return true;
+  });
   const showStudySidebar = studyFlashcardsEnabled && view === "study";
 
   function toggleLine(lineId) {
@@ -259,7 +340,7 @@ function App() {
     <>
       <AppShell
         rail={
-          contentManagementEnabled ? (
+          showIconRail ? (
             <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
           ) : undefined
         }
@@ -310,7 +391,22 @@ function App() {
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
             onFinishQuiz={handleFinishQuiz}
+            generatorSelectionPhase={generatorSelectionPhase}
+            generatorSelectedIds={generatorSelectedIds}
+            onToggleGeneratorSelect={toggleGeneratorSelectItem}
+            generatorMinSelection={GENERATOR_MIN_SELECTION}
+            generatorSelectionCap={GENERATOR_SELECTION_CAP}
+            onGeneratorClick={handleGeneratorClick}
+            onContinueGenerator={handleContinueGenerator}
           />
+        ) : view === "generate" && sentenceGeneratorEnabled ? (
+          // TODO(Step 15): replace with the real GeneratePage, wired to
+          // useSentenceGenerator and generatorWorkflowPhase/
+          // generatorSourceItemRefs above.
+          <div className="platform-head">
+            <h1>Sentence Generator</h1>
+            <p>Coming soon.</p>
+          </div>
         ) : (
           <div className="platform-head">
             <div>
@@ -322,9 +418,13 @@ function App() {
       </AppShell>
       <ConfirmDialog
         open={pendingAction !== null}
-        message="This will end your current quiz and discard your progress. Continue?"
-        onConfirm={confirmDiscardQuiz}
-        onCancel={cancelDiscardQuiz}
+        message={
+          quizInProgress
+            ? "This will end your current quiz and discard your progress. Continue?"
+            : "This will discard your in-progress sentence generation run. Continue?"
+        }
+        onConfirm={confirmDiscardInProgress}
+        onCancel={cancelPendingDiscard}
       />
     </>
   );

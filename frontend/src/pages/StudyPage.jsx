@@ -63,6 +63,17 @@ export default function StudyPage({
   onToggleSelect,
   onStartQuiz,
   onFinishQuiz,
+  // Sentence Generator (epic 5) — parallels the quiz props above exactly,
+  // but kept as fully separate props/state rather than reusing quiz's.
+  // The two selecting phases are mutually exclusive (App.jsx never sets
+  // both to "selecting" at once) but they aren't the same state machine.
+  generatorSelectionPhase = "idle",
+  generatorSelectedIds = new Set(),
+  onToggleGeneratorSelect,
+  generatorMinSelection = 2,
+  generatorSelectionCap = 5,
+  onGeneratorClick,
+  onContinueGenerator,
 }) {
   const categoryLabel = activeCategoryId
     ? activeCategoryId
@@ -73,7 +84,13 @@ export default function StudyPage({
 
   const isSelecting = quizPhase === "selecting";
   const isQuizActive = quizPhase === "active";
+  const isGeneratorSelecting = generatorSelectionPhase === "selecting";
   const canQuiz = items.length >= MIN_QUIZ_ITEMS;
+
+  // Which selection system currently owns FlashcardGrid's single
+  // selectionMode/selectedIds/onToggleSelect triple — Quiz and Generator
+  // never both select at once, so this is a plain either/or, not a merge.
+  const activeSelectionMode = isSelecting ? "quiz" : isGeneratorSelecting ? "generator" : null;
 
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIds.has(item.id)),
@@ -106,10 +123,15 @@ export default function StudyPage({
           <ModeToggle
             mode={mode}
             onModeChange={handleModeChange}
-            onGeneratorClick={() => {}}
+            onGeneratorClick={onGeneratorClick}
             quizPhase={quizPhase}
             selectedCount={selectedIds.size}
             onStartQuiz={onStartQuiz}
+            generatorPhase={generatorSelectionPhase}
+            generatorSelectedCount={generatorSelectedIds.size}
+            generatorSelectionCap={generatorSelectionCap}
+            generatorMinSelection={generatorMinSelection}
+            onContinueGenerator={onContinueGenerator}
           />
         )}
       </div>
@@ -135,9 +157,22 @@ export default function StudyPage({
           categoryLabel={categoryLabel}
           mastered={mastered}
           onToggleMastered={onToggleMastered}
-          selectionMode={isSelecting}
-          selectedIds={selectedIds}
-          onToggleSelect={onToggleSelect}
+          selectionMode={activeSelectionMode !== null}
+          selectedIds={
+            activeSelectionMode === "quiz"
+              ? selectedIds
+              : activeSelectionMode === "generator"
+              ? generatorSelectedIds
+              : new Set()
+          }
+          onToggleSelect={
+            activeSelectionMode === "quiz"
+              ? onToggleSelect
+              : activeSelectionMode === "generator"
+              ? onToggleGeneratorSelect
+              : undefined
+          }
+          selectionCap={activeSelectionMode === "generator" ? generatorSelectionCap : 20}
         />
       )}
     </div>
