@@ -182,7 +182,11 @@ function App() {
 
   const [pendingAction, setPendingAction] = useState(null);
 
-  const quizInProgress = quizPhase === "selecting" || quizPhase === "active";
+  // epic 6 — selection now spans pages (Study + Generate) by design, so
+  // only an ACTIVE quiz blocks navigation. "selecting" no longer does —
+  // the user needs to browse both pages freely while building a
+  // cross-page, cross-type selection before starting.
+  const quizInProgress = quizPhase === "active";
   const generatorInProgress =
     generatorWorkflowPhase === "configuring" ||
     generatorWorkflowPhase === "generating" ||
@@ -249,6 +253,10 @@ function App() {
 
   function handleGeneratorClick() {
     guardNavigation(() => {
+      // Generator's own source-item picker stays Study-page-only
+      // (unchanged scope) — force the view there so this button works
+      // identically whether it's clicked from Study or Generate.
+      setView("study"); 
       setMode("generate");
       setGeneratorSelectionPhase("selecting");
       setGeneratorSelectedIds(new Set());
@@ -580,6 +588,20 @@ function App() {
             isLoadingSentences={isLoadingGeneratorSentences}
             onRelocateSentence={handleRelocateSentence}
             onDeleteSentence={handleDeleteSentence}
+            mode={mode}
+            onModeChange={handleModeChange}
+            canQuiz={canQuizGlobally}
+            quizPoolSize={globalQuizPool.length}
+            quizPhase={quizPhase}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelectItem}
+            onStartQuiz={handleStartQuiz}
+            generatorSelectionPhase={generatorSelectionPhase}
+            generatorSelectedIds={generatorSelectedIds}
+            generatorMinSelection={GENERATOR_MIN_SELECTION}
+            generatorSelectionCap={GENERATOR_SELECTION_CAP}
+            onGeneratorClick={handleGeneratorClick}
+            onContinueGenerator={handleContinueGenerator}
           />
         ) : (
           <div className="platform-head">
