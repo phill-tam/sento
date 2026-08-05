@@ -1,5 +1,25 @@
 import { API_BASE_URL } from "./config";
 
+export class ApiError extends Error {
+  constructor(message, { status, body } = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+// Thrown specifically when the backend's SentenceGenerationError shape is
+// detected on a 429 — lets useSentenceGenerator (epic 5) show the dedicated
+// rate-limit notice instead of a generic failure message, per the epic's
+// "clear error notice, not silent failure" requirement.
+export class RateLimitError extends ApiError {
+  constructor(message, opts) {
+    super(message, opts);
+    this.name = "RateLimitError";
+  }
+}
+
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -7,7 +27,29 @@ async function request(path, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      // no JSON body on this error response — body stays null
+    }
+
+    if (response.status === 429 && body?.detail?.error === "rate_limit_exceeded") {
+      throw new RateLimitError(body.detail.detail || "Rate limit exceeded", {
+        status: response.status,
+        body,
+      });
+    }
+
+    throw new ApiError(`API request failed: ${response.status} ${response.statusText}`, {
+      status: response.status,
+      body,
+    });
+  }
+
+  // DELETE endpoints return 204 with no body — parsing that as JSON throws.
+  if (response.status === 204) {
+    return null;
   }
 
   return response.json();
