@@ -126,3 +126,39 @@ export function renameSentenceFolder(folderId, name) {
 export function deleteSentenceFolder(folderId) {
   return request(`/api/v1/sentence-folders/${folderId}`, { method: "DELETE" });
 }
+
+function buildSentenceListQuery({ folderId } = {}) {
+  const params = new URLSearchParams();
+  if (folderId) params.set("folder_id", folderId);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export function generateSentences({ sourceItemRefs, count, nuance }) {
+  return request("/api/v1/sentences/generate", {
+    method: "POST",
+    body: JSON.stringify({ source_item_refs: sourceItemRefs, count, nuance }),
+  });
+}
+
+export function saveSentences({ sentences, folderId }) {
+  return request("/api/v1/sentences", {
+    method: "POST",
+    body: JSON.stringify({ sentences, folder_id: folderId }),
+  });
+}
+
+export function getSentences(options) {
+  return request(`/api/v1/sentences${buildSentenceListQuery(options)}`);
+}
+
+export function moveSentence(sentenceId, folderId) {
+  return request(`/api/v1/sentences/${sentenceId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ folder_id: folderId }),
+  });
+}
+
+export function deleteSentence(sentenceId) {
+  return request(`/api/v1/sentences/${sentenceId}`, { method: "DELETE" });
+}
