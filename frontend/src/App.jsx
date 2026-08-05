@@ -18,6 +18,7 @@ import styles from "./styles/Sidebar.module.css";
 const VIEWS = [
   { id: "study", icon: "学", label: "Study" },
   { id: "cms", icon: "文", label: "Manage Content" },
+  { id: "generate", icon: "✨", label: "Generate" },
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
@@ -75,6 +76,7 @@ function App() {
 
   const contentManagementEnabled = FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT;
   const studyFlashcardsEnabled = FEATURE_FLAGS.FEATURE_STUDY_FLASHCARDS;
+  const sentenceGeneratorEnabled = FEATURE_FLAGS.FEATURE_SENTENCE_GENERATOR;
 
   // Study state, lifted from StudyPage.jsx — App.jsx owns this because the
   // real sidebar's search input and CategoryTree need it too, and both
@@ -187,7 +189,16 @@ function App() {
     return <p>Sento — scaffold running</p>;
   }
 
-  const visibleViews = contentManagementEnabled ? VIEWS : VIEWS.filter((v) => v.id === "study");
+  // Rail shows if either CMS or the Generator has a view to switch to —
+  // previously gated on contentManagementEnabled alone, which would have
+  // hidden the Generate entry entirely once it existed (epic 5, Section 6
+  // note).
+  const showIconRail = contentManagementEnabled || sentenceGeneratorEnabled;
+  const visibleViews = VIEWS.filter((v) => {
+    if (v.id === "cms") return contentManagementEnabled;
+    if (v.id === "generate") return sentenceGeneratorEnabled;
+    return true;
+  });
   const showStudySidebar = studyFlashcardsEnabled && view === "study";
 
   function toggleLine(lineId) {
@@ -259,7 +270,7 @@ function App() {
     <>
       <AppShell
         rail={
-          contentManagementEnabled ? (
+          showIconRail ? (
             <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
           ) : undefined
         }
@@ -311,6 +322,13 @@ function App() {
             onStartQuiz={handleStartQuiz}
             onFinishQuiz={handleFinishQuiz}
           />
+        ) : view === "generate" && sentenceGeneratorEnabled ? (
+          // TODO(Step 15): replace with the real GeneratePage, wired to
+          // useSentenceGenerator and the generator state added next commit.
+          <div className="platform-head">
+            <h1>Sentence Generator</h1>
+            <p>Coming soon.</p>
+          </div>
         ) : (
           <div className="platform-head">
             <div>
