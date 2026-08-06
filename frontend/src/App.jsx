@@ -30,11 +30,12 @@ import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
+import logo from "./assets/logo.svg";
 
 const VIEWS = [
   { id: "study", icon: "学", label: "Study" },
   { id: "cms", icon: "文", label: "Manage Content" },
-  { id: "generate", icon: "✨", label: "Generate" },
+  { id: "generate", icon: "✧", label: "Generate" },
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
@@ -510,7 +511,7 @@ function App() {
         sidebar={
           <>
             <div className={styles.brand}>
-              <span className={styles.kanji}>N5 路線図</span>
+              <img src={logo} alt="Sento" className={styles.brandLogo} />
               <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
             </div>
             <div className={styles.searchWrap}>

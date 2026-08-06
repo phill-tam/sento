@@ -87,7 +87,7 @@ export default function ModeToggle({
           title="AI-powered — generates a sentence using your studied items"
           onClick={onGeneratorClick}
         >
-          ✨ Sentence Generator
+          ✧ Sentence Generator
         </button>
       )}
     </div>
