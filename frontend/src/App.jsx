@@ -32,6 +32,7 @@ import StartGate from "./components/common/StartGate";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
 import logo from "./assets/logo.svg";
+import { BacksoundProvider } from "./context/BacksoundContext";
 
 const VIEWS = [
   { id: "study", icon: "学", label: "Study" },
@@ -507,7 +508,7 @@ function App() {
   const progressPct = activeItems.length > 0 ? Math.round((masteredCount / activeItems.length) * 100) : 0;
 
   return (
-    <>
+    <BacksoundProvider>
       <StartGate hasStarted={hasStarted} onStart={handleStart} />
       <AppShell
         rail={
@@ -632,7 +633,7 @@ function App() {
         onConfirm={confirmDiscardInProgress}
         onCancel={cancelPendingDiscard}
       />
-    </>
+    </BacksoundProvider>
   );
 }
 
