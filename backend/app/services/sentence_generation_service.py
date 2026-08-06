@@ -2,7 +2,8 @@ import json
 from typing import Protocol
 
 import anthropic
-import google.generativeai as genai
+from google import genai
+from google.genai import errors as genai_errors
 
 from app.config.settings import settings
 from app.schemas.sentence_generate import GeneratedSentenceCandidate, SourceItemRef
@@ -68,20 +69,28 @@ class GeminiSentenceProvider:
     """Dev-environment provider."""
 
     def __init__(self) -> None:
-        genai.configure(api_key=settings.gemini_api_key)
-        self._model = genai.GenerativeModel(settings.gemini_model)
+        self._client = genai.Client(api_key=settings.gemini_api_key)
 
     def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]:
         try:
-            response = self._model.generate_content(prompt)
-        except genai.types.generation_types.StopCandidateException as exc:
-            raise SentenceGenerationFailedError(str(exc)) from exc
-        except Exception as exc:
-            if "ResourceExhausted" in type(exc).__name__ or "429" in str(exc):
+            response = self._client.models.generate_content(
+                model=settings.gemini_model,
+                contents=prompt,
+            )
+            text = response.text
+        except genai_errors.ClientError as exc:
+            if exc.code == 429:
                 raise SentenceGenerationRateLimitExceeded(str(exc)) from exc
             raise SentenceGenerationFailedError(str(exc)) from exc
+        except genai_errors.APIError as exc:
+            # covers ServerError (5xx) and any other APIError subtype
+            raise SentenceGenerationFailedError(str(exc)) from exc
+        except ValueError as exc:
+            # .text raises ValueError when there's no text part
+            # (blocked prompt, safety filtering, empty candidates)
+            raise SentenceGenerationFailedError(f"provider returned no text: {exc}") from exc
 
-        return _parse_candidates(response.text, expected_count=count)
+        return _parse_candidates(text, expected_count=count)
 
 
 class ClaudeSentenceProvider:
