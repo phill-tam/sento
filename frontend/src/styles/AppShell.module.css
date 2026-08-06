@@ -23,6 +23,11 @@
 }
 
 .lineRail {
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+  flex: 0 0 320px;
+  flex-shrink: 0;
   background: linear-gradient(180deg, var(--teal-deep), var(--teal-mid));
   color: var(--sky);
   padding: 26px 0 28px 0;
@@ -31,16 +36,33 @@
   height: 100vh;
   overflow-y: auto;
   border-right: 1px solid rgba(212, 168, 74, 0.25);
-  transition: flex-basis 0.25s ease, width 0.25s ease, padding 0.25s ease,
-    border-color 0.25s ease;
+  transition: flex-basis 0.3s ease-in-out, width 0.3s ease-in-out,
+    min-width 0.3s ease-in-out, max-width 0.3s ease-in-out,
+    padding 0.3s ease-in-out, border-color 0.3s ease-in-out;
+  will-change: width;
+}
+
+/* Fades the sidebar's own content out fast, ahead of the box's width
+   transition — hides the text-wrapping/truncation flicker that would
+   otherwise be visible mid-collapse, without needing a wrapper div
+   around whatever's passed into AppShell's sidebar slot. */
+.lineRail > * {
+  opacity: 1;
+  transition: opacity 0.15s ease-in-out;
 }
 
 .lineRail.collapsed {
   width: 0;
+  min-width: 0;
+  max-width: 0;
   flex: 0 0 0;
   padding: 0;
   border-right-color: transparent;
   overflow: hidden;
+}
+
+.lineRail.collapsed > * {
+  opacity: 0;
 }
 
 .platform {
