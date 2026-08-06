@@ -3,9 +3,13 @@
   font-family: var(--font-display);
   letter-spacing: 0.04em;
 }
-
+.brand .brandLogo {
+  height: 60px;
+  width: auto;
+  display: block;
+}
 .brand .kanji {
-  font-size: 24px;
+  font-size: px;
   color: var(--gold-light);
   display: block;
 }
