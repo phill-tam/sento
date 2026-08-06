@@ -70,3 +70,20 @@ jobs:
       - name: Run tests
         if: hashFiles('backend/tests/**') != ''
         run: uv run pytest
+
+  # Always reports a status, regardless of whether backend-lint-and-test
+  # actually ran. Set THIS job (not backend-lint-and-test) as the required
+  # status check in branch protection, so PRs that don't touch backend/**
+  # aren't stuck waiting on a check that was never going to report.
+  backend-ci-status:
+    needs: [changes, backend-lint-and-test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ needs.changes.outputs.backend }}" == "true" && "${{ needs.backend-lint-and-test.result }}" != "success" ]]; then
+            echo "Backend CI failed"
+            exit 1
+          fi
+          echo "OK — backend unaffected or checks passed"
