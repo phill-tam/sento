@@ -51,3 +51,20 @@ jobs:
       - name: Run tests
         if: hashFiles('frontend/src/**/*.test.jsx') != ''
         run: npm run test
+
+  # Always reports a status, regardless of whether frontend-lint-and-build
+  # actually ran. Set THIS job (not frontend-lint-and-build) as the required
+  # status check in branch protection, so PRs that don't touch frontend/**
+  # aren't stuck waiting on a check that was never going to report.
+  frontend-ci-status:
+    needs: [changes, frontend-lint-and-build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ needs.changes.outputs.frontend }}" == "true" && "${{ needs.frontend-lint-and-build.result }}" != "success" ]]; then
+            echo "Frontend CI failed"
+            exit 1
+          fi
+          echo "OK — frontend unaffected or checks passed"
