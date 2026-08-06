@@ -1,0 +1,35 @@
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+}
+
+.gate.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.startBtn {
+  padding: 18px 48px;
+  border-radius: 30px;
+  border: 1.28px solid var(--gold);
+  background: rgba(1, 151, 183, 1);
+  color: var(--gold-light);
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(15, 44, 46, 0.35);
+  transition: all 0.2s ease;
+}
+
+.startBtn:hover {
+  background: var(--teal-mid);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px var(--gold-light);
+}
