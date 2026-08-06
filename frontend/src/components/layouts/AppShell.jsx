@@ -11,11 +11,11 @@ import styles from "../../styles/AppShell.module.css";
  * sidebarCollapsed: collapses the content sidebar's width to zero rather
  * than unmounting it, so the collapse animates (epic 002).
  */
-export default function AppShell({ rail, sidebar, sidebarCollapsed = false, children }) {
+export default function AppShell({ rail, sidebar, sidebarCollapsed = false,contentHidden = false, children }) {
   return (
     <>
       <div className={styles.backdrop} aria-hidden="true" />
-      <div className={styles.shell}>
+      <div className={`${styles.shell} ${contentHidden ? styles.contentHidden : ""}`}>
         {rail}
         <aside
           className={`${styles.lineRail} ${sidebarCollapsed ? styles.collapsed : ""}`}
