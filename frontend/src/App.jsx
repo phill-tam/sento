@@ -28,6 +28,7 @@ import QuizSummary from "./components/quiz/QuizSummary";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
+import StartGate from "./components/common/StartGate";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
 import logo from "./assets/logo.svg";
@@ -149,7 +150,8 @@ function QuizRunner({ selectedItems, globalPool, onFinish }) {
 function App() {
   const [mode, setMode] = useState("study");
   const [view, setView] = useState("study");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const contentManagementEnabled = FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT;
   const studyFlashcardsEnabled = FEATURE_FLAGS.FEATURE_STUDY_FLASHCARDS;
@@ -434,6 +436,11 @@ function App() {
     sentenceCount: generatorFolderCounts[f.id],
   }));
 
+  function handleStart() {
+    setHasStarted(true);
+    setSidebarCollapsed(false);
+  }
+
   function toggleLine(lineId) {
     guardNavigation(() => {
       setOpenLineIds((prev) => {
@@ -501,6 +508,7 @@ function App() {
 
   return (
     <>
+      <StartGate hasStarted={hasStarted} onStart={handleStart} />
       <AppShell
         rail={
           showIconRail ? (
@@ -508,6 +516,7 @@ function App() {
           ) : undefined
         }
         sidebarCollapsed={sidebarCollapsed}
+        contentHidden={!hasStarted}
         sidebar={
           <>
             <div className={styles.brand}>
