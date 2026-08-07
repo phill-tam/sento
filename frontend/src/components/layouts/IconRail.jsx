@@ -1,5 +1,4 @@
 import styles from "../../styles/IconRail.module.css";
-import SoundToggle from '../common/SoundToggle.jsx';
 
 /**
  * Narrow icon-only vertical nav rail — one button per top-level view.
