@@ -66,8 +66,8 @@ export default function SentenceFolderTree({
           onClick={() => onSelectFolder(null)}
         >
           <div className={styles.folderHead}>
-            <span className={styles.ficon}>—</span>
-            <span className={styles.fname}>Uncategorized</span>
+            <span className={styles.ficon}>全</span>
+            <span className={styles.fname}>—</span>
           </div>
         </li>
 

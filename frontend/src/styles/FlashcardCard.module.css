@@ -85,7 +85,9 @@
   font-size: 23px;
   line-height: 1.2;
   color: var(--ink);
-  word-break: keep-all;
+  word-break: normal;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .reading {
