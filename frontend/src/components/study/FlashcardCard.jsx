@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styles from "../../styles/FlashcardCard.module.css";
+import { playCardOpenSound, playCardCloseSound } from "../../utils/cardSoundEffects";
 
 /**
  * Flip card matching sento-ui-mockup.html's .card/.card-face design exactly
@@ -34,7 +35,17 @@ export default function FlashcardCard({
   const isKanji = item.lineId === "kanji";
 
   function handleFlip() {
-    setIsFlipped((prev) => !prev);
+    setIsFlipped((prev) => {
+      const next = !prev;
+      // Sound effects are always-on for now (independent of the
+      // global SoundToggle/backsound mute state) — see epic 90.
+      if (next) {
+        playCardOpenSound();
+      } else {
+        playCardCloseSound();
+      }
+      return next;
+    });
   }
 
   function handleMarkClick(e) {
