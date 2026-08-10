@@ -37,8 +37,9 @@ export default function FlashcardCard({
   function handleFlip() {
     setIsFlipped((prev) => {
       const next = !prev;
-      // Sound effects are always-on for now (independent of the
-      // global SoundToggle/backsound mute state) — see epic 90.
+      // Level and mute come from CardSoundContext, which stays separate
+      // from the backsound's own mute so silencing the music does not
+      // silence flips — see epic 90.
       if (next) {
         playCardOpenSound();
       } else {
