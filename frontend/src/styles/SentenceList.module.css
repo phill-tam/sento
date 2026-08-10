@@ -2,14 +2,14 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--cream);
+  background: var(--surface-card);
   overflow: hidden;
 }
 
 .empty {
-  color: var(--mist);
+  color: var(--text-hint);
   font-family: var(--font-body);
   font-size: 13px;
   text-align: center;

@@ -3,8 +3,8 @@
   flex-direction: column;
   gap: 20px;
   max-width: 420px;
-  background: var(--cream);
-  border: 1px solid var(--mist-line);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 28px 24px;
 }
@@ -12,7 +12,7 @@
 .context {
   margin: 0;
   font-size: 12.5px;
-  color: var(--mist-line);
+  color: var(--text-secondary);
 }
 
 .field {
@@ -23,7 +23,7 @@
 
 .label {
   font-size: 12px;
-  color: var(--ink);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -36,9 +36,9 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--ink);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
   cursor: pointer;
@@ -46,36 +46,36 @@
 }
 
 .countBtn:hover:not(.countBtnActive) {
-  border-color: var(--gold);
+  border-color: var(--accent);
 }
 
 .countBtnActive {
-  background: var(--teal-deep);
-  color: var(--gold-light);
-  border-color: var(--teal-deep);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
 }
 
 .nuanceInput {
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1px solid var(--mist-line);
-  background: #ffffff;
-  color: var(--ink);
+  border: 1px solid var(--border);
+  background: var(--surface-field);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
 }
 
 .nuanceInput:focus {
-  border-color: var(--gold);
+  border-color: var(--accent);
 }
 
 .generateBtn {
   padding: 10px 24px;
   border-radius: 20px;
-  border: 1px solid var(--teal-deep);
-  background: var(--teal-deep);
-  color: var(--gold-light);
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -83,7 +83,7 @@
 }
 
 .generateBtn:hover:not(:disabled) {
-  background: var(--teal-mid);
+  background: var(--btn-primary-bg-hover);
 }
 
 .generateBtn:disabled {

@@ -25,7 +25,7 @@
   padding: 0;
   max-height: 240px;
   overflow-y: auto;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border);
   border-radius: 8px;
 }
 
@@ -33,7 +33,7 @@
   display: flex;
   gap: 12px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--mist-line);
+  border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
 
@@ -43,7 +43,7 @@
 
 .rowNum {
   flex: 0 0 auto;
-  color: var(--mist);
+  color: var(--text-hint);
   font-variant-numeric: tabular-nums;
 }
 
