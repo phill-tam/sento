@@ -1,9 +1,9 @@
 .dropdown {
   padding: 9px 14px;
   border-radius: 8px;
-  border: 1px solid var(--mist-line);
-  background: var(--cream);
-  color: var(--ink);
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -11,5 +11,5 @@
 }
 
 .dropdown:focus {
-  border-color: var(--gold);
+  border-color: var(--accent);
 }

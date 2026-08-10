@@ -1,6 +1,13 @@
 /* src/styles/tokens.css
    Design tokens ported from sento-ui-mockup.html.
-   Palette, typography, and shared status colors — no component-specific rules here. */
+   Palette, typography, and shared status colors — no component-specific rules here.
+
+   Two layers, on purpose (ADR 013):
+     1. Pigment  — the raw mockup palette below. Private to this file.
+     2. Role     — what a color is *for*. Modules reference only these.
+   Component CSS must not use a pigment token directly: several of them
+   carry two roles at once (--mist-line is both a border and muted text),
+   and a theme has to move those two in opposite directions. */
 
 :root {
   /* Core palette */
@@ -24,4 +31,149 @@
   --font-display: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
   --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP",
     -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── Role layer ──────────────────────────────────────────────────────
+   Every value here is the light theme's data, expressed as the pigment
+   it currently resolves to. Adding a theme means re-pointing this block
+   and nothing else.
+
+   The app is not uniformly light: the icon rail and sidebar are already
+   dark chrome while the content area is light. "on-chrome" tokens are
+   for that dark ground; the unsuffixed ones are for the light page. */
+
+:root {
+  /* Surfaces — light content area */
+  --surface-page: var(--sky);
+  --surface-card: var(--cream);
+  --surface-card-sheen: #fffdf6;
+  --surface-field: #ffffff;
+  --surface-field-on-chrome: rgba(255, 255, 255, 0.06);
+  --surface-track: rgba(58, 95, 94, 0.18);
+
+  /* A dark island on the light page — the breadcrumb category pill.
+     Tracks the chrome ground today but is its own role: a theme may
+     well keep these inverted while the page around them flips. */
+  --chip-bg: var(--teal-deep);
+  --chip-fg: var(--gold-light);
+
+  /* Surfaces — dark chrome (rail, sidebar, popovers) */
+  --chrome-surface: var(--teal-deep);
+  --chrome-surface-raised: var(--teal-mid);
+  --chrome-surface-selected: var(--teal-mid-2);
+
+  /* Text — on the light page */
+  --text-primary: var(--ink);
+  --text-secondary: var(--mist-line);
+  --text-hint: var(--mist);
+
+  /* Text — on dark chrome */
+  --text-on-chrome: var(--sky);
+  --text-on-chrome-muted: var(--mist);
+  --text-on-chrome-strong: var(--gold-light);
+  /* A lightness ramp the mockup hardcoded per component, between --mist
+     and --sky: dim < subtle < soft < --text-on-chrome. Kept as four
+     steps because that is what the components actually use today. */
+  --text-on-chrome-dim: #9fc2c0;
+  --text-on-chrome-subtle: #bcdad8;
+  --text-on-chrome-soft: #cfe6e4;
+  --text-on-chrome-placeholder: #8fb3b1;
+  --text-on-chrome-ghost: rgba(255, 255, 255, 0.7);
+  --text-on-status: #ffffff;
+
+  /* Borders */
+  --border: var(--mist-line);
+  --border-card: rgba(58, 95, 94, 0.25);
+  --border-field: rgba(58, 95, 94, 0.15);
+  --border-focus: var(--gold);
+  --border-on-chrome: rgba(211, 165, 76, 0.25);
+  --border-on-chrome-subtle: var(--mist-line);
+  --border-on-chrome-ghost: rgba(255, 255, 255, 0.4);
+  --guide-line: rgba(111, 156, 154, 0.4);
+
+  /* Accent */
+  --accent: var(--gold);
+  --accent-strong: var(--gold-light);
+  --text-on-accent: var(--teal-deep);
+
+  /* The generator button's animated glow. */
+  --accent-glow-soft: rgba(211, 165, 76, 0.5);
+  --accent-glow-strong: rgba(211, 165, 76, 0.9);
+
+  /* Accent washes, named for the state each one actually marks:
+       hover     — row/button under the cursor
+       selected  — the open parent folder in a tree
+       chip-fill — the static square behind a line/folder glyph
+       active    — the current row or view
+     Every alpha here composites the same 211,165,76 — that is --gold
+     (#d3a54c) resolved, so the ladder and the accent it tints cannot
+     drift apart. */
+  --accent-wash-hover: rgba(211, 165, 76, 0.08);
+  --accent-wash-selected: rgba(211, 165, 76, 0.1);
+  --accent-chip-fill: rgba(211, 165, 76, 0.12);
+  --accent-wash-active: rgba(211, 165, 76, 0.16);
+  --accent-ring: rgba(211, 165, 76, 0.22);
+  --accent-line-active: rgba(211, 165, 76, 0.3);
+  --accent-line-panel: rgba(211, 165, 76, 0.35);
+  --accent-outline: rgba(211, 165, 76, 0.8);
+  --accent-strong-line: rgba(240, 211, 143, 0.25);
+
+  /* The lit gold knob shared by the volume slider and ToggleSwitch. One
+     treatment in two modules — CSS modules can't share a rule, so the
+     value is shared here instead. */
+  --knob-fill: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
+  --knob-glow: 0 0 6px rgba(201, 147, 46, 0.7);
+
+  /* ToggleSwitch's own darker gold (#c9932e), a shade the palette never
+     names, plus its unlit browns. Self-contained treatment, so it gets
+     its own prefix rather than being forced into the accent ladder. */
+  --switch-line: rgba(201, 147, 46, 0.55);
+  --switch-line-hover: rgba(201, 147, 46, 0.85);
+  --switch-track: #2a2116;
+  --switch-track-line: rgba(201, 147, 46, 0.35);
+  --switch-track-on: #3a2c14;
+  --switch-track-line-on: rgba(201, 147, 46, 0.8);
+  --switch-knob: #6b6155;
+  --switch-label: #e8d9b8;
+  --switch-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* StartGate's landing button. Its fill is #0197b7, a cyan that exists
+     nowhere else in the palette — see the commit that tokenised it. */
+  --start-btn-bg: rgba(1, 151, 183, 1);
+  --start-btn-bg-hover: var(--teal-mid);
+  --start-btn-fg: var(--gold-light);
+  --shadow-start: 0 10px 30px rgba(15, 44, 46, 0.35);
+  --shadow-start-hover: 0 14px 36px var(--gold-light);
+
+  /* Status washes, both at 0.12 so a correct and an incorrect answer
+     read at the same strength side by side in the quiz. */
+  --good-wash: rgba(95, 158, 122, 0.12);
+  --good-line: rgba(95, 158, 122, 0.3);
+  --bad-wash: rgba(199, 107, 86, 0.12);
+
+  /* Primary button — dark fill on a light page, so it tracks the chrome
+     ground but is a separate role: a theme may keep buttons dark while
+     the surrounding surface changes. */
+  --btn-primary-bg: var(--teal-deep);
+  --btn-primary-bg-hover: var(--teal-mid);
+  --btn-primary-fg: var(--gold-light);
+
+  /* Elevation. Dark surfaces can't render a dark shadow, so these are
+     role tokens rather than inlined rgba — under a night theme they
+     become lighter glows or flatten to borders. */
+  --shadow-card: 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --shadow-card-lifted: 0 2px 0 rgba(22, 51, 50, 0.05), 0 10px 24px rgba(22, 51, 50, 0.08);
+  --shadow-field: 0 1px 2px rgba(22, 51, 50, 0.05);
+  --shadow-dialog: 0 8px 24px rgba(22, 51, 50, 0.18);
+  --shadow-popover: 0 8px 24px rgba(15, 44, 46, 0.45);
+  --scrim: rgba(15, 44, 46, 0.55);
+
+  /* Flashcard selection pulse. Whole box-shadow values rather than the
+     six colors they decompose into: a night theme rewrites these as
+     light glows, and it is the composite that has to change, not the
+     stops. Used only in FlashcardCard's two @keyframes. */
+  --card-glow-idle-rest: 0 0 0 1px rgba(58, 95, 94, 0.15), 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --card-glow-idle-peak: 0 0 0 2px rgba(15, 44, 46, 0.55), 0 0 12px rgba(15, 44, 46, 0.4), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --card-glow-selected-rest: 0 0 0 2px rgba(211, 165, 76, 0.5), 0 0 14px rgba(211, 165, 76, 0.35);
+  --card-glow-selected-peak: 0 0 0 2px rgba(211, 165, 76, 0.85), 0 0 20px rgba(211, 165, 76, 0.6);
 }

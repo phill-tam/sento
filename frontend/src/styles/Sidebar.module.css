@@ -10,13 +10,13 @@
 }
 .brand .kanji {
   font-size: px;
-  color: var(--gold-light);
+  color: var(--text-on-chrome-strong);
   display: block;
 }
 
 .brand .sub {
   font-size: 10.5px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   margin-top: 2px;
@@ -31,18 +31,18 @@
   width: 100%;
   padding: 9px 12px;
   border-radius: 8px;
-  border: 1px solid var(--mist-line);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--sky);
+  border: 1px solid var(--border-on-chrome-subtle);
+  background: var(--surface-field-on-chrome);
+  color: var(--text-on-chrome);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
 }
 
 .searchWrap input::placeholder {
-  color: #8fb3b1;
+  color: var(--text-on-chrome-placeholder);
 }
 
 .searchWrap input:focus {
-  border-color: var(--gold);
+  border-color: var(--border-focus);
 }

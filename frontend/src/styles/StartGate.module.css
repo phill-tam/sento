@@ -17,19 +17,19 @@
 .startBtn {
   padding: 18px 48px;
   border-radius: 30px;
-  border: 1.28px solid var(--gold);
-  background: rgba(1, 151, 183, 1);
-  color: var(--gold-light);
+  border: 1.28px solid var(--accent);
+  background: var(--start-btn-bg);
+  color: var(--start-btn-fg);
   font-family: var(--font-display);
   font-size: 20px;
   letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(15, 44, 46, 0.35);
+  box-shadow: var(--shadow-start);
   transition: all 0.2s ease;
 }
 
 .startBtn:hover {
-  background: var(--teal-mid);
+  background: var(--start-btn-bg-hover);
   transform: translateY(-2px);
-  box-shadow: 0 14px 36px var(--gold-light);
+  box-shadow: var(--shadow-start-hover);
 }

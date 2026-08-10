@@ -1,7 +1,7 @@
 .rail {
   width: 64px;
   flex: 0 0 64px;
-  background: var(--teal-deep);
+  background: var(--chrome-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -10,7 +10,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  border-right: 1px solid rgba(212, 168, 74, 0.25);
+  border-right: 1px solid var(--border-on-chrome);
   /* Must outrank .lineRail (z-index 1) so SettingsButton's popover can
      spill over the sidebar. position:sticky creates a stacking context
      unconditionally, so the popover's own z-index is confined to this
@@ -25,7 +25,7 @@
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -34,14 +34,14 @@
 }
 
 .railBtn:hover {
-  background: rgba(212, 168, 74, 0.08);
-  color: var(--sky);
+  background: var(--accent-wash-hover);
+  color: var(--text-on-chrome);
 }
 
 .railBtn.active {
-  background: rgba(212, 168, 74, 0.16);
-  border-color: rgba(212, 168, 74, 0.3);
-  color: var(--gold-light);
+  background: var(--accent-wash-active);
+  border-color: var(--accent-line-active);
+  color: var(--text-on-chrome-strong);
 }
 
 .icon {

@@ -6,9 +6,9 @@
 .modeBtn {
   padding: 9px 16px;
   border-radius: 20px;
-  border: 1px solid var(--mist-line);
-  background: var(--cream);
-  color: var(--ink);
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -16,13 +16,13 @@
 }
 
 .modeBtn.active {
-  background: var(--teal-deep);
-  color: var(--gold-light);
-  border-color: var(--teal-deep);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
 }
 
 .modeBtn:hover:not(.active) {
-  border-color: var(--gold);
+  border-color: var(--border-focus);
 }
 
 /* Sentence Generator toggle: animated glow border to signal "AI powered" —
@@ -30,7 +30,7 @@
 .modeBtnAi {
   position: relative;
   border-color: transparent;
-  background: var(--cream);
+  background: var(--surface-card);
   background-clip: padding-box;
 }
 
@@ -40,7 +40,7 @@
   inset: -2px;
   border-radius: 22px;
   z-index: -1;
-  background: linear-gradient(120deg, var(--gold), var(--good), var(--gold-light), var(--gold));
+  background: linear-gradient(120deg, var(--accent), var(--good), var(--accent-strong), var(--accent));
   background-size: 300% 300%;
   animation: aiGlowShift 3.5s ease-in-out infinite, aiGlowPulse 2.2s ease-in-out infinite;
 }
@@ -52,8 +52,8 @@
 }
 
 @keyframes aiGlowPulse {
-  0%, 100% { filter: drop-shadow(0 0 2px rgba(211, 165, 76, 0.5)); }
-  50% { filter: drop-shadow(0 0 7px rgba(211, 165, 76, 0.9)); }
+  0%, 100% { filter: drop-shadow(0 0 2px var(--accent-glow-soft)); }
+  50% { filter: drop-shadow(0 0 7px var(--accent-glow-strong)); }
 }
 
 .modeBtn:disabled {
@@ -62,9 +62,9 @@
 }
 
 .modeBtn.quizPending {
-  background: var(--teal-deep);
-  color: var(--gold-light);
-  border-color: var(--teal-deep);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
   opacity: 0.55;
   filter: blur(0.3px);
   cursor: not-allowed;
@@ -75,16 +75,16 @@
 }
 
 .modeBtn.quizReady {
-  background: var(--gold);
-  color: var(--teal-deep);
-  border-color: var(--gold);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
   opacity: 1;
   filter: none;
-  box-shadow: 0 0 0 3px rgba(212, 168, 74, 0.22);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .modeBtn.quizReady:hover {
-  background: var(--gold-light);
+  background: var(--accent-strong);
 }
 
 /* Sentence Generator selecting phase (epic 005) — same pending/ready
@@ -103,5 +103,5 @@
 .modeBtn.generatorReady {
   opacity: 1;
   filter: none;
-  box-shadow: 0 0 0 3px rgba(212, 168, 74, 0.22);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }

@@ -1,20 +1,20 @@
 .card {
-  border: 2px dashed var(--mist-line);
+  border: 2px dashed var(--border);
   border-radius: 12px;
   padding: 32px 24px;
   text-align: center;
   cursor: pointer;
-  background: var(--cream);
+  background: var(--surface-card);
   transition: all 0.15s ease;
 }
 
 .card:hover {
-  border-color: var(--gold);
+  border-color: var(--accent);
 }
 
 .card.dragging {
-  border-color: var(--gold);
-  background: rgba(212, 168, 74, 0.08);
+  border-color: var(--accent);
+  background: var(--accent-wash-hover);
 }
 
 .card.disabled {
@@ -30,14 +30,14 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: var(--ink);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13.5px;
 }
 
 .promptSub {
   font-size: 11.5px;
-  color: var(--mist);
+  color: var(--text-hint);
 }
 
 .error {

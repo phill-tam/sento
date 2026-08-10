@@ -7,6 +7,6 @@
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--sky);
-  color: var(--ink);
+  background: var(--surface-page);
+  color: var(--text-primary);
 }

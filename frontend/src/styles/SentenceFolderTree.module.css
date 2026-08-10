@@ -20,11 +20,11 @@
 }
 
 .folderHead:hover {
-  background: rgba(212, 168, 74, 0.08);
+  background: var(--accent-wash-hover);
 }
 
 .folder.activeCat .folderHead {
-  background: rgba(212, 168, 74, 0.1);
+  background: var(--accent-wash-selected);
 }
 
 .ficon {
@@ -35,18 +35,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(212, 168, 74, 0.12);
+  background: var(--accent-chip-fill);
   font-family: var(--font-display);
   font-size: 14px;
-  color: var(--gold-light);
-  border: 1px solid rgba(212, 168, 74, 0.25);
+  color: var(--text-on-chrome-strong);
+  border: 1px solid var(--border-on-chrome);
 }
 
 .fname {
   flex: 1;
   min-width: 0;
   font-size: 13px;
-  color: var(--sky);
+  color: var(--text-on-chrome);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -54,7 +54,7 @@
 
 .fcount {
   font-size: 10px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
 }
@@ -64,9 +64,9 @@
   min-width: 0;
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid var(--gold);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--sky);
+  border: 1px solid var(--border-focus);
+  background: var(--surface-field-on-chrome);
+  color: var(--text-on-chrome);
   font-family: var(--font-body);
   font-size: 13px;
   outline: none;
@@ -88,9 +88,9 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border-on-chrome-subtle);
   background: transparent;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   cursor: pointer;
   font-size: 10px;
   display: flex;
@@ -100,8 +100,8 @@
 }
 
 .iconBtn:hover:not(:disabled) {
-  border-color: var(--gold);
-  color: var(--gold-light);
+  border-color: var(--border-focus);
+  color: var(--text-on-chrome-strong);
 }
 
 .iconBtn:disabled {

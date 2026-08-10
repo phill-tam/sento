@@ -20,16 +20,16 @@
 }
 
 .folderHead:hover {
-  background: rgba(212, 168, 74, 0.08);
+  background: var(--accent-wash-hover);
 }
 
 .folder.activeCat .folderHead {
-  background: rgba(212, 168, 74, 0.1);
+  background: var(--accent-wash-selected);
 }
 
 .chev {
   font-size: 9px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   transition: transform 0.18s ease;
   flex: 0 0 9px;
   text-align: center;
@@ -37,7 +37,7 @@
 
 .folder.open .chev {
   transform: rotate(90deg);
-  color: var(--gold);
+  color: var(--accent);
 }
 
 .ficon {
@@ -48,11 +48,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(212, 168, 74, 0.12);
+  background: var(--accent-chip-fill);
   font-family: var(--font-display);
   font-size: 14px;
-  color: var(--gold-light);
-  border: 1px solid rgba(212, 168, 74, 0.25);
+  color: var(--text-on-chrome-strong);
+  border: 1px solid var(--border-on-chrome);
 }
 
 .fname {
@@ -62,21 +62,21 @@
 
 .fname .en {
   font-size: 13px;
-  color: var(--sky);
+  color: var(--text-on-chrome);
   display: block;
   line-height: 1.2;
 }
 
 .fname .jp {
   font-size: 10px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   font-family: var(--font-display);
   letter-spacing: 0.05em;
 }
 
 .fcount {
   font-size: 10px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
 }
@@ -89,7 +89,7 @@
   overflow: hidden;
   transition: max-height 0.28s ease;
   margin-left: 25px;
-  border-left: 1px dashed rgba(111, 156, 154, 0.4);
+  border-left: 1px dashed var(--guide-line);
 }
 
 .folder.open .treeChildren {
@@ -104,7 +104,7 @@
   cursor: pointer;
   position: relative;
   font-size: 12.5px;
-  color: #bcdad8;
+  color: var(--text-on-chrome-subtle);
   border-radius: 6px;
 }
 
@@ -113,8 +113,8 @@
   height: 8px;
   border-radius: 50%;
   flex: 0 0 8px;
-  background: var(--teal-mid-2);
-  border: 1.5px solid var(--mist-line);
+  background: var(--chrome-surface-selected);
+  border: 1.5px solid var(--border-on-chrome-subtle);
   transition: all 0.15s ease;
 }
 
@@ -135,27 +135,27 @@
 
 .station .count {
   font-size: 9.5px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;
 }
 
 .station:hover {
-  background: rgba(212, 168, 74, 0.08);
+  background: var(--accent-wash-hover);
 }
 
 .station.active {
-  background: rgba(212, 168, 74, 0.16);
+  background: var(--accent-wash-active);
 }
 
 .station.active .dot {
-  background: var(--gold);
-  border-color: var(--gold-light);
-  box-shadow: 0 0 0 3px rgba(212, 168, 74, 0.2);
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .station.active .label .jp {
-  color: var(--gold-light);
+  color: var(--text-on-chrome-strong);
 }
 
 .station.complete .dot {

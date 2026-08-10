@@ -1,3 +1,8 @@
+/* Deliberately still on raw values while the rest of the shell moved to
+   role tokens (ADR 013). This wash is tied to hero.gif specifically, and
+   epic 008 phase 2 branches the whole rule per theme against
+   hero-night.gif — tokenising four gradient stops that one rule owns
+   would be indirection with no second caller. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -41,14 +46,14 @@
   max-width: 320px;
   flex: 0 0 320px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, var(--teal-deep), var(--teal-mid));
-  color: var(--sky);
+  background: linear-gradient(180deg, var(--chrome-surface), var(--chrome-surface-raised));
+  color: var(--text-on-chrome);
   padding: 26px 0 28px 0;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  border-right: 1px solid rgba(212, 168, 74, 0.25);
+  border-right: 1px solid var(--border-on-chrome);
   /* Explicit so the rail (z-index 2) reliably paints above this rather
      than relying on source order between two auto-z sticky siblings. */
   z-index: 1;
