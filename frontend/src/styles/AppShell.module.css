@@ -1,8 +1,9 @@
-/* Deliberately still on raw values while the rest of the shell moved to
-   role tokens (ADR 013). This wash is tied to hero.gif specifically, and
-   epic 008 phase 2 branches the whole rule per theme against
-   hero-night.gif — tokenising four gradient stops that one rule owns
-   would be indirection with no second caller. */
+/* The one rule in the app that stays on raw values rather than role
+   tokens (ADR 013). Each wash is welded to its own image — the day
+   gradient exists to lift hero.gif's washed-out sky, the night one to
+   sink hero-night.gif's — so there is no shared role between them to
+   name. Branching the rule is the honest form; four single-caller
+   gradient-stop tokens would not be. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -17,6 +18,21 @@
   background-size: cover, cover, cover;
   background-position: center, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat;
+}
+
+/* Night. The day version lights the scene from 80%
+   the top right, where hero.gif's sun is; hero-night.gif's moon is at
+   the upper left instead, so the glow moves to meet it rather than
+   lighting the sky from a corner nothing is happening in.
+
+   The linear wash also reverses intent: by day it lifts a washed-out
+   sky toward the page, at night it sinks the scene toward --night-abyss
+   so the shell's own surfaces stay the brightest thing on screen. */
+:root[data-theme="dark"] .backdrop {
+  background-image:
+    radial-gradient(ellipse 700px 420px at 18% 4%, rgba(238, 228, 171, 0.16), transparent 62%),
+    linear-gradient(180deg, rgba(12, 14, 46, 0.4) 0%, rgba(12, 14, 46, 0.55) 55%, rgba(12, 14, 46, 0.88) 100%),
+    url("../assets/hero-night.gif");
 }
 
 .shell {
