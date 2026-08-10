@@ -1,6 +1,6 @@
 .card {
-  background: var(--cream);
-  border: 1px solid var(--mist-line);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 32px 24px;
   max-width: 480px;
@@ -10,7 +10,7 @@
 
 .scoreLabel {
   font-size: 11px;
-  color: var(--mist-line);
+  color: var(--text-secondary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -19,12 +19,12 @@
 .score {
   font-family: var(--font-display);
   font-size: 40px;
-  color: var(--ink);
+  color: var(--text-primary);
 }
 
 .pct {
   font-size: 13px;
-  color: var(--mist-line);
+  color: var(--text-secondary);
   margin-top: 6px;
   margin-bottom: 24px;
 }
@@ -32,9 +32,9 @@
 .finishBtn {
   padding: 10px 24px;
   border-radius: 20px;
-  border: 1px solid var(--teal-deep);
-  background: var(--teal-deep);
-  color: var(--gold-light);
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -42,5 +42,5 @@
 }
 
 .finishBtn:hover {
-  background: var(--teal-mid);
+  background: var(--btn-primary-bg-hover);
 }

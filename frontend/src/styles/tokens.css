@@ -84,6 +84,7 @@
   /* Borders */
   --border: var(--mist-line);
   --border-card: rgba(58, 95, 94, 0.25);
+  --border-field: rgba(58, 95, 94, 0.15);
   --border-focus: var(--gold);
   --border-on-chrome: rgba(212, 168, 74, 0.25);
   --border-on-chrome-subtle: var(--mist-line);
@@ -93,6 +94,13 @@
   /* Accent */
   --accent: var(--gold);
   --accent-strong: var(--gold-light);
+  --text-on-accent: var(--teal-deep);
+
+  /* The generator button's animated glow. Note these use --gold's true
+     211,165,76 while the washes below use the mockup's 212,168,74 —
+     see the wash-normalization commit. */
+  --accent-glow-soft: rgba(211, 165, 76, 0.5);
+  --accent-glow-strong: rgba(211, 165, 76, 0.9);
 
   /* Accent washes. Opacities are the ones currently inlined across the
      modules, kept exact so the migration commits are provably no-op —
@@ -114,10 +122,14 @@
   --knob-fill: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
   --knob-glow: 0 0 6px rgba(201, 147, 46, 0.7);
 
-  /* Status washes */
+  /* Status washes. --bad-wash and --bad-wash-strong are the same
+     semantic fill at two opacities the modules happen to disagree on
+     (0.1 in the sentence list, 0.12 in the quiz). Both kept so the
+     migration stays no-op; reconciling them is a visual change. */
   --good-wash: rgba(95, 158, 122, 0.12);
   --good-line: rgba(95, 158, 122, 0.3);
   --bad-wash: rgba(199, 107, 86, 0.1);
+  --bad-wash-strong: rgba(199, 107, 86, 0.12);
 
   /* Primary button — dark fill on a light page, so it tracks the chrome
      ground but is a separate role: a theme may keep buttons dark while
