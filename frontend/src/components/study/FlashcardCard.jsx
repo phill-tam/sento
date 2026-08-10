@@ -39,7 +39,7 @@ export default function FlashcardCard({
       const next = !prev;
       // Level and mute come from CardSoundContext, which stays separate
       // from the backsound's own mute so silencing the music does not
-      // silence flips — see epic 90.
+      // silence flips — see epic 007.
       if (next) {
         playCardOpenSound();
       } else {

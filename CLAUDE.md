@@ -176,7 +176,7 @@ enabling it in a publicly reachable environment.
   context with a decoded-buffer cache, driven by
   `context/CardSoundContext.jsx`) keep separate mute state, separate
   volume and separate storage keys. Muting one must never silence the
-  other — the "epic 90" comment in `FlashcardCard.jsx` is where that
+  other — the "epic 007" comment in `FlashcardCard.jsx` is where that
   rule comes from. Don't merge them into one sound context.
   `context/SoundProviders.jsx` composes both so `App.jsx` mounts a
   single wrapper.

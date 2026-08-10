@@ -30,7 +30,7 @@ function readStoredVolume() {
  *
  * Deliberately a separate provider from BacksoundContext rather than one
  * combined sound context: the two are independent by design (see the
- * "epic 90" note in FlashcardCard), so muting the background music must
+ * "epic 007" note in FlashcardCard), so muting the background music must
  * not silence the flip effects, and vice versa.
  *
  * Unlike the backsound this owns no audio element — cardSoundEffects.js
