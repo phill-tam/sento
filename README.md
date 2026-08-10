@@ -20,7 +20,7 @@ meaning) from user-selected content items.
 | 004 — Quiz Mode | Selective-recall multiple-choice quiz (frontend) | Shipped |
 | 005 — Sentence Generator | AI sentence generation + folders (backend + frontend) | Shipped |
 | 006 — Global Quiz | Cross-line, mixed-type quiz pool incl. saved sentences (frontend) | Shipped |
-| Sound | Background music + card flip effects, per-system controls | Shipped |
+| 007 — Sound | Background music + card flip effects, per-system controls | Shipped |
 
 Only epics 001 and 002 have write-ups in `docs/epics/`, and ADRs stop
 at 011. Later epics exist as shipped code, the GitHub issues that track
