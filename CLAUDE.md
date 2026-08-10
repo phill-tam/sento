@@ -49,6 +49,10 @@ npm run lint       # oxlint (CI-enforced; config: frontend/.oxlintrc.json)
 There is no `test` script in `package.json` yet — CI's frontend job
 only runs `npm run test` if `frontend/src/**/*.test.jsx` files exist.
 
+`.claude/launch.json` defines this dev server for Claude Code's preview
+tooling — start it from there rather than running a server through a
+shell tool.
+
 ## Feature flags
 
 Every epic beyond the always-on foundation shell is gated behind a
@@ -121,7 +125,21 @@ enabling it in a publicly reachable environment.
   no top nav; all section-switching happens via the sidebar
   (`docs/adr/004-sidebar-only-navigation-topnav-dropped.md`) and the
   icon rail added for the two-tier nav in epic 002
-  (`docs/adr/010-two-tier-sidebar-collapsible-navigation.md`).
+  (`docs/adr/010-two-tier-sidebar-collapsible-navigation.md`). The rail
+  renders unconditionally — it carries the settings gear, which stays
+  relevant even with every view flag off — while individual view buttons
+  are still flag-filtered via `App.jsx`'s `visibleViews`. `AppShell`
+  itself is purely structural: it knows nothing about what fills its
+  slots.
+- **Rail/sidebar stacking is load-bearing.** Both `.rail` and
+  `.lineRail` are `position: sticky`, and sticky creates a stacking
+  context *unconditionally* (unlike `relative`/`absolute`, which only do
+  so with a non-auto z-index). A popover inside the rail therefore
+  cannot escape it by raising its own z-index — the rail itself has to
+  outrank its sibling, which is why `.rail` carries `z-index: 2` against
+  `.lineRail`'s `1`. Anything that must cover both (e.g.
+  `ConfirmDialog`'s `z-index: 10` backdrop) has to live outside
+  `.shell`, which is its own stacking context at `z-index: 1`.
 - **`CategoryTree`** uses a generic `count`/`total`/`complete` prop
   contract rather than a `mastered`-specific one, so it isn't coupled
   to the flashcard mastery feature — see
@@ -152,6 +170,30 @@ enabling it in a publicly reachable environment.
   (`body.detail.error === "rate_limit_exceeded"`), letting
   `useSentenceGenerator` show a dedicated rate-limit message instead
   of a generic failure.
+- **Sound is two independent systems, on purpose.** Background music
+  (`context/BacksoundContext.jsx`, a looped `Audio` element) and card
+  flip effects (`utils/cardSoundEffects.js`, a module-level Web Audio
+  context with a decoded-buffer cache, driven by
+  `context/CardSoundContext.jsx`) keep separate mute state, separate
+  volume and separate storage keys. Muting one must never silence the
+  other — the "epic 90" comment in `FlashcardCard.jsx` is where that
+  rule comes from. Don't merge them into one sound context.
+  `context/SoundProviders.jsx` composes both so `App.jsx` mounts a
+  single wrapper.
+- **`MAX_VOLUME` is a ceiling, not just a default.** Each sound context
+  exports one (Global `0.1`, Cards `0.5`) and `SoundSettingsPanel` uses
+  it as its slider's `max`, so full-right is the level the app shipped
+  with and the readout means "share of normal volume". These were tuned
+  by ear against each other; raising either is a mix decision, not a UI
+  one. The controls live behind the gear at the bottom of the icon rail
+  (`layouts/SettingsButton.jsx`), not in the sidebar.
+- **User preferences are plain `localStorage`,** no store library and no
+  settings service: prefixed key, lazy `useState(() => read())`
+  initializer, write-back in an effect, and every access try/catch
+  guarded so private browsing degrades silently instead of throwing.
+  Follow that shape for new preferences — see `backsound:muted` /
+  `backsound:volume`, `cardsound:muted` / `cardsound:volume`, and
+  `hooks/useMastered.js`'s `sento:mastered:{lineId}`.
 - **Design tokens** live in `src/styles/tokens.css` as CSS custom
   properties, ported from the original design mockup — see
   `docs/adr/001-design-tokens-css-custom-properties.md`. Every
