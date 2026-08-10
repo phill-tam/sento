@@ -151,7 +151,7 @@
 .station.active .dot {
   background: var(--accent);
   border-color: var(--accent-strong);
-  box-shadow: 0 0 0 3px var(--accent-ring-soft);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .station.active .label .jp {

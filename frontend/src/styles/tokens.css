@@ -86,7 +86,7 @@
   --border-card: rgba(58, 95, 94, 0.25);
   --border-field: rgba(58, 95, 94, 0.15);
   --border-focus: var(--gold);
-  --border-on-chrome: rgba(212, 168, 74, 0.25);
+  --border-on-chrome: rgba(211, 165, 76, 0.25);
   --border-on-chrome-subtle: var(--mist-line);
   --border-on-chrome-ghost: rgba(255, 255, 255, 0.4);
   --guide-line: rgba(111, 156, 154, 0.4);
@@ -96,9 +96,7 @@
   --accent-strong: var(--gold-light);
   --text-on-accent: var(--teal-deep);
 
-  /* The generator button's animated glow. Note these use --gold's true
-     211,165,76 while the washes below use the mockup's 212,168,74 —
-     see the wash-normalization commit. */
+  /* The generator button's animated glow. */
   --accent-glow-soft: rgba(211, 165, 76, 0.5);
   --accent-glow-strong: rgba(211, 165, 76, 0.9);
 
@@ -107,17 +105,17 @@
        selected  — the open parent folder in a tree
        chip-fill — the static square behind a line/folder glyph
        active    — the current row or view
-     Values are still the ones the modules inlined, so this ladder is
-     accurate in name but not yet consistent in value. */
-  --accent-wash-hover: rgba(212, 168, 74, 0.08);
-  --accent-wash-selected: rgba(212, 168, 74, 0.1);
-  --accent-chip-fill: rgba(212, 168, 74, 0.12);
-  --accent-wash-active: rgba(212, 168, 74, 0.16);
-  --accent-ring: rgba(212, 168, 74, 0.22);
-  --accent-ring-soft: rgba(212, 168, 74, 0.2);
-  --accent-line-active: rgba(212, 168, 74, 0.3);
-  --accent-line-panel: rgba(212, 168, 74, 0.35);
-  --accent-outline: rgba(212, 168, 74, 0.8);
+     Every alpha here composites the same 211,165,76 — that is --gold
+     (#d3a54c) resolved, so the ladder and the accent it tints cannot
+     drift apart. */
+  --accent-wash-hover: rgba(211, 165, 76, 0.08);
+  --accent-wash-selected: rgba(211, 165, 76, 0.1);
+  --accent-chip-fill: rgba(211, 165, 76, 0.12);
+  --accent-wash-active: rgba(211, 165, 76, 0.16);
+  --accent-ring: rgba(211, 165, 76, 0.22);
+  --accent-line-active: rgba(211, 165, 76, 0.3);
+  --accent-line-panel: rgba(211, 165, 76, 0.35);
+  --accent-outline: rgba(211, 165, 76, 0.8);
   --accent-strong-line: rgba(240, 211, 143, 0.25);
 
   /* The lit gold knob shared by the volume slider and ToggleSwitch. One
@@ -147,14 +145,11 @@
   --shadow-start: 0 10px 30px rgba(15, 44, 46, 0.35);
   --shadow-start-hover: 0 14px 36px var(--gold-light);
 
-  /* Status washes. --bad-wash and --bad-wash-strong are the same
-     semantic fill at two opacities the modules happen to disagree on
-     (0.1 in the sentence list, 0.12 in the quiz). Both kept so the
-     migration stays no-op; reconciling them is a visual change. */
+  /* Status washes, both at 0.12 so a correct and an incorrect answer
+     read at the same strength side by side in the quiz. */
   --good-wash: rgba(95, 158, 122, 0.12);
   --good-line: rgba(95, 158, 122, 0.3);
-  --bad-wash: rgba(199, 107, 86, 0.1);
-  --bad-wash-strong: rgba(199, 107, 86, 0.12);
+  --bad-wash: rgba(199, 107, 86, 0.12);
 
   /* Primary button — dark fill on a light page, so it tracks the chrome
      ground but is a separate role: a theme may keep buttons dark while
@@ -179,6 +174,6 @@
      stops. Used only in FlashcardCard's two @keyframes. */
   --card-glow-idle-rest: 0 0 0 1px rgba(58, 95, 94, 0.15), 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
   --card-glow-idle-peak: 0 0 0 2px rgba(15, 44, 46, 0.55), 0 0 12px rgba(15, 44, 46, 0.4), 0 6px 14px rgba(22, 51, 50, 0.06);
-  --card-glow-selected-rest: 0 0 0 2px rgba(212, 168, 74, 0.5), 0 0 14px rgba(212, 168, 74, 0.35);
-  --card-glow-selected-peak: 0 0 0 2px rgba(212, 168, 74, 0.85), 0 0 20px rgba(212, 168, 74, 0.6);
+  --card-glow-selected-rest: 0 0 0 2px rgba(211, 165, 76, 0.5), 0 0 14px rgba(211, 165, 76, 0.35);
+  --card-glow-selected-peak: 0 0 0 2px rgba(211, 165, 76, 0.85), 0 0 20px rgba(211, 165, 76, 0.6);
 }
