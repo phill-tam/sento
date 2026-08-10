@@ -5,6 +5,36 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>sentō | 戦闘</title>
+    <!--
+      Stamps the resolved theme before the browser paints anything.
+
+      This has to be blocking and inline in <head>: React's effects run
+      after mount, which is after first contentful paint, so leaving it
+      to ThemeContext alone means every load renders the light palette
+      for a frame and then swaps. That flash is most visible exactly
+      where it is least wanted — the landing gate, which is where the
+      theme toggle lives.
+
+      It knowingly duplicates the storage key and the resolution rule
+      from context/ThemeContext.jsx. Nothing importable can run this
+      early, so the duplication is the price of not flashing; see
+      ADR 014. Keep the two in sync — the context is the authority.
+    -->
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("sento:theme");
+          if (pref !== "light" && pref !== "dark") {
+            pref = window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.dataset.theme = pref;
+        } catch (err) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
