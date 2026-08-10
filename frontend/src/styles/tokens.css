@@ -122,6 +122,27 @@
   --knob-fill: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
   --knob-glow: 0 0 6px rgba(201, 147, 46, 0.7);
 
+  /* ToggleSwitch's own darker gold (#c9932e), a shade the palette never
+     names, plus its unlit browns. Self-contained treatment, so it gets
+     its own prefix rather than being forced into the accent ladder. */
+  --switch-line: rgba(201, 147, 46, 0.55);
+  --switch-line-hover: rgba(201, 147, 46, 0.85);
+  --switch-track: #2a2116;
+  --switch-track-line: rgba(201, 147, 46, 0.35);
+  --switch-track-on: #3a2c14;
+  --switch-track-line-on: rgba(201, 147, 46, 0.8);
+  --switch-knob: #6b6155;
+  --switch-label: #e8d9b8;
+  --switch-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* StartGate's landing button. Its fill is #0197b7, a cyan that exists
+     nowhere else in the palette — see the commit that tokenised it. */
+  --start-btn-bg: rgba(1, 151, 183, 1);
+  --start-btn-bg-hover: var(--teal-mid);
+  --start-btn-fg: var(--gold-light);
+  --shadow-start: 0 10px 30px rgba(15, 44, 46, 0.35);
+  --shadow-start-hover: 0 14px 36px var(--gold-light);
+
   /* Status washes. --bad-wash and --bad-wash-strong are the same
      semantic fill at two opacities the modules happen to disagree on
      (0.1 in the sentence list, 0.12 in the quiz). Both kept so the

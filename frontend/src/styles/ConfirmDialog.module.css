@@ -2,25 +2,25 @@
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: rgba(15, 44, 46, 0.55);
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .dialog {
-  background: var(--cream);
+  background: var(--surface-card);
   border-radius: 12px;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border);
   padding: 24px;
   max-width: 360px;
   width: 90%;
-  box-shadow: 0 8px 24px rgba(22, 51, 50, 0.18);
+  box-shadow: var(--shadow-dialog);
 }
 
 .message {
   margin: 0 0 20px 0;
-  color: var(--ink);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13.5px;
   line-height: 1.5;
@@ -35,9 +35,9 @@
 .cancelBtn {
   padding: 9px 16px;
   border-radius: 20px;
-  border: 1px solid var(--mist-line);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--ink);
+  color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -45,15 +45,15 @@
 }
 
 .cancelBtn:hover {
-  border-color: var(--gold);
+  border-color: var(--border-focus);
 }
 
 .confirmBtn {
   padding: 9px 16px;
   border-radius: 20px;
-  border: 1px solid var(--teal-deep);
-  background: var(--teal-deep);
-  color: var(--gold-light);
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -61,5 +61,5 @@
 }
 
 .confirmBtn:hover {
-  background: var(--teal-mid);
+  background: var(--btn-primary-bg-hover);
 }
