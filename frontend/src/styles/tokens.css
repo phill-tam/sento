@@ -10,7 +10,7 @@
    and a theme has to move those two in opposite directions. */
 
 :root {
-  /* Core palette */
+  /* Core palette — day */
   --teal-deep: #0f2c2e;
   --teal-mid: #164042;
   --teal-mid-2: #1c4b4d;
@@ -26,6 +26,29 @@
   /* Status */
   --good: #5f9e7a;
   --bad: #c76b56;
+
+  /* Core palette — night. Sampled from hero-night.gif by region, so the
+     ramp is the image's own sense of depth rather than an invented one:
+     the water shadow is the floor, the horizon is the workhorse, the sky
+     is what sits above it, and the moon is the type.
+
+       abyss   water shadow       #0c0e2e   (21% of the horizon band)
+       deep    interpolated       #1a2050
+       indigo  horizon + water    #2a3270   (71% / 55%)
+       violet  upper sky          #454386   (80% of sky-mid)
+
+     The moon itself (#eee4ab, 21% of the moon crop) is not a pigment
+     here — it is desaturated slightly into --text-primary below, since
+     a whole page of type at that saturation glares. */
+  --night-abyss: #0c0e2e;
+  --night-deep: #1a2050;
+  --night-indigo: #2a3270;
+  --night-violet: #454386;
+
+  /* Status — night. The day greens and reds go muddy against indigo, so
+     both are lifted until they carry their own meaning at text size. */
+  --good-night: #7fc09b;
+  --bad-night: #e59279;
 
   /* Typography */
   --font-display: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
@@ -176,4 +199,91 @@
   --card-glow-idle-peak: 0 0 0 2px rgba(15, 44, 46, 0.55), 0 0 12px rgba(15, 44, 46, 0.4), 0 6px 14px rgba(22, 51, 50, 0.06);
   --card-glow-selected-rest: 0 0 0 2px rgba(211, 165, 76, 0.5), 0 0 14px rgba(211, 165, 76, 0.35);
   --card-glow-selected-peak: 0 0 0 2px rgba(211, 165, 76, 0.85), 0 0 20px rgba(211, 165, 76, 0.6);
+}
+
+/* ── Night theme ─────────────────────────────────────────────────────
+   Re-points the role layer and nothing else — no module knows this
+   block exists (ADR 013). data-theme is stamped on <html> before first
+   paint by the inline script in index.html (ADR 014).
+
+   This is not an inversion of the day theme. The rail and sidebar were
+   already dark against a light content area, so at night the chrome
+   shifts hue and stays put while the content surfaces come down to meet
+   it. The gold accent survives the swap intact: the lanterns in
+   hero-night.gif sit almost exactly on --gold, and the moon lands
+   within a hair of --gold-light. */
+
+:root[data-theme="dark"] {
+  /* Surfaces — content area. Ordered by depth: the page is the floor,
+     cards sit above it, fields are recessed back into them. */
+  --surface-page: var(--night-abyss);
+  --surface-card: var(--night-deep);
+  --surface-card-sheen: #232a5e;
+  --surface-field: #12153a;
+  --surface-field-on-chrome: rgba(255, 255, 255, 0.06);
+  --surface-track: rgba(255, 255, 255, 0.12);
+
+  --chip-bg: var(--night-indigo);
+  --chip-fg: var(--gold-light);
+
+  /* Surfaces — chrome. Still the darkest thing on screen, as by day. */
+  --chrome-surface: #12153a;
+  --chrome-surface-raised: #232a5e;
+  --chrome-surface-selected: var(--night-indigo);
+
+  /* Text — on the content area. --text-primary is the moon, pulled
+     fractionally off #eee4ab so a full page of it does not glare. */
+  --text-primary: #ede6cc;
+  --text-secondary: #a7a9c8;
+  --text-hint: #8386ab;
+
+  /* Text — on chrome. Same dim < subtle < soft ordering as by day. */
+  --text-on-chrome: #ded9ee;
+  --text-on-chrome-muted: #8f92bb;
+  --text-on-chrome-strong: var(--gold-light);
+  --text-on-chrome-dim: #9295bd;
+  --text-on-chrome-subtle: #b3b5d4;
+  --text-on-chrome-soft: #c9cae4;
+  --text-on-chrome-placeholder: #7e81a8;
+  --text-on-chrome-ghost: rgba(255, 255, 255, 0.7);
+  --text-on-status: #0c0e2e;
+
+  /* Borders. By day these are pigments; at night they are white at low
+     alpha, so one value works over every surface in the depth ramp
+     instead of needing a variant per ground. */
+  --border: rgba(255, 255, 255, 0.16);
+  --border-card: rgba(255, 255, 255, 0.1);
+  --border-field: rgba(255, 255, 255, 0.08);
+  --border-focus: var(--accent);
+  --border-on-chrome: rgba(211, 165, 76, 0.28);
+  --border-on-chrome-subtle: rgba(255, 255, 255, 0.14);
+  --border-on-chrome-ghost: rgba(255, 255, 255, 0.4);
+  --guide-line: rgba(150, 153, 205, 0.35);
+
+  /* Accent — unchanged. The night palette was chosen to keep it. */
+  --text-on-accent: var(--night-abyss);
+
+  /* Status */
+  --good: var(--good-night);
+  --bad: var(--bad-night);
+  --good-wash: rgba(127, 192, 155, 0.14);
+  --good-line: rgba(127, 192, 155, 0.35);
+  --bad-wash: rgba(229, 146, 121, 0.14);
+
+  /* Primary button. By day a dark fill on a light page; at night that
+     would vanish into the page, so it inverts to the lit treatment. */
+  --btn-primary-bg: var(--night-indigo);
+  --btn-primary-bg-hover: var(--night-violet);
+  --btn-primary-fg: var(--gold-light);
+
+  /* ToggleSwitch keeps its own gold — it was already a dark-on-gold
+     component and reads the same against indigo. Only the unlit track
+     moves, off the day theme's warm brown and onto a cool one. */
+  --switch-track: #1b1733;
+
+  /* The landing button keeps its cyan fill: it is the one deliberately
+     lit thing on the gate, and cyan sits close enough to the indigo
+     family to belong. Its hover was --teal-mid, which goes muddy
+     against night, so that moves into the night ramp. */
+  --start-btn-bg-hover: var(--night-violet);
 }
