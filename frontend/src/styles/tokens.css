@@ -291,10 +291,12 @@
      moves, off the day theme's warm brown and onto a cool one. */
   --switch-track: #1b1733;
 
-  /* The landing button keeps its cyan fill: it is the one deliberately
-     lit thing on the gate, and cyan sits close enough to the indigo
-     family to belong. Its hover was --teal-mid, which goes muddy
-     against night, so that moves into the night ramp. */
+  /* The landing button drops its cyan fill at night. Two reasons: it
+     read as a lit green pill stuck onto the artwork, and its gold label
+     only managed 2.36:1 against that cyan. A near-black purple takes the
+     label to 12.42:1 and leaves the gold rim to mark the control's edge
+     against the scene. */
+  --start-btn-bg: #1a1030;
   --start-btn-bg-hover: var(--night-violet);
 
   /* Elevation. The day shadows are dark ink at 5-8% alpha, which is a
