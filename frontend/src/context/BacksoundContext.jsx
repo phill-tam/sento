@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import backsoundSrc from '../assets/backsound.mp3';
 
 const STORAGE_KEY = 'backsound:muted';
-const DEFAULT_VOLUME = 0.35;
+const DEFAULT_VOLUME = 0.1;
 
 const BacksoundContext = createContext(null);
 
