@@ -53,20 +53,31 @@ only runs `npm run test` if `frontend/src/**/*.test.jsx` files exist.
 tooling — start it from there rather than running a server through a
 shell tool.
 
-## Feature flags
+## Feature flags — there aren't any
 
-Every epic beyond the always-on foundation shell is gated behind a
-flag, named per-epic rather than per-component (see
-`docs/adr/005-feature-flags-per-epic-naming.md`).
+All per-epic feature flags were removed once every epic shipped (see
+`docs/adr/012-feature-flags-removed-admin-write-gate.md`, which
+supersedes 005). `backend/app/config/feature_flags.py` and
+`frontend/src/config/featureFlags.js` no longer exist. Study, Quiz, the
+Sentence Generator and the global quiz pool are unconditionally on, and
+the app runs with no environment configuration at all. Don't add a
+`FEATURE_*` flag back for an epic — finish it on a branch instead.
 
-- **Backend** — `.env`-backed via Pydantic Settings (`backend/app/config/feature_flags.py`, env-prefixed `FEATURE_`): `FEATURE_CONTENT_MANAGEMENT`, `FEATURE_SENTENCE_GENERATOR`. `backend/app/api/v1/router.py` conditionally imports and mounts each feature's routes at import time — checking a flag is not enough on its own; the routes genuinely don't exist in the OpenAPI schema when the flag is off.
-- **Frontend** — `frontend/src/config/featureFlags.js`, reading `VITE_FEATURE_*` env vars (`FEATURE_CONTENT_MANAGEMENT` is hardcoded `false` regardless of env, unlike the others — check current code before assuming): `FEATURE_FOUNDATION_SHELL`, `FEATURE_CONTENT_MANAGEMENT`, `FEATURE_STUDY_FLASHCARDS`, `FEATURE_QUIZ_MODE`, `FEATURE_SENTENCE_GENERATOR`.
+**The one remaining switch is access control, not a feature flag.**
+`ADMIN_WRITES_ENABLED` (backend, `app/config/settings.py`) and
+`VITE_ADMIN_WRITES_ENABLED` (frontend, `src/config/adminMode.js`), both
+default `false`. They gate the content **write** endpoints, which have
+no authentication in front of them — there is no `User` model anywhere
+in this project.
 
-**Content Management has no auth.** There is no `User` model or
-authentication anywhere in this project. `FEATURE_CONTENT_MANAGEMENT`
-controls *visibility* only, not *access* — see
-`docs/adr/011-no-auth-feature-flag-gated-only.md`. Never suggest
-enabling it in a publicly reachable environment.
+- `app/routes/{kanji,vocab,grammar}.py` each expose **two** routers: `router` (the `GET` list endpoint, always mounted, since Study fetches it on every page load) and `admin_router` (`POST /upload`, `PATCH /{id}/status`, mounted only when the switch is on). Keep new read endpoints on `router` and new write endpoints on `admin_router`.
+- The two layers are enforced independently. `VITE_ADMIN_WRITES_ENABLED` only decides whether the CMS UI is offered; setting it without the backend var gives you a page whose requests 404.
+- Never suggest enabling `ADMIN_WRITES_ENABLED` in a publicly reachable environment — see `docs/adr/011-no-auth-feature-flag-gated-only.md`.
+
+`POST /sentences/generate` is unconditionally mounted and also
+unauthenticated. It spends real AI provider quota per call, with the
+provider's own rate limit as the only backstop — a known, accepted gap
+(ADR 012), not an oversight to route around.
 
 ## Backend architecture
 

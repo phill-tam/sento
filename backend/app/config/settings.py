@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     database_url: str
     migrations_database_url: str = ""
 
+    # Mounts the unauthenticated content-write endpoints (CSV upload,
+    # status PATCH). Not a feature flag — those were removed with ADR
+    # 012 — but access control standing in for the auth this project
+    # does not have. Leave false anywhere reachable by anyone else.
+    admin_writes_enabled: bool = False
+
     # Sentence Generator (epic 5) — selects the AI provider at runtime.
     # "development" -> Gemini, "production" -> Claude. See
     # services/sentence_generation_service.py for the switch itself.

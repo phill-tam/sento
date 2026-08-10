@@ -1,8 +1,17 @@
 # ADR 011 — Content Management Has No Auth Gate; Feature Flag Is Not a Security Boundary
 
-**Status:** Accepted
+**Status:** Accepted — amended by [012](012-feature-flags-removed-admin-write-gate.md)
 **Date:** 2026-08-03
 **Epic:** 002 — Content Management
+
+> **Amendment (ADR 012):** the gate named throughout this ADR,
+> `FEATURE_CONTENT_MANAGEMENT`, no longer exists. It gated the `GET`
+> list routes *and* the writes as one unit, which meant any deployment
+> serving flashcards had the write endpoints exposed. Reads are now
+> always mounted and only `POST /{line}/upload` and
+> `PATCH /{line}/{id}/status` sit behind `ADMIN_WRITES_ENABLED`. The
+> reasoning below still holds — read it with that switch substituted,
+> and scoped to writes rather than all nine routes.
 
 ## Context
 
