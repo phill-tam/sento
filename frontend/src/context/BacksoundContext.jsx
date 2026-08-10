@@ -2,9 +2,28 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import backsoundSrc from '../assets/backsound.mp3';
 
 const STORAGE_KEY = 'backsound:muted';
-const DEFAULT_VOLUME = 0.1;
+const VOLUME_STORAGE_KEY = 'backsound:volume';
+// Doubles as the ceiling of the Global volume slider: this level was
+// tuned by ear against the card effects, so the settings panel scales
+// *down* from it rather than letting the user push past it.
+const MAX_VOLUME = 0.1;
 
 const BacksoundContext = createContext(null);
+
+function clampVolume(value) {
+  if (!Number.isFinite(value)) return MAX_VOLUME;
+  return Math.min(MAX_VOLUME, Math.max(0, value));
+}
+
+function readStoredVolume() {
+  try {
+    const raw = localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (raw === null) return MAX_VOLUME;
+    return clampVolume(parseFloat(raw));
+  } catch {
+    return MAX_VOLUME;
+  }
+}
 
 export function BacksoundProvider({ children }) {
   const audioRef = useRef(null);
@@ -15,13 +34,14 @@ export function BacksoundProvider({ children }) {
       return false;
     }
   });
+  const [volume, setVolumeState] = useState(readStoredVolume);
   const [hasStarted, setHasStarted] = useState(false);
 
   // Create the audio element once.
   useEffect(() => {
     const audio = new Audio(backsoundSrc);
     audio.loop = true;
-    audio.volume = DEFAULT_VOLUME;
+    audio.volume = volume;
     audio.muted = isMuted;
     audioRef.current = audio;
 
@@ -45,6 +65,18 @@ export function BacksoundProvider({ children }) {
     }
   }, [isMuted]);
 
+  // Same shape as the mute effect above: sync the element, then persist.
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+    try {
+      localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
+    } catch {
+      // ignore storage errors (private browsing, etc.)
+    }
+  }, [volume]);
+
   // Call this from a user gesture (click, tap) to satisfy autoplay policies.
   const start = useCallback(() => {
     if (hasStarted || !audioRef.current) return;
@@ -61,13 +93,21 @@ export function BacksoundProvider({ children }) {
   }, []);
 
   const setVolume = useCallback((value) => {
-    if (audioRef.current) {
-      audioRef.current.volume = Math.min(1, Math.max(0, value));
-    }
+    setVolumeState(clampVolume(value));
   }, []);
 
   return (
-    <BacksoundContext.Provider value={{ start, isMuted, toggleMute, setVolume, hasStarted }}>
+    <BacksoundContext.Provider
+      value={{
+        start,
+        isMuted,
+        toggleMute,
+        volume,
+        setVolume,
+        maxVolume: MAX_VOLUME,
+        hasStarted,
+      }}
+    >
       {children}
     </BacksoundContext.Provider>
   );
