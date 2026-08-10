@@ -1,6 +1,13 @@
 /* src/styles/tokens.css
    Design tokens ported from sento-ui-mockup.html.
-   Palette, typography, and shared status colors — no component-specific rules here. */
+   Palette, typography, and shared status colors — no component-specific rules here.
+
+   Two layers, on purpose (ADR 013):
+     1. Pigment  — the raw mockup palette below. Private to this file.
+     2. Role     — what a color is *for*. Modules reference only these.
+   Component CSS must not use a pigment token directly: several of them
+   carry two roles at once (--mist-line is both a border and muted text),
+   and a theme has to move those two in opposite directions. */
 
 :root {
   /* Core palette */
@@ -24,4 +31,76 @@
   --font-display: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
   --font-body: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP",
     -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ── Role layer ──────────────────────────────────────────────────────
+   Every value here is the light theme's data, expressed as the pigment
+   it currently resolves to. Adding a theme means re-pointing this block
+   and nothing else.
+
+   The app is not uniformly light: the icon rail and sidebar are already
+   dark chrome while the content area is light. "on-chrome" tokens are
+   for that dark ground; the unsuffixed ones are for the light page. */
+
+:root {
+  /* Surfaces — light content area */
+  --surface-page: var(--sky);
+  --surface-card: var(--cream);
+  --surface-field: #ffffff;
+  --surface-track: rgba(58, 95, 94, 0.18);
+
+  /* Surfaces — dark chrome (rail, sidebar, popovers) */
+  --chrome-surface: var(--teal-deep);
+  --chrome-surface-raised: var(--teal-mid);
+  --chrome-surface-selected: var(--teal-mid-2);
+
+  /* Text — on the light page */
+  --text-primary: var(--ink);
+  --text-secondary: var(--mist-line);
+  --text-hint: var(--mist);
+
+  /* Text — on dark chrome */
+  --text-on-chrome: var(--sky);
+  --text-on-chrome-muted: var(--mist);
+  --text-on-chrome-strong: var(--gold-light);
+
+  /* Borders */
+  --border: var(--mist-line);
+  --border-focus: var(--gold);
+  --border-on-chrome: rgba(212, 168, 74, 0.25);
+
+  /* Accent */
+  --accent: var(--gold);
+  --accent-strong: var(--gold-light);
+
+  /* Accent washes. Opacities are the ones currently inlined across the
+     modules, kept exact so the migration commits are provably no-op —
+     they get normalized afterwards, in one place, as a declared change. */
+  --accent-wash: rgba(212, 168, 74, 0.08);
+  --accent-wash-hover: rgba(212, 168, 74, 0.1);
+  --accent-wash-selected: rgba(212, 168, 74, 0.12);
+  --accent-wash-active: rgba(212, 168, 74, 0.16);
+  --accent-ring: rgba(212, 168, 74, 0.22);
+
+  /* Status washes */
+  --good-wash: rgba(95, 158, 122, 0.12);
+  --good-line: rgba(95, 158, 122, 0.3);
+  --bad-wash: rgba(199, 107, 86, 0.1);
+
+  /* Primary button — dark fill on a light page, so it tracks the chrome
+     ground but is a separate role: a theme may keep buttons dark while
+     the surrounding surface changes. */
+  --btn-primary-bg: var(--teal-deep);
+  --btn-primary-bg-hover: var(--teal-mid);
+  --btn-primary-fg: var(--gold-light);
+
+  /* Elevation. Dark surfaces can't render a dark shadow, so these are
+     role tokens rather than inlined rgba — under a night theme they
+     become lighter glows or flatten to borders. */
+  --shadow-card: 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --shadow-card-lifted: 0 2px 0 rgba(22, 51, 50, 0.05), 0 10px 24px rgba(22, 51, 50, 0.08);
+  --shadow-field: 0 1px 2px rgba(22, 51, 50, 0.05);
+  --shadow-dialog: 0 8px 24px rgba(22, 51, 50, 0.18);
+  --shadow-popover: 0 8px 24px rgba(15, 44, 46, 0.45);
+  --scrim: rgba(15, 44, 46, 0.55);
 }
