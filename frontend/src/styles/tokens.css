@@ -66,6 +66,14 @@
    for that dark ground; the unsuffixed ones are for the light page. */
 
 :root {
+  /* Tells the browser which way its own painting goes: scrollbars, form
+     control chrome, spellcheck underlines, the canvas behind the page.
+     None of that is reachable from CSS, so without this the app themes
+     and the browser's contribution to it does not. Held back until the
+     night values existed — declaring it earlier would have darkened
+     every scrollbar against a light palette. */
+  color-scheme: light;
+
   /* Surfaces — light content area */
   --surface-page: var(--sky);
   --surface-card: var(--cream);
@@ -214,6 +222,8 @@
    within a hair of --gold-light. */
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surfaces — content area. Ordered by depth: the page is the floor,
      cards sit above it, fields are recessed back into them. */
   --surface-page: var(--night-abyss);
