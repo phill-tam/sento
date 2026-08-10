@@ -17,7 +17,7 @@
 }
 
 .row:hover {
-  background: rgba(212, 168, 74, 0.08);
+  background: var(--accent-wash);
 }
 
 .lineChip {
@@ -28,26 +28,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(212, 168, 74, 0.12);
+  background: var(--accent-wash-selected);
   font-family: var(--font-display);
   font-size: 12px;
-  color: var(--gold-light);
-  border: 1px solid rgba(212, 168, 74, 0.25);
+  color: var(--text-on-chrome-strong);
+  border: 1px solid var(--border-on-chrome);
 }
 
 .prompt {
   font-family: var(--font-display);
-  color: var(--sky);
+  color: var(--text-on-chrome);
   flex: 0 0 auto;
 }
 
 .reading {
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   flex: 0 0 auto;
 }
 
 .answer {
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -57,7 +57,7 @@
 }
 
 .empty {
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   font-size: 12px;
   padding: 12px 8px;
 }

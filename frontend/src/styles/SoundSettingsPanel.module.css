@@ -3,11 +3,11 @@
    are themselves dark-teal-on-gold and would clash on a light surface. */
 .panel {
   width: 236px;
-  background: linear-gradient(180deg, var(--teal-mid), var(--teal-deep));
-  border: 1px solid rgba(212, 168, 74, 0.35);
+  background: linear-gradient(180deg, var(--chrome-surface-raised), var(--chrome-surface));
+  border: 1px solid var(--accent-line-panel);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 8px 24px rgba(15, 44, 46, 0.45);
+  box-shadow: var(--shadow-popover);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -19,7 +19,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
 }
 
 .row {
@@ -37,7 +37,7 @@
 .percent {
   font-family: var(--font-body);
   font-size: 11px;
-  color: var(--mist);
+  color: var(--text-on-chrome-muted);
   min-width: 32px;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -49,12 +49,12 @@
   flex: 1;
   height: 4px;
   border-radius: 999px;
-  background: rgba(212, 168, 74, 0.22);
+  background: var(--accent-ring);
   cursor: pointer;
 }
 
 .slider:focus-visible {
-  outline: 1px solid rgba(212, 168, 74, 0.8);
+  outline: 1px solid var(--accent-outline);
   outline-offset: 6px;
 }
 
@@ -65,8 +65,8 @@
   height: 14px;
   border: none;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
-  box-shadow: 0 0 6px rgba(201, 147, 46, 0.7);
+  background: var(--knob-fill);
+  box-shadow: var(--knob-glow);
   cursor: pointer;
 }
 
@@ -75,7 +75,7 @@
   height: 14px;
   border: none;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
-  box-shadow: 0 0 6px rgba(201, 147, 46, 0.7);
+  background: var(--knob-fill);
+  box-shadow: var(--knob-glow);
   cursor: pointer;
 }

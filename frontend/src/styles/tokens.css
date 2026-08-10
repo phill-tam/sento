@@ -47,6 +47,7 @@
   --surface-page: var(--sky);
   --surface-card: var(--cream);
   --surface-field: #ffffff;
+  --surface-field-on-chrome: rgba(255, 255, 255, 0.06);
   --surface-track: rgba(58, 95, 94, 0.18);
 
   /* Surfaces — dark chrome (rail, sidebar, popovers) */
@@ -63,11 +64,15 @@
   --text-on-chrome: var(--sky);
   --text-on-chrome-muted: var(--mist);
   --text-on-chrome-strong: var(--gold-light);
+  --text-on-chrome-subtle: #bcdad8;
+  --text-on-chrome-placeholder: #8fb3b1;
 
   /* Borders */
   --border: var(--mist-line);
   --border-focus: var(--gold);
   --border-on-chrome: rgba(212, 168, 74, 0.25);
+  --border-on-chrome-subtle: var(--mist-line);
+  --guide-line: rgba(111, 156, 154, 0.4);
 
   /* Accent */
   --accent: var(--gold);
@@ -81,6 +86,16 @@
   --accent-wash-selected: rgba(212, 168, 74, 0.12);
   --accent-wash-active: rgba(212, 168, 74, 0.16);
   --accent-ring: rgba(212, 168, 74, 0.22);
+  --accent-ring-soft: rgba(212, 168, 74, 0.2);
+  --accent-line-active: rgba(212, 168, 74, 0.3);
+  --accent-line-panel: rgba(212, 168, 74, 0.35);
+  --accent-outline: rgba(212, 168, 74, 0.8);
+
+  /* The lit gold knob shared by the volume slider and ToggleSwitch. One
+     treatment in two modules — CSS modules can't share a rule, so the
+     value is shared here instead. */
+  --knob-fill: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
+  --knob-glow: 0 0 6px rgba(201, 147, 46, 0.7);
 
   /* Status washes */
   --good-wash: rgba(95, 158, 122, 0.12);
