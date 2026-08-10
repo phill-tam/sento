@@ -49,6 +49,9 @@
   height: 100vh;
   overflow-y: auto;
   border-right: 1px solid rgba(212, 168, 74, 0.25);
+  /* Explicit so the rail (z-index 2) reliably paints above this rather
+     than relying on source order between two auto-z sticky siblings. */
+  z-index: 1;
   transition: flex-basis 0.3s ease-in-out, width 0.3s ease-in-out,
     min-width 0.3s ease-in-out, max-width 0.3s ease-in-out,
     padding 0.3s ease-in-out, border-color 0.3s ease-in-out;
@@ -76,21 +79,6 @@
 
 .lineRail.collapsed > * {
   opacity: 0;
-}
-
-/* Sound on/off pill — lives in normal flow as the last child of the
-   now flex-column .lineRail. margin-top:auto pushes it to the bottom
-   ONLY while there's leftover space (e.g. few folders open); once the
-   tree/search-results content grows past the viewport, this is just
-   the last item in the scroll like anything else, so opening a folder
-   pushes it further down rather than it staying pinned. Picked up by
-   the ".lineRail > *" opacity rule above, so it still fades out when
-   the sidebar collapses. */
-.soundToggleSlot {
-  margin-top: auto;
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 16px 0 16px;
 }
 
 .platform {

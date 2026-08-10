@@ -1,7 +1,15 @@
 import cardOpenSrc from '../assets/card-open.wav';
 import cardCloseSrc from '../assets/card-close.wav';
 
-const EFFECT_VOLUME = 0.5;
+// Mutable so CardSoundContext can drive it from the settings panel.
+// Seeded with the level this module shipped with, so the effects still
+// play at the right volume before (or without) a provider mounting.
+let effectVolume = 0.5;
+
+export function setCardEffectVolume(value) {
+  if (!Number.isFinite(value)) return;
+  effectVolume = Math.min(1, Math.max(0, value));
+}
 
 let audioContext = null;
 let openBufferPromise = null;
@@ -56,7 +64,7 @@ async function playBuffer(bufferPromise) {
     source.buffer = buffer;
 
     const gain = ctx.createGain();
-    gain.gain.value = EFFECT_VOLUME;
+    gain.gain.value = effectVolume;
 
     source.connect(gain).connect(ctx.destination);
     source.start(0);

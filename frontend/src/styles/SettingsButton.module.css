@@ -1,0 +1,49 @@
+/* margin-top:auto pushes the gear to the bottom of the rail's flex
+   column, the same trick AppShell uses for its sound toggle slot. */
+.wrap {
+  position: relative;
+  margin-top: auto;
+}
+
+/* Deliberately duplicates IconRail's .railBtn rather than sharing it:
+   CSS modules are per-component here, and the rail's button styles are
+   scoped to that module. Keep the two in sync if either changes. */
+.railBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mist);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.railBtn:hover {
+  background: rgba(212, 168, 74, 0.08);
+  color: var(--sky);
+}
+
+.railBtn.active {
+  background: rgba(212, 168, 74, 0.16);
+  border-color: rgba(212, 168, 74, 0.3);
+  color: var(--gold-light);
+}
+
+.icon {
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Anchored to the button, flowing right of the 64px rail and aligned to
+   its bottom edge so the panel never runs off the top of the viewport. */
+.popover {
+  position: absolute;
+  bottom: 0;
+  left: calc(100% + 10px);
+  z-index: 20;
+}

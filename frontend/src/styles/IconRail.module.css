@@ -11,6 +11,12 @@
   top: 0;
   height: 100vh;
   border-right: 1px solid rgba(212, 168, 74, 0.25);
+  /* Must outrank .lineRail (z-index 1) so SettingsButton's popover can
+     spill over the sidebar. position:sticky creates a stacking context
+     unconditionally, so the popover's own z-index is confined to this
+     element — raising it there does nothing; the rail itself has to win
+     against its sibling. */
+  z-index: 2;
 }
 
 .railBtn {

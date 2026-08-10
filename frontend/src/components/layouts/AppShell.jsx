@@ -1,5 +1,4 @@
 import styles from "../../styles/AppShell.module.css";
-import SoundToggle from "../common/SoundToggle.jsx";
 
 /**
  * Structural shell: fixed decorative backdrop + optional icon rail +
@@ -22,9 +21,6 @@ export default function AppShell({ rail, sidebar, sidebarCollapsed = false,conte
           className={`${styles.lineRail} ${sidebarCollapsed ? styles.collapsed : ""}`}
         >
           {sidebar}
-          <div className={styles.soundToggleSlot}>
-            <SoundToggle />
-          </div>
         </aside>
         <main className={styles.platform}>{children}</main>
       </div>

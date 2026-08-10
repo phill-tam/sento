@@ -1,0 +1,81 @@
+/* Dark teal rather than ConfirmDialog's cream card: this panel is
+   anchored to the dark icon rail and contains ToggleSwitch pills, which
+   are themselves dark-teal-on-gold and would clash on a light surface. */
+.panel {
+  width: 236px;
+  background: linear-gradient(180deg, var(--teal-mid), var(--teal-deep));
+  border: 1px solid rgba(212, 168, 74, 0.35);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(15, 44, 46, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mist);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.percent {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--mist);
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(212, 168, 74, 0.22);
+  cursor: pointer;
+}
+
+.slider:focus-visible {
+  outline: 1px solid rgba(212, 168, 74, 0.8);
+  outline-offset: 6px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
+  box-shadow: 0 0 6px rgba(201, 147, 46, 0.7);
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f3c561, #c9932e);
+  box-shadow: 0 0 6px rgba(201, 147, 46, 0.7);
+  cursor: pointer;
+}
