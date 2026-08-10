@@ -49,6 +49,9 @@
   height: 100vh;
   overflow-y: auto;
   border-right: 1px solid rgba(212, 168, 74, 0.25);
+  /* Explicit so the rail (z-index 2) reliably paints above this rather
+     than relying on source order between two auto-z sticky siblings. */
+  z-index: 1;
   transition: flex-basis 0.3s ease-in-out, width 0.3s ease-in-out,
     min-width 0.3s ease-in-out, max-width 0.3s ease-in-out,
     padding 0.3s ease-in-out, border-color 0.3s ease-in-out;
