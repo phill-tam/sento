@@ -417,7 +417,6 @@ function App() {
     return <p>Sento — scaffold running</p>;
   }
 
-  const showIconRail = contentManagementEnabled || sentenceGeneratorEnabled;
   const visibleViews = VIEWS.filter((v) => {
     if (v.id === "cms") return contentManagementEnabled;
     if (v.id === "generate") return sentenceGeneratorEnabled;
@@ -512,9 +511,7 @@ function App() {
       <StartGate hasStarted={hasStarted} onStart={handleStart} />
       <AppShell
         rail={
-          showIconRail ? (
-            <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
-          ) : undefined
+          <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
         }
         sidebarCollapsed={sidebarCollapsed}
         contentHidden={!hasStarted}
