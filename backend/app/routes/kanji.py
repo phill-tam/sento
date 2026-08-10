@@ -13,7 +13,14 @@ from app.schemas.content_upload import BatchUploadResponse
 from app.schemas.kanji_entry import KanjiEntryRead
 from app.services.content_upload_service import RowValidationError, process_csv_upload
 
+# Two routers, split by access level rather than by resource. `router`
+# is always mounted — Study reads GET /kanji on every page load, so it
+# can never be gated. `admin_router` carries the unauthenticated write
+# endpoints and is mounted only when ADMIN_WRITES_ENABLED is set; there
+# is no auth in this project, so absence from the schema is the only
+# protection those endpoints have (ADR 012).
 router = APIRouter(prefix="/kanji", tags=["kanji"])
+admin_router = APIRouter(prefix="/kanji", tags=["kanji-admin"])
 
 
 def _parse_kanji_row(raw_row: dict[str, str]) -> KanjiEntry:
@@ -48,7 +55,7 @@ def _parse_kanji_row(raw_row: dict[str, str]) -> KanjiEntry:
     )
 
 
-@router.post("/upload", response_model=BatchUploadResponse)
+@admin_router.post("/upload", response_model=BatchUploadResponse)
 async def upload_kanji_csv(
     file: Annotated[UploadFile, File()],
     db: Annotated[Session, Depends(get_db)],
@@ -71,7 +78,7 @@ def get_kanji(
     return list(db.scalars(stmt))
 
 
-@router.patch("/{entry_id}/status", response_model=KanjiEntryRead)
+@admin_router.patch("/{entry_id}/status", response_model=KanjiEntryRead)
 def update_kanji_status(
     entry_id: UUID,
     payload: ContentStatusUpdate,

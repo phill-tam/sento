@@ -15,7 +15,7 @@ meaning) from user-selected content items.
 | Epic | Scope | Status |
 |---|---|---|
 | 001 — Foundation | Visual design system & app shell (frontend) | Shipped |
-| 002 — Content Management | CSV upload + inventory tree (backend + frontend) | Shipped — frontend view currently disabled in code, see [Feature Flags](#feature-flags) |
+| 002 — Content Management | CSV upload + inventory tree (backend + frontend) | Shipped — writes are opt-in, see [Admin writes](#admin-writes) |
 | 003 — Flashcards | Flip-card grid + cross-line search (frontend) | Shipped |
 | 004 — Quiz Mode | Selective-recall multiple-choice quiz (frontend) | Shipped |
 | 005 — Sentence Generator | AI sentence generation + folders (backend + frontend) | Shipped |
@@ -86,17 +86,14 @@ cd frontend
 # Install dependencies
 npm install
 
-# Set up environment variables — every feature beyond the bare scaffold
-# is flag-gated and OFF by default, so this step is not optional
-cp .env.example .env
-
 # Start the dev server
 npm run dev
 ```
 
-Set at least `VITE_FEATURE_FOUNDATION_SHELL=true` in `frontend/.env`;
-without it the app renders a single `Sento — scaffold running` line. See
-[Feature Flags](#feature-flags) for the rest.
+No `frontend/.env` is required — the app runs fully configured out of
+the box. Copy `.env.example` only if you need to point at a non-default
+backend URL or turn on the content-management UI (see
+[Admin writes](#admin-writes)).
 
 ---
 
@@ -131,59 +128,55 @@ if `backend/tests/**` has files.
 |---|---|---|
 | `DATABASE_URL` | Yes | App runtime connection. Local dev: `postgresql+psycopg://sento:sento@localhost:5432/sento_db`. Supabase: use the transaction pooler (port `6543`). |
 | `MIGRATIONS_DATABASE_URL` | No | Alembic only. Leave blank for local dev — falls back to `DATABASE_URL`. Supabase: use the direct, non-pooler connection (port `5432`). |
-| `FEATURE_CONTENT_MANAGEMENT` | No | Default `false`. Toggles the Content Management API (epic 002). |
-| `FEATURE_SENTENCE_GENERATOR` | No | Default `false`. Toggles the sentence + folder API (epic 005). |
+| `ADMIN_WRITES_ENABLED` | No | Default `false`. Mounts the content **write** endpoints. See [Admin writes](#admin-writes) before enabling. |
 | `ENVIRONMENT` | No | Default `development`. Selects the AI provider: `development` → Gemini, `production` → Claude. |
-| `GEMINI_API_KEY` | If generating in dev | Required when `ENVIRONMENT=development` and the generator flag is on. |
+| `GEMINI_API_KEY` | If generating in dev | Required when `ENVIRONMENT=development`. |
 | `GEMINI_MODEL` | No | Default `gemini-3.5-flash`. |
-| `ANTHROPIC_API_KEY` | If generating in prod | Required when `ENVIRONMENT=production` and the generator flag is on. |
+| `ANTHROPIC_API_KEY` | If generating in prod | Required when `ENVIRONMENT=production`. |
 | `ANTHROPIC_MODEL` | No | Default `claude-sonnet-4-5`. |
 
-The `ENVIRONMENT` / provider keys are read by
-`app/config/settings.py` but are **not** listed in `.env.example` — check
-`settings.py` directly when setting up an environment.
-
-### Frontend (`frontend/.env`)
+### Frontend (`frontend/.env`, optional)
 
 | Variable | Required | Notes |
 |---|---|---|
 | `VITE_API_BASE_URL` | No | Defaults to `http://localhost:8000`. |
-| `VITE_FEATURE_*` | Yes, in practice | One per epic — see below. |
+| `VITE_ADMIN_WRITES_ENABLED` | No | Default `false`. Shows the content-management UI. Has no effect unless the backend also sets `ADMIN_WRITES_ENABLED`. |
 
 ---
 
-## Feature Flags
+## Admin writes
 
-Both layers gate epics behind feature flags, named per-epic
-(`FEATURE_<EPIC_NAME>`) rather than per-component — see
-[`docs/adr/005-feature-flags-per-epic-naming.md`](docs/adr/005-feature-flags-per-epic-naming.md).
+There are **no feature flags.** Every epic shipped, so the per-epic
+`FEATURE_*` flags were removed — Study, Quiz and the Sentence Generator
+are always on, and the app runs with no environment configuration. See
+[`docs/adr/012-feature-flags-removed-admin-write-gate.md`](docs/adr/012-feature-flags-removed-admin-write-gate.md).
 
-- **Frontend:** `frontend/src/config/featureFlags.js`, reading
-  `VITE_FEATURE_*` env vars.
-- **Backend:** `.env`-backed via Pydantic Settings
-  (`backend/app/config/feature_flags.py`, env prefix `FEATURE_`).
-  `api/v1/router.py` conditionally *imports and mounts* each feature's
-  routes at import time — with a flag off, those routes are absent from
-  the OpenAPI schema entirely, not merely refused.
+One switch remains, and it is access control rather than epic gating:
 
-| Flag | Layer | Default | Notes |
+| Variable | Layer | Default | Gates |
 |---|---|---|---|
-| `FEATURE_FOUNDATION_SHELL` | Frontend | `false` | Epic 001. Everything renders inside this; nothing works without it. |
-| `FEATURE_CONTENT_MANAGEMENT` | Frontend + Backend | `false` | Epic 002. **Frontend value is hardcoded `false`** in `featureFlags.js` and ignores the env var — the CMS view cannot be reached without a code change. The backend flag is genuinely env-driven. |
-| `FEATURE_STUDY_FLASHCARDS` | Frontend | `false` | Epic 003. Gates the content fetch and the Study view. |
-| `FEATURE_QUIZ_MODE` | Frontend | `false` | Epic 004 / 006. |
-| `FEATURE_SENTENCE_GENERATOR` | Frontend + Backend | `false` | Epic 005. Frontend also controls whether saved sentences join the global quiz pool. |
+| `ADMIN_WRITES_ENABLED` | Backend | `false` | `POST /{line}/upload`, `PATCH /{line}/{id}/status` |
+| `VITE_ADMIN_WRITES_ENABLED` | Frontend | `false` | Whether the content-management UI is offered |
 
-**Content Management is not access-controlled.** Enabling
-`FEATURE_CONTENT_MANAGEMENT` exposes CSV upload and content-editing
-endpoints with no authentication — there is no `User` model or auth
-mechanism anywhere in this project. The flag controls *visibility*, not
-*access*. Do not enable it in any environment reachable by anyone other
-than yourself. See
+**The content write endpoints have no authentication.** There is no
+`User` model or auth mechanism anywhere in this project, so keeping
+those routes out of the OpenAPI schema is the only thing protecting
+them. Do not set `ADMIN_WRITES_ENABLED` in any environment reachable by
+anyone other than yourself. See
 [`docs/adr/011-no-auth-feature-flag-gated-only.md`](docs/adr/011-no-auth-feature-flag-gated-only.md).
 
-The same caveat applies to `FEATURE_SENTENCE_GENERATOR`: the generate
-endpoint spends real AI provider quota and is equally unauthenticated.
+The two layers are enforced independently — the frontend variable only
+decides whether the UI appears, never whether the API accepts the call.
+Setting it alone gives you a page whose requests 404.
+
+The `GET` list endpoints are always mounted, since Study fetches them on
+every page load. Reading content has never needed a flag; the old
+`FEATURE_CONTENT_MANAGEMENT` coupled reads and writes into one switch,
+which is exactly what ADR 012 unpicked.
+
+**Known gap:** `POST /sentences/generate` is unconditionally mounted and
+also unauthenticated. It spends real AI provider quota per call, and the
+provider's own rate limit is the only backstop.
 
 ---
 

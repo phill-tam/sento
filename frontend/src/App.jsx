@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FEATURE_FLAGS } from "./config/featureFlags";
+import { ADMIN_WRITES_ENABLED } from "./config/adminMode";
 import {
   getGrammar,
   getKanji,
@@ -18,7 +18,6 @@ import { useQuiz } from "./hooks/useQuiz";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
 import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
 import AppShell from "./components/layouts/AppShell";
-import ModeToggle from "./components/layouts/ModeToggle";
 import CategoryTree from "./components/layouts/CategoryTree";
 import IconRail from "./components/layouts/IconRail";
 import SentenceFolderTree from "./components/generator/SentenceFolderTree";
@@ -153,10 +152,6 @@ function App() {
   const [view, setView] = useState("study");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
-
-  const contentManagementEnabled = FEATURE_FLAGS.FEATURE_CONTENT_MANAGEMENT;
-  const studyFlashcardsEnabled = FEATURE_FLAGS.FEATURE_STUDY_FLASHCARDS;
-  const sentenceGeneratorEnabled = FEATURE_FLAGS.FEATURE_SENTENCE_GENERATOR;
 
   const [dataByLine, setDataByLine] = useState({ kanji: [], vocab: [], grammar: [] });
   const [isLoadingStudy, setIsLoadingStudy] = useState(true);
@@ -342,7 +337,6 @@ function App() {
   };
 
   useEffect(() => {
-    if (!studyFlashcardsEnabled) return;
     let cancelled = false;
     async function loadAll() {
       setIsLoadingStudy(true);
@@ -365,25 +359,22 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!sentenceGeneratorEnabled) return;
     loadGeneratorFolders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!sentenceGeneratorEnabled) return;
     loadGeneratorSentences(activeSentenceFolderId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sentenceGeneratorEnabled, activeSentenceFolderId]);
+  }, [activeSentenceFolderId]);
 
   useEffect(() => {
     // Unscoped — every saved sentence regardless of folder, for the
     // global quiz pool. Refreshed on save/delete (see
     // handleGeneratorRunComplete / handleDeleteSentence), not on every
     // folder switch — a relocate doesn't change which sentences exist.
-    if (!sentenceGeneratorEnabled) return;
     getSentences().then(setAllGeneratorSentences);
-  }, [sentenceGeneratorEnabled]);
+  }, []);
 
   const tree = useMemo(
     () =>
@@ -402,9 +393,8 @@ function App() {
     const regularItems = CONTENT_LINES.flatMap((line) =>
       toFlashcardItems(line.id, dataByLine[line.id] ?? [])
     );
-    const sentenceItems = sentenceGeneratorEnabled ? toSentenceQuizItems(allGeneratorSentences) : [];
-    return [...regularItems, ...sentenceItems];
-  }, [dataByLine, allGeneratorSentences, sentenceGeneratorEnabled]);
+    return [...regularItems, ...toSentenceQuizItems(allGeneratorSentences)];
+  }, [dataByLine, allGeneratorSentences]);
 
   const selectedQuizItems = useMemo(
     () => globalQuizPool.filter((item) => selectedIds.has(makeSelectionKey(item.lineId, item.id))),
@@ -413,17 +403,11 @@ function App() {
 
   const canQuizGlobally = globalQuizPool.length >= MIN_QUIZ_ITEMS;
 
-  if (!FEATURE_FLAGS.FEATURE_FOUNDATION_SHELL) {
-    return <p>Sento — scaffold running</p>;
-  }
-
-  const visibleViews = VIEWS.filter((v) => {
-    if (v.id === "cms") return contentManagementEnabled;
-    if (v.id === "generate") return sentenceGeneratorEnabled;
-    return true;
-  });
-  const showStudySidebar = studyFlashcardsEnabled && view === "study";
-  const showGeneratorSidebar = sentenceGeneratorEnabled && view === "generate";
+  // Study and Generate are always available. The CMS drives
+  // unauthenticated write endpoints, so it stays opt-in (ADR 012).
+  const visibleViews = VIEWS.filter((v) => v.id !== "cms" || ADMIN_WRITES_ENABLED);
+  const showStudySidebar = view === "study";
+  const showGeneratorSidebar = view === "generate";
 
   const generatorFolderCounts = Object.fromEntries(
     generatorFolders.map((f) => [
@@ -477,10 +461,8 @@ function App() {
   function handleModeChange(nextMode) {
     guardNavigation(() => {
       setMode(nextMode);
-      if (FEATURE_FLAGS.FEATURE_QUIZ_MODE) {
-        setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
-        setSelectedIds(new Set());
-      }
+      setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
+      setSelectedIds(new Set());
     });
   }
 
@@ -557,9 +539,9 @@ function App() {
             globalPool={globalQuizPool}
             onFinish={handleFinishQuiz}
           />
-        ) : view === "cms" && contentManagementEnabled ? (
+        ) : view === "cms" && ADMIN_WRITES_ENABLED ? (
           <ContentManagementPage />
-        ) : view === "study" && studyFlashcardsEnabled ? (
+        ) : view === "study" ? (
           <StudyPage
             activeLine={activeLine}
             activeLineId={activeLineId}
@@ -586,7 +568,7 @@ function App() {
             onGeneratorClick={handleGeneratorClick}
             onContinueGenerator={handleContinueGenerator}
           />
-        ) : view === "generate" && sentenceGeneratorEnabled ? (
+        ) : view === "generate" ? (
           <GeneratePage
             workflowPhase={generatorWorkflowPhase}
             sourceItemRefs={generatorSourceItemRefs}
@@ -612,11 +594,13 @@ function App() {
             onContinueGenerator={handleContinueGenerator}
           />
         ) : (
+          // Only reachable if `view` is "cms" while admin writes are
+          // off, which the rail already prevents — kept as a guard so a
+          // stale view id renders a message rather than nothing.
           <div className="platform-head">
             <div>
-              <h1>Foundation shell — no content lines yet</h1>
+              <h1>That view isn’t available.</h1>
             </div>
-            <ModeToggle mode={mode} onModeChange={setMode} onGeneratorClick={() => {}} />
           </div>
         )}
       </AppShell>

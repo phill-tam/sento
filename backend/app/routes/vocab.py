@@ -13,7 +13,9 @@ from app.schemas.content_upload import BatchUploadResponse
 from app.schemas.vocab_entry import VocabEntryRead
 from app.services.content_upload_service import RowValidationError, process_csv_upload
 
+# Split by access level — see the note in routes/kanji.py (ADR 012).
 router = APIRouter(prefix="/vocab", tags=["vocab"])
+admin_router = APIRouter(prefix="/vocab", tags=["vocab-admin"])
 
 
 def _parse_vocab_row(raw_row: dict[str, str]) -> VocabEntry:
@@ -41,7 +43,7 @@ def _parse_vocab_row(raw_row: dict[str, str]) -> VocabEntry:
     )
 
 
-@router.post("/upload", response_model=BatchUploadResponse)
+@admin_router.post("/upload", response_model=BatchUploadResponse)
 async def upload_vocab_csv(
     file: Annotated[UploadFile, File()],
     db: Annotated[Session, Depends(get_db)],
@@ -64,7 +66,7 @@ def get_vocab(
     return list(db.scalars(stmt))
 
 
-@router.patch("/{entry_id}/status", response_model=VocabEntryRead)
+@admin_router.patch("/{entry_id}/status", response_model=VocabEntryRead)
 def update_vocab_status(
     entry_id: UUID,
     payload: ContentStatusUpdate,

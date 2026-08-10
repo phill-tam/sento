@@ -1,7 +1,11 @@
 # ADR 005: Feature Flags Named Per-Epic, Not Per-Component
 
 ## Status
-Accepted
+Superseded by [012 — Feature flags removed; content writes behind an
+admin gate](012-feature-flags-removed-admin-write-gate.md). All
+per-epic feature flags were deleted once every epic shipped; the naming
+convention below no longer applies to anything in the codebase. Kept as
+the record of why the flags were named the way they were.
 
 ## Context
 Epic 001 introduced the project's first frontend feature flag, gating

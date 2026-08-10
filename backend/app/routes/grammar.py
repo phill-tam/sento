@@ -13,7 +13,9 @@ from app.schemas.content_upload import BatchUploadResponse
 from app.schemas.grammar_entry import GrammarEntryRead
 from app.services.content_upload_service import RowValidationError, process_csv_upload
 
+# Split by access level — see the note in routes/kanji.py (ADR 012).
 router = APIRouter(prefix="/grammar", tags=["grammar"])
+admin_router = APIRouter(prefix="/grammar", tags=["grammar-admin"])
 
 
 def _parse_grammar_row(raw_row: dict[str, str]) -> GrammarEntry:
@@ -46,7 +48,7 @@ def _parse_grammar_row(raw_row: dict[str, str]) -> GrammarEntry:
     )
 
 
-@router.post("/upload", response_model=BatchUploadResponse)
+@admin_router.post("/upload", response_model=BatchUploadResponse)
 async def upload_grammar_csv(
     file: Annotated[UploadFile, File()],
     db: Annotated[Session, Depends(get_db)],
@@ -69,7 +71,7 @@ def get_grammar(
     return list(db.scalars(stmt))
 
 
-@router.patch("/{entry_id}/status", response_model=GrammarEntryRead)
+@admin_router.patch("/{entry_id}/status", response_model=GrammarEntryRead)
 def update_grammar_status(
     entry_id: UUID,
     payload: ContentStatusUpdate,
