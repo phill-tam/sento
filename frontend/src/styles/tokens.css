@@ -46,9 +46,16 @@
   /* Surfaces — light content area */
   --surface-page: var(--sky);
   --surface-card: var(--cream);
+  --surface-card-sheen: #fffdf6;
   --surface-field: #ffffff;
   --surface-field-on-chrome: rgba(255, 255, 255, 0.06);
   --surface-track: rgba(58, 95, 94, 0.18);
+
+  /* A dark island on the light page — the breadcrumb category pill.
+     Tracks the chrome ground today but is its own role: a theme may
+     well keep these inverted while the page around them flips. */
+  --chip-bg: var(--teal-deep);
+  --chip-fg: var(--gold-light);
 
   /* Surfaces — dark chrome (rail, sidebar, popovers) */
   --chrome-surface: var(--teal-deep);
@@ -64,14 +71,23 @@
   --text-on-chrome: var(--sky);
   --text-on-chrome-muted: var(--mist);
   --text-on-chrome-strong: var(--gold-light);
+  /* A lightness ramp the mockup hardcoded per component, between --mist
+     and --sky: dim < subtle < soft < --text-on-chrome. Kept as four
+     steps because that is what the components actually use today. */
+  --text-on-chrome-dim: #9fc2c0;
   --text-on-chrome-subtle: #bcdad8;
+  --text-on-chrome-soft: #cfe6e4;
   --text-on-chrome-placeholder: #8fb3b1;
+  --text-on-chrome-ghost: rgba(255, 255, 255, 0.7);
+  --text-on-status: #ffffff;
 
   /* Borders */
   --border: var(--mist-line);
+  --border-card: rgba(58, 95, 94, 0.25);
   --border-focus: var(--gold);
   --border-on-chrome: rgba(212, 168, 74, 0.25);
   --border-on-chrome-subtle: var(--mist-line);
+  --border-on-chrome-ghost: rgba(255, 255, 255, 0.4);
   --guide-line: rgba(111, 156, 154, 0.4);
 
   /* Accent */
@@ -90,6 +106,7 @@
   --accent-line-active: rgba(212, 168, 74, 0.3);
   --accent-line-panel: rgba(212, 168, 74, 0.35);
   --accent-outline: rgba(212, 168, 74, 0.8);
+  --accent-strong-line: rgba(240, 211, 143, 0.25);
 
   /* The lit gold knob shared by the volume slider and ToggleSwitch. One
      treatment in two modules — CSS modules can't share a rule, so the
@@ -118,4 +135,13 @@
   --shadow-dialog: 0 8px 24px rgba(22, 51, 50, 0.18);
   --shadow-popover: 0 8px 24px rgba(15, 44, 46, 0.45);
   --scrim: rgba(15, 44, 46, 0.55);
+
+  /* Flashcard selection pulse. Whole box-shadow values rather than the
+     six colors they decompose into: a night theme rewrites these as
+     light glows, and it is the composite that has to change, not the
+     stops. Used only in FlashcardCard's two @keyframes. */
+  --card-glow-idle-rest: 0 0 0 1px rgba(58, 95, 94, 0.15), 0 2px 0 rgba(22, 51, 50, 0.05), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --card-glow-idle-peak: 0 0 0 2px rgba(15, 44, 46, 0.55), 0 0 12px rgba(15, 44, 46, 0.4), 0 6px 14px rgba(22, 51, 50, 0.06);
+  --card-glow-selected-rest: 0 0 0 2px rgba(212, 168, 74, 0.5), 0 0 14px rgba(212, 168, 74, 0.35);
+  --card-glow-selected-peak: 0 0 0 2px rgba(212, 168, 74, 0.85), 0 0 20px rgba(212, 168, 74, 0.6);
 }

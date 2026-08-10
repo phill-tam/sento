@@ -17,7 +17,7 @@
   font-weight: 600;
   font-size: 32px;
   margin: 0;
-  color: var(--ink);
+  color: var(--text-primary);
   display: flex;
   align-items: baseline;
   gap: 12px;
@@ -25,14 +25,14 @@
 
 .icon {
   font-size: 42px;
-  color: var(--gold);
+  color: var(--accent);
   line-height: 1;
 }
 
 .platformHead p {
   margin: 4px 0 0 0;
   font-size: 13px;
-  color: var(--mist-line);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -42,8 +42,8 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  background: var(--teal-deep);
-  color: var(--gold-light);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
   padding: 3px 9px;
   border-radius: 10px;
 }
@@ -54,7 +54,7 @@
   gap: 10px;
   margin-bottom: 22px;
   font-size: 12px;
-  color: var(--mist-line);
+  color: var(--text-secondary);
 }
 
 .progressTrack {
@@ -62,18 +62,18 @@
   max-width: 280px;
   height: 6px;
   border-radius: 3px;
-  background: rgba(58, 95, 94, 0.18);
+  background: var(--surface-track);
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--gold), var(--good));
+  background: linear-gradient(90deg, var(--accent), var(--good));
   transition: width 0.25s ease;
 }
 
 .loading {
-  color: var(--mist);
+  color: var(--text-hint);
   font-family: var(--font-body);
   font-size: 13px;
 }

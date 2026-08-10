@@ -5,7 +5,7 @@
 }
 
 .empty {
-  color: var(--mist);
+  color: var(--text-hint);
   font-family: var(--font-body);
   font-size: 13px;
   text-align: center;
