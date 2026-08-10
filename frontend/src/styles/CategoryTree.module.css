@@ -20,11 +20,11 @@
 }
 
 .folderHead:hover {
-  background: var(--accent-wash);
+  background: var(--accent-wash-hover);
 }
 
 .folder.activeCat .folderHead {
-  background: var(--accent-wash-hover);
+  background: var(--accent-wash-selected);
 }
 
 .chev {
@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-wash-selected);
+  background: var(--accent-chip-fill);
   font-family: var(--font-display);
   font-size: 14px;
   color: var(--text-on-chrome-strong);
@@ -141,7 +141,7 @@
 }
 
 .station:hover {
-  background: var(--accent-wash);
+  background: var(--accent-wash-hover);
 }
 
 .station.active {

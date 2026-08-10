@@ -34,7 +34,7 @@
 }
 
 .railBtn:hover {
-  background: var(--accent-wash);
+  background: var(--accent-wash-hover);
   color: var(--text-on-chrome);
 }
 

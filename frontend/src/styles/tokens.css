@@ -102,12 +102,16 @@
   --accent-glow-soft: rgba(211, 165, 76, 0.5);
   --accent-glow-strong: rgba(211, 165, 76, 0.9);
 
-  /* Accent washes. Opacities are the ones currently inlined across the
-     modules, kept exact so the migration commits are provably no-op —
-     they get normalized afterwards, in one place, as a declared change. */
-  --accent-wash: rgba(212, 168, 74, 0.08);
-  --accent-wash-hover: rgba(212, 168, 74, 0.1);
-  --accent-wash-selected: rgba(212, 168, 74, 0.12);
+  /* Accent washes, named for the state each one actually marks:
+       hover     — row/button under the cursor
+       selected  — the open parent folder in a tree
+       chip-fill — the static square behind a line/folder glyph
+       active    — the current row or view
+     Values are still the ones the modules inlined, so this ladder is
+     accurate in name but not yet consistent in value. */
+  --accent-wash-hover: rgba(212, 168, 74, 0.08);
+  --accent-wash-selected: rgba(212, 168, 74, 0.1);
+  --accent-chip-fill: rgba(212, 168, 74, 0.12);
   --accent-wash-active: rgba(212, 168, 74, 0.16);
   --accent-ring: rgba(212, 168, 74, 0.22);
   --accent-ring-soft: rgba(212, 168, 74, 0.2);

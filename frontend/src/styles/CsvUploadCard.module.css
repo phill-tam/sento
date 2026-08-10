@@ -14,7 +14,7 @@
 
 .card.dragging {
   border-color: var(--accent);
-  background: var(--accent-wash);
+  background: var(--accent-wash-hover);
 }
 
 .card.disabled {
