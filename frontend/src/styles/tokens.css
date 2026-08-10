@@ -286,4 +286,32 @@
      family to belong. Its hover was --teal-mid, which goes muddy
      against night, so that moves into the night ramp. */
   --start-btn-bg-hover: var(--night-violet);
+
+  /* Elevation. The day shadows are dark ink at 5-8% alpha, which is a
+     technique that only works when the surface is lighter than the
+     shadow — on indigo they are invisible. Night uses the dark-UI
+     inverse: a 1px inner highlight along the top edge to catch the
+     "light", and a deeper, blacker drop to separate from the page.
+
+     Fields flip from a drop shadow to an inset one. By day a field is
+     raised off its card; at night it is a well cut into it, which is
+     also how --surface-field is coloured. */
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.5);
+  --shadow-card-lifted: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 28px rgba(0, 0, 0, 0.55);
+  --shadow-field: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-dialog: 0 12px 32px rgba(0, 0, 0, 0.65);
+  --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.7);
+  --shadow-start: 0 10px 30px rgba(0, 0, 0, 0.5);
+  /* Day fills this blur with opaque --gold-light. Against night that
+     reads as a flare rather than a glow, so it is alpha'd back. */
+  --shadow-start-hover: 0 14px 36px rgba(240, 211, 143, 0.4);
+  --scrim: rgba(5, 7, 22, 0.72);
+
+  /* Selection pulse. The idle state was a dark teal ring that cannot be
+     seen on indigo, so it becomes a pale ring and a moonlit violet
+     bloom. The selected state stays gold and is deliberately unchanged
+     — a warm glow on a cold ground is the one thing that already read
+     correctly in both themes. */
+  --card-glow-idle-rest: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 16px rgba(0, 0, 0, 0.5);
+  --card-glow-idle-peak: 0 0 0 2px rgba(150, 153, 205, 0.55), 0 0 14px rgba(120, 126, 210, 0.45), 0 6px 16px rgba(0, 0, 0, 0.5);
 }
