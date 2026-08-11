@@ -46,6 +46,15 @@
   flex: 0 0 auto;
 }
 
+/* epic 009 — only rendered when the query matched romaji and nothing
+   else, so it reads as "this is why this row is here". */
+.romaji {
+  color: var(--text-on-chrome-dim);
+  flex: 0 0 auto;
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
 .answer {
   color: var(--text-on-chrome-muted);
   flex: 1;
