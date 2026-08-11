@@ -42,15 +42,16 @@
   display: block;
 }
 
-/* epic 009 — steps down from .reading for the same reason as the
-   flashcard's: romaji supports the kana, it does not replace it. */
+/* epic 009 — sized to match the flashcard's treatment. The quiz prompt
+   has the whole card width to itself, so this one wraps normally rather
+   than running off the edge the way the flashcard's has to. */
 .romaji {
-  font-size: 10.5px;
+  font-size: 14px;
   color: var(--text-secondary);
-  opacity: 0.75;
-  margin-top: 4px;
+  opacity: 0.85;
+  margin-top: 6px;
   display: block;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   font-style: italic;
 }
 
