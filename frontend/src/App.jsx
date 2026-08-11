@@ -54,6 +54,11 @@ const GENERATOR_MIN_SELECTION = 2;
  * Unchanged from epic 3/5 — still used both for the active category's
  * display items AND (epic 6) as an input to the global quiz pool below,
  * called once per line over ALL of that line's entries in the latter case.
+ *
+ * epic 009 — `romaji` mirrors `reading` field-for-field, including inside
+ * `example`. The API supplies it for every line (computed for kanji and
+ * vocab, stored for grammar — ADR 015), so no transliteration happens on
+ * this side; this is plumbing, not logic.
  */
 function toFlashcardItems(lineId, entries) {
   if (lineId === "kanji") {
@@ -62,11 +67,22 @@ function toFlashcardItems(lineId, entries) {
       lineId,
       prompt: e.character,
       reading: [e.onyomi, e.kunyomi].filter(Boolean).join(", "),
+      // Joined the same way `reading` is, so the two stay index-aligned
+      // when both are shown — a kanji with only a kunyomi must not end up
+      // with its romaji sitting under the 音 label.
+      romaji: [e.onyomi_romaji, e.kunyomi_romaji].filter(Boolean).join(", "),
       onyomi: e.onyomi,
       kunyomi: e.kunyomi,
+      onyomiRomaji: e.onyomi_romaji,
+      kunyomiRomaji: e.kunyomi_romaji,
       answer: e.meaning_en,
       example: e.compound_word
-        ? { jp: e.compound_word, reading: e.compound_reading, en: e.compound_meaning_en }
+        ? {
+            jp: e.compound_word,
+            reading: e.compound_reading,
+            romaji: e.compound_romaji,
+            en: e.compound_meaning_en,
+          }
         : null,
     }));
   }
@@ -76,6 +92,7 @@ function toFlashcardItems(lineId, entries) {
       lineId,
       prompt: e.word,
       reading: e.reading ?? "",
+      romaji: e.romaji ?? "",
       answer: e.meaning_en,
       example: null,
     }));
@@ -85,9 +102,18 @@ function toFlashcardItems(lineId, entries) {
     lineId,
     prompt: e.pattern,
     reading: null,
+    // Grammar's prompt is the pattern itself, so its romaji is the
+    // pattern's — unlike the other two lines, where romaji describes a
+    // separate reading field.
+    romaji: e.pattern_romaji ?? "",
     answer: e.meaning_en,
     example: e.example_jp
-      ? { jp: e.example_jp, reading: e.example_reading, en: e.example_en }
+      ? {
+          jp: e.example_jp,
+          reading: e.example_reading,
+          romaji: e.example_romaji,
+          en: e.example_en,
+        }
       : null,
   }));
 }
@@ -103,6 +129,12 @@ function toSentenceQuizItems(sentences) {
     lineId: "sentence",
     prompt: s.jp_text,
     reading: s.reading,
+    // No romaji for saved sentences yet. A sentence needs word
+    // segmentation, so it can't be transliterated from `reading` the way
+    // a single kanji or vocab word can (ADR 015) — epic 009 phase 2 adds
+    // it by asking the generation provider for it directly. Empty rather
+    // than absent so every item in the shared quiz shape has the key.
+    romaji: "",
     answer: s.meaning_en,
     example: null,
     source_item_refs: s.source_item_refs,
@@ -514,7 +546,11 @@ function App() {
             </div>
             {showStudySidebar ? (
               searchQuery.trim() ? (
-                <SearchResults results={searchResults} onSelectResult={handleSelectSearchResult} />
+                <SearchResults
+                  results={searchResults}
+                  query={searchQuery}
+                  onSelectResult={handleSelectSearchResult}
+                />
               ) : (
                 <CategoryTree categories={tree} onToggleCategory={toggleLine} onSelectItem={selectCategory} />
               )
