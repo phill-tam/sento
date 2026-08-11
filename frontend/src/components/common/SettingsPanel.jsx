@@ -45,10 +45,10 @@ function SoundRow({ label, isMuted, onToggleMute, volume, maxVolume, onVolumeCha
  * panel is named for the popover rather than for its first occupant.
  */
 export default function SettingsPanel() {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const backsound = useBacksound();
   const cardSound = useCardSound();
-  const isNight = resolvedTheme === 'dark';
+  const isNight = theme === 'dark';
 
   return (
     <div className={styles.panel}>

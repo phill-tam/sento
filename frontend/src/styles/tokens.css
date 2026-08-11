@@ -270,7 +270,32 @@
   --border-on-chrome-ghost: rgba(255, 255, 255, 0.4);
   --guide-line: rgba(150, 153, 205, 0.35);
 
-  /* Accent — unchanged. The night palette was chosen to keep it. */
+  /* Accent — the hue is unchanged; the night palette was chosen to keep
+     it. The wash *alphas* still move, because the same alpha does not
+     buy the same visible step on both grounds.
+
+     Each value below is solved to reproduce the day theme's lightness
+     step (ΔL*) over the night chrome, so a hover on the rail feels the
+     same weight in both themes rather than merely being the same
+     number. Night needs about 12% less alpha throughout: gold gains
+     more lightness per unit alpha against #12153a than against
+     #0f2c2e. Left alone, --accent-outline overshot by 6.1 L* and
+     --accent-line-panel by 3.1.
+
+     These are matched against chrome, which is where nearly all of
+     them are used — rail, sidebar, both trees, search results. The two
+     that sit on a card instead (the CSV dropzone, the sentence list
+     hover) invert direction between themes, tinting cream darker and
+     night lighter; that is how a tint behaves on either side of its own
+     lightness and is not something one alpha can reconcile. */
+  --accent-wash-hover: rgba(211, 165, 76, 0.07);
+  --accent-wash-selected: rgba(211, 165, 76, 0.085);
+  --accent-chip-fill: rgba(211, 165, 76, 0.105);
+  --accent-wash-active: rgba(211, 165, 76, 0.14);
+  --accent-ring: rgba(211, 165, 76, 0.19);
+  --accent-line-active: rgba(211, 165, 76, 0.26);
+  --accent-line-panel: rgba(211, 165, 76, 0.3);
+  --accent-outline: rgba(211, 165, 76, 0.7);
   --text-on-accent: var(--night-abyss);
 
   /* Status */
