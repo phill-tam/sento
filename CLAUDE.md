@@ -12,15 +12,15 @@ user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Nine epics have shipped: Foundation, Content Management, Flashcards,
+Ten epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
-in code comments), Sound, Theming, and Romaji. None of them are behind
-feature flags any more — see the section below. Epic 010 (flip-list
-layout for long content) is planned but unimplemented — see issue #116.
+in code comments), Sound, Theming, Romaji, and the Long-Content Layout
+(flip-list rows, #116). None of them are behind feature flags any more
+— see the section below.
 
 Only epics 001, 002 and 009 have write-ups in `docs/epics/`; the rest
 exist as shipped code, the GitHub issues tracking them, and `epic N`
-comments in the source. ADRs run to 015. Treat in-code comments as the
+comments in the source. ADRs run to 016. Treat in-code comments as the
 more current source of truth than `docs/epics/`, and verify docs against
 `git log` / the code itself before relying on them.
 
@@ -181,6 +181,29 @@ provider's own rate limit as the only backstop — a known, accepted gap
   contract rather than a `mastered`-specific one, so it isn't coupled
   to the flashcard mastery feature — see
   `docs/adr/003-categorytree-generic-prop-contract.md`.
+- **A flashcard has two layouts, one component.** `FlashcardCard` takes
+  `layout="grid" | "list"`, which swaps one class — every branch, both
+  handlers, the ✓ button's two meanings, the 音/訓 split and the romaji
+  gate are shared verbatim, the same way `ToggleSwitch` handles
+  `orientation`. "list" is a full-width row that flips *vertically*, for
+  content a 182px tile can't hold: grammar patterns are phrases, and
+  vocab's `greetings` holds よろしくおねがいします. Don't add a parallel list
+  component. **The height mechanic is the load-bearing part:** in list
+  mode the two faces stop being `position: absolute` and become grid
+  items sharing one cell (`.inner { display: grid }`,
+  `.face { grid-area: 1 / 1 }`), so both are in flow, the taller sizes
+  the row, and the row can't resize mid-flip. Don't "tidy" the faces
+  back out of flow.
+- **Which categories get a list is a table, not a measurement.**
+  `utils/categoryLayout.js` — grammar defaults to list except
+  `particles`/`counters`/`conditionals`; vocab is grid except
+  `greetings`; kanji is always grid. Measuring rendered text was
+  considered and rejected (it can only run post-paint, so it shifts, and
+  it leaves no readable answer for why a category is a list) — see
+  `docs/adr/016-per-category-layout-and-flip-height.md` before replacing
+  it. An unknown *line* or no category falls back to grid; an unlisted
+  *category* falls back to its line's default, deliberately, so a new
+  grammar category doesn't silently get tiles it will overflow.
 - **Selection model spans pages.** Both quiz-item selection
   (`selectedIds`, keyed `"${itemType}:${itemId}"` since ids alone
   can't disambiguate kanji vs. vocab vs. sentence) and the generator's
@@ -313,6 +336,7 @@ provider's own rate limit as the only backstop — a known, accepted gap
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
-  the token layer (013), theme resolution (014), or where romaji comes
-  from (015) — the "why not the obvious alternative" is usually already
-  answered there.
+  the token layer (013), theme resolution (014), where romaji comes
+  from (015), or which layout a category gets and how a variable-height
+  row flips (016) — the "why not the obvious alternative" is usually
+  already answered there.

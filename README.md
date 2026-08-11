@@ -25,13 +25,13 @@ Japanese keyboard.
 | 007 — Sound | Background music + card flip effects, per-system controls | Shipped |
 | 008 — Theming | Day/night themes with a user-selectable toggle | Shipped — see [Theming](#theming) |
 | 009 — Romaji | Romaji on every card, romaji search, visibility toggle | Shipped — see [Romaji](#romaji) |
-| 010 — Long-content layout | Flip-list rows for grammar and long vocab | Planned — [#116](https://github.com/phill-tam/sento/issues/116) |
+| 010 — Long-content layout | Flip-list rows for grammar and long vocab | Shipped — see [Long-content layout](#long-content-layout) |
 
 Epics 001, 002 and 009 have write-ups in `docs/epics/`. The rest exist
 as shipped code, the GitHub issues that track them, and `epic N`
 comments in the source — treat those as more current than `docs/` when
 the two disagree. Architecture decisions are recorded as ADRs in
-`docs/adr/`, currently numbered up to 015.
+`docs/adr/`, currently numbered up to 016.
 
 ---
 
@@ -269,6 +269,53 @@ Two consequences worth knowing:
 [`015 — Romaji computed except grammar`](docs/adr/015-romaji-computed-except-grammar.md)
 records the full reasoning, including the two rejected alternatives —
 storing everything, and computing everything.
+
+---
+
+## Long-content layout
+
+Most study items are one word or one glyph, and a 210px flip tile suits
+them. Grammar patterns are not — they are phrases, and five of them
+render wider than the tile's 182px of inner width. Vocabulary's
+`greetings` has the same problem for a different reason
+(よろしくおねがいします is roughly 253px of Japanese at the front face's size).
+
+Those categories render as **full-width rows that flip vertically**
+instead. It is the same `FlashcardCard` either way, with a
+`layout="grid" | "list"` prop that swaps one class — selection mode,
+mastery, the ✓ button, the flip sound, the kanji 音/訓 split and the
+romaji toggle all behave identically, because they are literally the
+same code.
+
+Which categories get which layout is an explicit table in
+`frontend/src/utils/categoryLayout.js`:
+
+| line | default | exceptions |
+|---|---|---|
+| grammar | **list** | `particles`, `counters`, `conditionals` → grid |
+| vocab | grid | `greetings` → **list** |
+| kanji | grid | none |
+
+The three grammar exceptions are short fixed-form entries that will
+never outgrow a tile. That puts 14 of 17 grammar categories on the list
+layout. Adding a category means considering this table — an unlisted
+grammar category gets a list, on the assumption that a new pattern is
+long until proven otherwise.
+
+Two things worth knowing:
+
+- **Rows flip without resizing.** A row's height comes from its content,
+  and its two faces are rarely the same height, so the faces are stacked
+  in a single CSS grid cell rather than absolutely positioned. Both stay
+  in flow, the taller one sizes the row, and the height is constant
+  through the flip.
+- **The flip and the selection pulses respect
+  `prefers-reduced-motion`.** Each is pinned to a resting state rather
+  than removed, so selection mode keeps its affordance.
+
+[`016 — Per-category layout and the flip-height mechanic`](docs/adr/016-per-category-layout-and-flip-height.md)
+records why this is a table rather than a measurement of the rendered
+text, and why the faces are in flow.
 
 ---
 
