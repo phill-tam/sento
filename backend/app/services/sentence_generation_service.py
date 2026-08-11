@@ -6,7 +6,7 @@ from google import genai
 from google.genai import errors as genai_errors
 
 from app.config.settings import settings
-from app.schemas.sentence_generate import GeneratedSentenceCandidate, SourceItemRef
+from app.schemas.sentence_generate import GeneratedSentenceCandidate
 
 
 class SentenceGenerationRateLimitExceeded(Exception):
@@ -20,19 +20,33 @@ class SentenceGenerationFailedError(Exception):
     network error, unparseable output. Not a rate limit."""
 
 
-def _build_prompt(source_item_refs: list[SourceItemRef], count: int, nuance: str | None) -> str:
-    """Builds the generation prompt. source_item_refs are passed as raw
-    line_id/item_id pairs — the caller (route layer) is responsible for
-    resolving them to actual kanji/vocab/grammar content before this
-    function is called, so the prompt always carries real Japanese text,
-    not opaque IDs the model can't use."""
+def _build_prompt(source_items: list[str], count: int, nuance: str | None) -> str:
+    """Builds the generation prompt.
+
+    `source_items` are already-resolved content snippets like
+    "猫 (cat)" — the route layer turns line_id/item_id pairs into these
+    via _resolve_source_items, so the prompt always carries real Japanese
+    text rather than opaque IDs the model can't use.
+
+    The reading and romaji formats are pinned explicitly. Left unstated,
+    providers vary between kana and kanji-with-furigana for `reading`, and
+    between macron and kana-faithful romaji — and romaji that disagrees
+    with `services/romaji.to_romaji` would put "tōkyō" on a sentence card
+    next to "toukyou" on a vocab card in the same app (ADR 015).
+    """
     nuance_line = f"Nuance/topic to aim for: {nuance}\n" if nuance else ""
     return (
         f"Generate {count} natural N5-level Japanese practice sentences "
-        f"using the following source items:\n{source_item_refs}\n"
+        f"using the following source items:\n{source_items}\n"
         f"{nuance_line}"
-        'Respond ONLY with a JSON array of objects, each shaped exactly as '
-        '{"jp_text": "...", "reading": "...", "meaning_en": "..."}. '
+        "Respond ONLY with a JSON array of objects, each shaped exactly as "
+        '{"jp_text": "...", "reading": "...", "romaji": "...", "meaning_en": "..."}.\n'
+        "- reading: the full sentence in hiragana/katakana only, no kanji.\n"
+        "- romaji: Hepburn, lowercase, with spaces between words.\n"
+        "  Transliterate the kana literally rather than marking long "
+        'vowels: write "ou" and "uu", never "ō" or "ū".\n'
+        '  Romanise particles by how they are pronounced: は as "wa", '
+        'へ as "e", を as "o".\n'
         "No markdown fences, no preamble, no explanation."
     )
 
@@ -125,11 +139,15 @@ def get_provider() -> SentenceProvider:
 
 
 def generate_sentences(
-    source_item_refs: list[SourceItemRef],
+    source_items: list[str],
     count: int,
     nuance: str | None,
 ) -> list[GeneratedSentenceCandidate]:
     """Entry point called by the generate route (Step 5).
+
+    Takes resolved content snippets, not SourceItemRef objects — the route
+    resolves them first (the annotation here previously said otherwise and
+    was simply wrong; nothing behaved differently).
 
     Lets SentenceGenerationRateLimitExceeded and SentenceGenerationFailedError
     propagate uncaught — the route layer maps each to its own HTTP response,
@@ -137,5 +155,5 @@ def generate_sentences(
     extended here to 429/502 for this feature's two failure modes.
     """
     provider = get_provider()
-    prompt = _build_prompt(source_item_refs, count, nuance)
+    prompt = _build_prompt(source_items, count, nuance)
     return provider.generate(prompt=prompt, count=count)
