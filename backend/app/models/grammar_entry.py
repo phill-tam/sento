@@ -28,6 +28,18 @@ class GrammarEntry(Base):
     example_reading: Mapped[str | None] = mapped_column(Text, nullable=True)
     example_en: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Both stored and hand-authored, unlike kanji/vocab romaji, because
+    # both are multi-word Japanese text and need word segmentation — not
+    # just transliteration — that no character-level pass can supply.
+    # `pattern` additionally mixes in bare kanji (`~の上/下/中`) with no
+    # reading field to fall back on. Measured against the seed set, 74 of
+    # 96 patterns and 25 of 26 example sentences disagree with a
+    # mechanical, unspaced transliteration (わたしはがくせいです ->
+    # "watashihagakuseidesu" instead of "watashi wa gakusei desu") — this
+    # is authored content, not a cache.
+    pattern_romaji: Mapped[str | None] = mapped_column(Text, nullable=True)
+    example_romaji: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     category: Mapped[str] = mapped_column(String, index=True, nullable=False)
     jlpt_level: Mapped[str] = mapped_column(String, nullable=False, default="N5", server_default="N5")
 
