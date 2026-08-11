@@ -1,5 +1,6 @@
 import { useBacksound } from '../../context/BacksoundContext';
 import { useCardSound } from '../../context/CardSoundContext';
+import { useTheme } from '../../context/ThemeContext';
 import ToggleSwitch from './ToggleSwitch';
 import styles from '../../styles/SettingsPanel.module.css';
 
@@ -44,11 +45,24 @@ function SoundRow({ label, isMuted, onToggleMute, volume, maxVolume, onVolumeCha
  * panel is named for the popover rather than for its first occupant.
  */
 export default function SettingsPanel() {
+  const { resolvedTheme, toggleTheme } = useTheme();
   const backsound = useBacksound();
   const cardSound = useCardSound();
+  const isNight = resolvedTheme === 'dark';
 
   return (
     <div className={styles.panel}>
+      <p className={styles.heading}>Theme</p>
+      <div className={styles.row}>
+        <ToggleSwitch
+          label="Night"
+          checked={isNight}
+          onChange={toggleTheme}
+          ariaLabel={
+            isNight ? 'Switch to the day theme' : 'Switch to the night theme'
+          }
+        />
+      </div>
       <p className={styles.heading}>Sound</p>
       <SoundRow
         label="Global"
