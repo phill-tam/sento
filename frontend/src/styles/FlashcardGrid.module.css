@@ -4,6 +4,30 @@
   gap: 16px;
 }
 
+/* epic 010 — the long-content container. Same shell as SentenceList's
+   own .list (border, radius, clipped corners), which is where the row
+   treatment is borrowed from; SentenceListItem itself is untouched.
+   The separator lives on the <li>, outside the rotating .inner, so it
+   stays put while the row flips. */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.row {
+  border-bottom: 1px solid var(--border-card);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
 .empty {
   color: var(--text-hint);
   font-family: var(--font-body);

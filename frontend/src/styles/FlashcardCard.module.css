@@ -102,13 +102,14 @@
    that was too small to actually use, so it now sits just above the kana
    it supports. Italic and the dimmer colour still mark it as secondary.
 
-   `white-space: nowrap` is deliberate and temporary. Long grammar
-   patterns (the sentence_structure category especially) produce romaji
-   far wider than the 200px card — "X wa Y ja nakatta desu / de wa
-   arimasen deshita" — and wrapping them fills the whole face and shoves
-   the rest of the content out. Letting the line run past the card edge
-   is the agreed stopgap until a dedicated branch reworks the card style
-   for long items.
+   This carried `white-space: nowrap` between epics 009 and 010 — long
+   grammar romaji ("X wa Y ja nakatta desu / de wa arimasen deshita") is
+   303px against a 182px tile, and wrapping it filled the face and shoved
+   everything else out, so the line was allowed to run past the card edge
+   instead. Epic 010 removed it: the categories that produce those
+   patterns are on the list layout now, and the ones still on the grid
+   are short by definition (ADR 016). Romaji wraps normally again in both
+   layouts.
 
    No text-transform. An earlier version lowercased this defensively and
    it was wrong: grammar patterns carry Latin placeholders that are
@@ -121,7 +122,6 @@
   margin-top: 5px;
   letter-spacing: 0.03em;
   font-style: italic;
-  white-space: nowrap;
 }
 
 .meaning {
@@ -253,4 +253,162 @@
 @keyframes selectGlowActive {
   0%, 100% { box-shadow: var(--card-glow-selected-rest); }
   50% { box-shadow: var(--card-glow-selected-peak); }
+}
+
+/* ── list layout (epic 010) ──────────────────────────────────────────
+   Everything below is scoped under .list and inert for the grid callers
+   that don't pass it, exactly as ToggleSwitch's .vertical is. The tile
+   above is untouched.
+
+   The mechanic: the two faces stop being `position: absolute; inset: 0`
+   and become grid items sharing ONE cell, so both are in flow and the
+   row's height is the taller of them. That is what makes a variable
+   height row possible at all — a front (pattern + reading + romaji) and
+   a back (meaning + example) are rarely the same height, and with the
+   faces out of flow the row would have had to resize mid-flip. Both
+   faces stretch to the cell, so they are also the same box, which is
+   what keeps rotateX pivoting on a shared axis. Measured through a full
+   500ms flip: height constant to the pixel. See ADR 016. */
+.card.list {
+  height: auto;
+  border-radius: 0;
+  /* 1000px is tuned for a 210px tile; across a full-width row the same
+     value throws the far edge away hard enough to read as a fold. */
+  perspective: 1400px;
+}
+
+.card.list .inner {
+  display: grid;
+  height: auto;
+}
+
+.card.list.flipped .inner {
+  transform: rotateX(180deg);
+}
+
+.card.list .face {
+  position: relative;
+  inset: auto;
+  grid-area: 1 / 1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  align-items: flex-start;
+  text-align: left;
+  /* SentenceListItem's row rhythm, borrowed per epic 010 — that
+     component itself is deliberately not touched. */
+  padding: 14px 16px;
+  /* Tall enough that the badge (top right) and the ✓ (bottom right)
+     can't meet on a one-line row. */
+  min-height: 60px;
+}
+
+/* The front keeps .face's `justify-content: center`, which does real
+   work here: when the back is the taller face, the front is centred in
+   the row it sized rather than stranded at the top. */
+
+/* The back turns on its side. A tile has 182px and no choice but to
+   stack meaning over example; a row has the whole panel, and stacking
+   four lines into a column there is what made rows ~166px tall with the
+   front face rattling around in the empty half. Side by side, the back
+   is about as tall as the front and the row is sized by content rather
+   than by the narrower of the two shapes. */
+.card.list .back {
+  transform: rotateX(180deg);
+  padding-top: 14px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  /* the tile's overflow guard; a row is sized by its content */
+  overflow: visible;
+}
+
+.card.list .meaning {
+  margin-bottom: 0;
+  flex: 0 0 auto;
+  max-width: 40%;
+}
+
+/* Same reasoning one level down: word, reading and romaji run inline and
+   the translation takes the line below, instead of four stacked lines. */
+.card.list .example {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.card.list .exampleReading,
+.card.list .exampleRomaji {
+  margin-top: 0;
+}
+
+.card.list .exampleMeaning {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+
+/* No example: the reading and its romaji join the meaning on one line
+   rather than hanging below it. */
+.card.list .meaningReading,
+.card.list .meaningRomaji {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+/* Right-hand gutters keep text off the two absolutely-positioned
+   controls, which are otherwise unchanged from the tile. The front
+   reserves for the Mastered pill, the back only for the ✓. */
+.card.list .front {
+  padding-right: 76px;
+}
+
+.card.list .back {
+  padding-right: 40px;
+}
+
+/* Every row in a list shares one category, so the tag is repeating the
+   page heading on each line. It stays in the DOM for the grid, where
+   the same card can sit under a search or a mixed view. */
+.card.list .tag {
+  display: none;
+}
+
+.card.list .jp {
+  font-size: 20px;
+}
+
+/* The grid's pulse is a box-shadow *outside* the card, which cannot
+   work between adjacent rows — each neighbour's opaque face paints over
+   it. Same animation, same tokens, turned inward: a ring inside the
+   row, with a 9999px inset spread standing in for a background wash so
+   the selected state tints without touching either face's gradient. */
+.card.list.selectable {
+  animation: none;
+}
+
+.card.list.selectable .face {
+  animation: listSelectRingIdle 2.4s ease-in-out infinite;
+}
+
+.card.list.selectable.selected .face {
+  animation: listSelectRingActive 1.8s ease-in-out infinite;
+}
+
+@keyframes listSelectRingIdle {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--accent-ring); }
+  50% { box-shadow: inset 0 0 0 2px var(--accent-line-active); }
+}
+
+@keyframes listSelectRingActive {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2px var(--accent-outline),
+      inset 0 0 0 9999px var(--accent-wash-hover);
+  }
+  50% {
+    box-shadow: inset 0 0 0 3px var(--accent),
+      inset 0 0 0 9999px var(--accent-wash-active);
+  }
 }
