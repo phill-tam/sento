@@ -22,6 +22,15 @@
   color: var(--text-on-chrome-muted);
 }
 
+/* Hairline above every section but the first, so the panel reads as
+   grouped rather than as one long column. Keyed off :not(:first-child)
+   rather than a modifier class, so adding or reordering a section can't
+   leave a stray rule or a missing divider behind. */
+.panel > .heading:not(:first-child) {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-on-chrome);
+}
+
 .row {
   display: flex;
   flex-direction: column;

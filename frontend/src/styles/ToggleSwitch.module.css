@@ -51,11 +51,42 @@
   border-radius: 50%;
   background: var(--switch-knob);
   transform: translateY(-50%);
-  transition: left 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: left 0.15s ease, top 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .knobOn {
   left: 18px;
   background: var(--knob-fill);
   box-shadow: var(--knob-glow);
+}
+
+/* Vertical variant. Only the axis changes: the track's 34x18 becomes
+   18x34 and the knob travels on `top` instead of `left`. The colour,
+   the glow and the controlled contract are all shared with the
+   horizontal switch, which is why this is a variant rather than a
+   second component.
+
+   Each rule is scoped under .vertical so it is inert for every existing
+   caller — the sound settings panel renders unchanged. */
+.vertical {
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 8px;
+}
+
+.vertical .track {
+  width: 18px;
+  height: 34px;
+}
+
+.vertical .knob {
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.vertical .knobOn {
+  top: 18px;
+  left: 50%;
 }

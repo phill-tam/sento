@@ -14,6 +14,25 @@
   pointer-events: none;
 }
 
+/* Anchor for the theme switch. The switch is positioned against this
+   rather than sitting in the gate's flex row, because a flex sibling
+   would push Start off centre by half the switch's width — and Start
+   being dead centre of the viewport is the whole composition of this
+   screen. This way the switch hangs off the button's right edge and the
+   button does not move. */
+.cluster {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.themeSwitch {
+  position: absolute;
+  left: calc(100% + 18px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .startBtn {
   padding: 18px 48px;
   border-radius: 30px;
