@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styles from "../../styles/SentenceReviewPanel.module.css";
+import { useRomaji } from "../../context/RomajiContext";
 
 /**
  * Kept pool + current round's candidates, keep/discard controls,
@@ -27,6 +28,7 @@ export default function SentenceReviewPanel({
   onSave,
 }) {
   const [saveFolderId, setSaveFolderId] = useState("");
+  const { isVisible: showRomaji } = useRomaji();
   const isGenerating = phase === "generating";
   const hasKept = keptSentences.length > 0;
 
@@ -53,6 +55,9 @@ export default function SentenceReviewPanel({
                 <div className={styles.text}>
                   <div className={styles.jp}>{s.jp_text}</div>
                   <div className={styles.reading}>{s.reading}</div>
+                  {showRomaji && s.romaji && (
+                    <div className={styles.romaji}>{s.romaji}</div>
+                  )}
                   <div className={styles.meaning}>{s.meaning_en}</div>
                 </div>
                 <button
@@ -84,6 +89,9 @@ export default function SentenceReviewPanel({
                 <div className={styles.text}>
                   <div className={styles.jp}>{c.jp_text}</div>
                   <div className={styles.reading}>{c.reading}</div>
+                  {showRomaji && c.romaji && (
+                    <div className={styles.romaji}>{c.romaji}</div>
+                  )}
                   <div className={styles.meaning}>{c.meaning_en}</div>
                 </div>
                 <div className={styles.candidateActions}>
