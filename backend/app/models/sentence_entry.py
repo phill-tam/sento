@@ -29,6 +29,17 @@ class GeneratedSentence(Base):
     reading: Mapped[str] = mapped_column(Text, nullable=False)
     meaning_en: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # Supplied by the generation provider alongside `reading`, not derived
+    # from it. A sentence needs word boundaries — "watashi wa gakusei
+    # desu", not "watashipagakuseidesu" — and segmentation is beyond a
+    # character-level transliterator, which is why `services/romaji` is not
+    # used here the way it is for kanji and vocab (ADR 015).
+    #
+    # Nullable, unlike `reading`, for two reasons: rows saved before epic
+    # 009 have none, and a provider that omits the field should degrade to
+    # a sentence without romaji rather than fail the whole round.
+    romaji: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Nullable: a sentence saved with no folder chosen is treated as
     # "Uncategorized" by the service layer at save time (Step 5), not by
     # a magic FK value here.

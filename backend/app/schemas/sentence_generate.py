@@ -22,6 +22,12 @@ class GeneratedSentenceCandidate(BaseModel):
 
     jp_text: str
     reading: str
+    # Optional so a provider that ignores the romaji instruction degrades
+    # to a sentence without it, rather than raising
+    # SentenceGenerationFailedError and discarding an entire round of
+    # otherwise-valid output. The frontend already renders romaji
+    # conditionally.
+    romaji: str | None = None
     meaning_en: str
 
 
@@ -46,6 +52,9 @@ class SentenceSaveItem(BaseModel):
 
     jp_text: str
     reading: str
+    # Optional for the same reason as on the candidate, and additionally
+    # so a client saving a pre-epic-009 candidate still round-trips.
+    romaji: str | None = None
     meaning_en: str
     source_item_refs: list[SourceItemRef] = []
 
