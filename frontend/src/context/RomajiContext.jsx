@@ -2,25 +2,33 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 const STORAGE_KEY = 'sento:romaji';
 
-// Off by default, and that is a teaching decision rather than a UI one.
-// Romaji next to kana is read *instead* of the kana — a learner who can
-// see "neko" stops decoding ねこ, which is the one skill N5 study is for.
-// Anyone past that stage can turn it on in one click; a beginner who
-// never opts in is never quietly taught to skip the script.
-const DEFAULT_VISIBLE = false;
+// On by default. An earlier version defaulted this off, on the argument
+// that romaji beside kana gets read instead of the kana and quietly
+// trains beginners out of decoding the script. That reasoning is real but
+// it was overruled deliberately: a first-time visitor who can't read kana
+// yet meets a wall of characters with no way in, and discovering the
+// setting requires already knowing to look for it. Turning it off is one
+// click for anyone who wants the harder mode.
+const DEFAULT_VISIBLE = true;
 
 const RomajiContext = createContext(null);
 
 function readStoredVisible() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    const raw = localStorage.getItem(STORAGE_KEY);
+    // Absent key means "never chosen", which must fall through to the
+    // default — comparing against 'true' directly would silently pin new
+    // visitors to off regardless of what DEFAULT_VISIBLE says.
+    if (raw === null) return DEFAULT_VISIBLE;
+    return raw === 'true';
   } catch {
     return DEFAULT_VISIBLE;
   }
 }
 
 /**
- * Whether romaji is shown alongside kana on cards.
+ * Whether romaji is shown alongside kana on cards. Defaults on; see
+ * DEFAULT_VISIBLE for why that was chosen over the stricter option.
  *
  * Its own key, not a merged preferences blob — same shape as
  * `sento:theme`, `backsound:muted` and `useMastered`'s
