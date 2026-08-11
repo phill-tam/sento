@@ -2,7 +2,11 @@
 name = "backend"
 version = "0.1.0"
 description = "Sento — sentence-generation"
-readme = { file = "../README.md", content-type = "text/markdown" }
+# No `readme` field on purpose. It pointed at ../README.md, which
+# hatchling rejects outright ("Readme path must be within the project
+# directory"), failing `uv run` and so the Render start command. This
+# package is never published — the field bought nothing and cost the
+# deploy.
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18.5",
