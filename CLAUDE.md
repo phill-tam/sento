@@ -12,15 +12,16 @@ user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-`README.md`'s "Project Status" table undersells what's shipped — it
-still lists Flashcards/Quiz and the Sentence Generator as "Planned".
-In the actual code, four epics beyond Content Management are already
-live behind feature flags: Study Flashcards, Quiz Mode, the Sentence
-Generator, and a global cross-type Quiz (referred to as "epic 6" in
-code comments). Only epics 001 and 002 have write-ups in `docs/epics/`
-and ADRs past 011 don't exist — treat in-code comments referencing
-"epic N" as the more current source of truth than `docs/`, and verify
-docs against `git log` / the code itself before relying on them.
+Eight epics have shipped: Foundation, Content Management, Flashcards,
+Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
+in code comments), Sound, and Theming. None of them are behind feature
+flags any more — see the section below.
+
+Only epics 001 and 002 have write-ups in `docs/epics/`; the rest exist
+as shipped code, the GitHub issues tracking them, and `epic N` comments
+in the source. ADRs run to 014. Treat in-code comments as the more
+current source of truth than `docs/epics/`, and verify docs against
+`git log` / the code itself before relying on them.
 
 ## Commands
 
@@ -192,24 +193,77 @@ provider's own rate limit as the only backstop — a known, accepted gap
   `context/SoundProviders.jsx` composes both so `App.jsx` mounts a
   single wrapper.
 - **`MAX_VOLUME` is a ceiling, not just a default.** Each sound context
-  exports one (Global `0.1`, Cards `0.5`) and `SoundSettingsPanel` uses
-  it as its slider's `max`, so full-right is the level the app shipped
+  exports one (Global `0.1`, Cards `0.5`) and `SettingsPanel` uses it
+  as its slider's `max`, so full-right is the level the app shipped
   with and the readout means "share of normal volume". These were tuned
   by ear against each other; raising either is a mix decision, not a UI
   one. The controls live behind the gear at the bottom of the icon rail
   (`layouts/SettingsButton.jsx`), not in the sidebar.
+- **`SettingsPanel` is the gear popover's contents, not a sound
+  component.** It was `SoundSettingsPanel` until Theme moved in beside
+  Sound; it's named for the popover now, and new settings sections
+  belong in it rather than in a second panel. Sections are separated by
+  `.panel > .heading:not(:first-child)`, so adding one needs no extra
+  rule.
 - **User preferences are plain `localStorage`,** no store library and no
   settings service: prefixed key, lazy `useState(() => read())`
   initializer, write-back in an effect, and every access try/catch
   guarded so private browsing degrades silently instead of throwing.
   Follow that shape for new preferences — see `backsound:muted` /
-  `backsound:volume`, `cardsound:muted` / `cardsound:volume`, and
-  `hooks/useMastered.js`'s `sento:mastered:{lineId}`.
+  `backsound:volume`, `cardsound:muted` / `cardsound:volume`,
+  `sento:theme`, and `hooks/useMastered.js`'s `sento:mastered:{lineId}`.
+  Each preference gets its own key; there is no single `sento:prefs`
+  blob, deliberately.
 - **Design tokens** live in `src/styles/tokens.css` as CSS custom
   properties, ported from the original design mockup — see
   `docs/adr/001-design-tokens-css-custom-properties.md`. Every
   component styles via its own `ComponentName.module.css`; there's no
   global component library.
+- **`tokens.css` has two layers, and only one of them is public.**
+  *Pigment* tokens (`--teal-deep`, `--gold`, `--cream`, `--mist-line`,
+  the `--night-*` ramp) are private to that file. *Role* tokens
+  (`--surface-card`, `--text-secondary`, `--border`, `--accent-*`,
+  `--shadow-*`) are what component CSS references. **Never use a
+  pigment token inside a `.module.css`** — see
+  `docs/adr/013-semantic-role-token-layer.md`. The split exists because
+  three pigments each carried two roles that a theme has to move in
+  opposite directions: `--mist-line` was both a card border and muted
+  body text, `--mist` was muted text on dark chrome *and* hint text on
+  light pages, `--teal-deep` was the chrome background *and* the
+  primary button fill. `grep 'var(--teal\|--gold\|--cream\|--ink\|--mist'
+  src/styles/*.module.css` should stay empty.
+- **The night theme is one block, not a second stylesheet.**
+  `:root[data-theme="dark"]` at the bottom of `tokens.css` re-points the
+  role layer and nothing else, so no component knows a theme exists.
+  It's deliberately **not** an inversion: the icon rail and sidebar were
+  already dark against a light content area, so at night the chrome
+  shifts hue and stays put while the content surfaces come down to meet
+  it. The gold accent is shared by both themes on purpose.
+  `AppShell.module.css`'s `.backdrop` is the one rule still on raw
+  values — each wash is welded to its own hero image (`hero.gif` vs
+  `hero-night.gif`), so it branches per theme rather than tokenising.
+- **Theme state:** `context/ThemeContext.jsx`, `sento:theme` in
+  `localStorage`, values `light` / `dark` only, default `light`. The
+  stored value is stamped straight onto `<html>` as `data-theme`;
+  there's nothing to resolve. **The app ignores `prefers-color-scheme`
+  entirely** — that's deliberate, not an oversight, and ADR 014 records
+  both the reasoning and the fact that it's the first thing to revisit
+  if anyone asks why the app doesn't follow their system. A `system`
+  value existed briefly and was removed once day became the default:
+  nothing arrived in that state, so it was a modelled state the UI
+  couldn't select. Don't reintroduce it without reading ADR 014.
+  **The stored-value rule is duplicated in `frontend/index.html`** as a
+  blocking inline script, so the theme applies before first paint
+  instead of flashing after React mounts; if you change the rule, change
+  both. `ThemeProvider` is mounted in `main.jsx`, not `App.jsx`, because
+  it writes to `document.documentElement`.
+- **Two controls, one source of truth.** A vertical `ToggleSwitch` sits
+  beside Start on `StartGate` (absolutely positioned against a wrapper
+  so it can't push Start off-centre), and a horizontal one sits in the
+  Theme row of `SettingsPanel`. Both read `theme` from the context
+  rather than holding local state, so they can't disagree.
+  `ToggleSwitch` takes an `orientation` prop for this; the variant is
+  scoped under `.vertical` and inert for every horizontal caller.
 
 ## Docs
 
@@ -218,6 +272,6 @@ provider's own rate limit as the only backstop — a known, accepted gap
   code + ADRs + in-code "epic N" comments).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
-  design, route structure, CSV commit strategy, or sidebar navigation
-  — the "why not the obvious alternative" is usually already answered
-  there.
+  design, route structure, CSV commit strategy, sidebar navigation,
+  the token layer (013), or theme resolution (014) — the "why not the
+  obvious alternative" is usually already answered there.
