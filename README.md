@@ -21,12 +21,13 @@ meaning) from user-selected content items.
 | 005 — Sentence Generator | AI sentence generation + folders (backend + frontend) | Shipped |
 | 006 — Global Quiz | Cross-line, mixed-type quiz pool incl. saved sentences (frontend) | Shipped |
 | 007 — Sound | Background music + card flip effects, per-system controls | Shipped |
+| 008 — Theming | Day/night themes with a user-selectable toggle | Shipped — see [Theming](#theming) |
 
-Only epics 001 and 002 have write-ups in `docs/epics/`, and ADRs stop
-at 011. Later epics exist as shipped code, the GitHub issues that track
-them, and `epic N` comments in the source — treat those as more current
-than `docs/` when the two disagree. Architecture decisions are recorded
-as ADRs in `docs/adr/`.
+Only epics 001 and 002 have write-ups in `docs/epics/`. Later epics
+exist as shipped code, the GitHub issues that track them, and `epic N`
+comments in the source — treat those as more current than `docs/` when
+the two disagree. Architecture decisions are recorded as ADRs in
+`docs/adr/`, currently numbered up to 014.
 
 ---
 
@@ -177,6 +178,39 @@ which is exactly what ADR 012 unpicked.
 **Known gap:** `POST /sentences/generate` is unconditionally mounted and
 also unauthenticated. It spends real AI provider quota per call, and the
 provider's own rate limit is the only backstop.
+
+---
+
+## Theming
+
+The app ships a day and a night theme. Nothing to configure — the theme
+is a per-browser preference in `localStorage` under `sento:theme`, with
+no server involvement.
+
+Two places change it, both wired to the same state so they can never
+disagree:
+
+- the vertical switch beside **Start** on the landing screen, so a theme
+  can be picked before the app opens
+- the **Theme** row in the settings popover, behind the gear at the
+  bottom of the icon rail, for changing it mid-session
+
+`sento:theme` holds `light` or `dark` and defaults to `light`, so a
+first-time visitor always meets the day theme — the app deliberately
+does not read `prefers-color-scheme`. Day is the palette the project was
+designed around, and following the OS meant a dark-OS visitor met a
+version nobody had chosen as its introduction. The cost is one click for
+someone who wants night, and it persists from then on.
+
+Two ADRs cover the implementation, and both are worth reading before
+touching colours:
+
+- [`013 — Semantic role tokens`](docs/adr/013-semantic-role-token-layer.md)
+  — why `tokens.css` has two layers and why component CSS must never
+  reference a palette colour directly
+- [`014 — Theme preference mechanism`](docs/adr/014-theme-preference-mechanism.md)
+  — `data-theme` on `<html>`, and the inline pre-paint script in
+  `index.html` that stops the page flashing the wrong theme on load
 
 ---
 
