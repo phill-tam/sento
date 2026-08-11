@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import ModeToggle from "../components/layouts/ModeToggle";
 import FlashcardGrid from "../components/study/FlashcardGrid";
 import QuizEmptyState from "../components/quiz/QuizEmptyState";
+import { layoutForCategory } from "../utils/categoryLayout";
 import styles from "../styles/StudyPage.module.css";
 
 // Display-only fallback for QuizEmptyState's copy — actual gating now
@@ -41,6 +42,11 @@ export default function StudyPage({
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ")
     : "Select a category";
+
+  // epic 010 — activeCategoryId was already here, but only as the source
+  // of the heading label above; the layout table is what needed the raw
+  // id itself passed down.
+  const layout = layoutForCategory(activeLineId, activeCategoryId);
 
   const isSelecting = quizPhase === "selecting";
   const isGeneratorSelecting = generatorSelectionPhase === "selecting";
@@ -131,6 +137,7 @@ export default function StudyPage({
               : undefined
           }
           selectionCap={activeSelectionMode === "generator" ? generatorSelectionCap : 20}
+          layout={layout}
         />
       )}
     </div>

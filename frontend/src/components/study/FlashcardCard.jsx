@@ -25,6 +25,15 @@ import { playCardOpenSound, playCardCloseSound } from "../../utils/cardSoundEffe
  * selectDisabled: true when the quiz selection cap (20) is reached and this
  * card isn't already selected — never disables an already-selected card,
  * so deselecting to free a slot always stays possible.
+ *
+ * layout (epic 010): "grid" is the 200px flip tile this component has
+ * always been; "list" is a full-width row that flips vertically instead,
+ * for content too long for a tile (grammar patterns, long vocab). It
+ * swaps one class and nothing else — every branch below, both handlers,
+ * the ✓ button's two meanings and the 音/訓 split are shared verbatim, so
+ * the two layouts cannot drift. Same reasoning as ToggleSwitch's
+ * `orientation`. Which categories get which layout is not decided here —
+ * see utils/categoryLayout.js.
  */
 export default function FlashcardCard({
   item,
@@ -35,6 +44,7 @@ export default function FlashcardCard({
   isSelected = false,
   onToggleSelect,
   selectDisabled = false,
+  layout = "grid",
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const isKanji = item.lineId === "kanji";
@@ -78,9 +88,11 @@ export default function FlashcardCard({
 
   return (
     <div
-      className={`${styles.card} ${isFlipped ? styles.flipped : ""} ${
-        selectionMode ? styles.selectable : ""
-      } ${selectionMode && isSelected ? styles.selected : ""}`}
+      className={`${styles.card} ${layout === "list" ? styles.list : ""} ${
+        isFlipped ? styles.flipped : ""
+      } ${selectionMode ? styles.selectable : ""} ${
+        selectionMode && isSelected ? styles.selected : ""
+      }`}
       onClick={handleFlip}
       role="button"
       tabIndex={0}
