@@ -83,6 +83,12 @@ export function useSentenceGenerator(sourceItemRefs) {
         sentences: keptSentences.map((s) => ({
           jp_text: s.jp_text,
           reading: s.reading,
+          // Carried through from the candidate rather than regenerated —
+          // the provider produced it at generation time and there is no
+          // way to recover it afterwards (a sentence can't be
+          // transliterated from its reading, ADR 015). Dropping it here
+          // would silently save every sentence without romaji.
+          romaji: s.romaji ?? null,
           meaning_en: s.meaning_en,
           source_item_refs: sourceItemRefs,
         })),

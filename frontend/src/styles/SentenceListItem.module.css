@@ -29,6 +29,18 @@
   margin-top: 2px;
 }
 
+/* epic 009 phase 2 — matches the flashcard's romaji treatment. Wraps
+   normally: a list row has the full panel width, so it never needs the
+   nowrap escape hatch the 200px card does. */
+.romaji {
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  font-style: italic;
+}
+
 .meaning {
   font-size: 13px;
   color: var(--text-hint);

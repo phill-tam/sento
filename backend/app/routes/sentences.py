@@ -103,6 +103,7 @@ def save_sentences(
         entry = GeneratedSentence(
             jp_text=item.jp_text,
             reading=item.reading,
+            romaji=item.romaji,
             meaning_en=item.meaning_en,
             folder_id=payload.folder_id,
             source_item_refs=[ref.model_dump(mode="json") for ref in item.source_item_refs],

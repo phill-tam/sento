@@ -129,12 +129,11 @@ function toSentenceQuizItems(sentences) {
     lineId: "sentence",
     prompt: s.jp_text,
     reading: s.reading,
-    // No romaji for saved sentences yet. A sentence needs word
-    // segmentation, so it can't be transliterated from `reading` the way
-    // a single kanji or vocab word can (ADR 015) — epic 009 phase 2 adds
-    // it by asking the generation provider for it directly. Empty rather
-    // than absent so every item in the shared quiz shape has the key.
-    romaji: "",
+    // Supplied by the generation provider, not transliterated here — a
+    // sentence needs word segmentation (ADR 015). Null for anything saved
+    // before epic 009 phase 2, which can never be backfilled, so this
+    // stays conditional at every render site.
+    romaji: s.romaji ?? "",
     answer: s.meaning_en,
     example: null,
     source_item_refs: s.source_item_refs,

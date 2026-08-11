@@ -23,6 +23,7 @@ class GeneratedSentenceRead(BaseModel):
     id: UUID
     jp_text: str
     reading: str
+    romaji: str | None
     meaning_en: str
     folder_id: UUID | None
     source_item_refs: list[SourceItemRef]

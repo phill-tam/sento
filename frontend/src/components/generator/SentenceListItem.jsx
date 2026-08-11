@@ -1,4 +1,5 @@
 import styles from "../../styles/SentenceListItem.module.css";
+import { useRomaji } from "../../context/RomajiContext";
 
 /**
  * One saved sentence row. List-style (not FlashcardCard's flip-card grid
@@ -23,11 +24,19 @@ export default function SentenceListItem({
   onToggleSelect,
   selectDisabled = false,
 }) {
+  const { isVisible: showRomaji } = useRomaji();
+
   return (
     <li className={`${styles.item} ${selectionMode && isSelected ? styles.selected : ""}`}>
       <div className={styles.text}>
         <div className={styles.jp}>{sentence.jp_text}</div>
         <div className={styles.reading}>{sentence.reading}</div>
+        {/* Absent on anything saved before epic 009 phase 2, and that can
+            never be backfilled — so this stays conditional, not just
+            preference-gated. */}
+        {showRomaji && sentence.romaji && (
+          <div className={styles.romaji}>{sentence.romaji}</div>
+        )}
         <div className={styles.meaning}>{sentence.meaning_en}</div>
       </div>
 
