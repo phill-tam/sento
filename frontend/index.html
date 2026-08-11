@@ -15,7 +15,7 @@
       where it is least wanted — the landing gate, which is where the
       theme toggle lives.
 
-      It knowingly duplicates the storage key and the resolution rule
+      It knowingly duplicates the storage key and the stored-value rule
       from context/ThemeContext.jsx. Nothing importable can run this
       early, so the duplication is the price of not flashing; see
       ADR 014. Keep the two in sync — the context is the authority.
@@ -23,13 +23,9 @@
     <script>
       (function () {
         try {
-          var pref = localStorage.getItem("sento:theme");
-          if (pref !== "light" && pref !== "dark") {
-            pref = window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-          }
-          document.documentElement.dataset.theme = pref;
+          var stored = localStorage.getItem("sento:theme");
+          document.documentElement.dataset.theme =
+            stored === "dark" ? "dark" : "light";
         } catch (err) {
           document.documentElement.dataset.theme = "light";
         }

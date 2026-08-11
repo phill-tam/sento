@@ -16,9 +16,10 @@ constrain each other.
 **What carries the theme?** The role tokens are CSS custom properties
 on `:root`, so the switch has to be something CSS can select on.
 
-**Is the preference a boolean?** The obvious model is `isDark`. But
-"follow my OS" is a distinct state from "I chose light", and the two
-are indistinguishable on a machine that is currently light.
+**Is the preference a boolean?** The obvious model is `isDark`. The
+alternative is a third value, `system`, meaning "keep following the OS"
+— distinct from "I chose light", and indistinguishable from it on a
+machine that is currently light.
 
 **When does it get applied?** React state is only available after
 mount, and effects run after first contentful paint. Anything that
@@ -36,11 +37,33 @@ is single-valued by nature — there is no meaningful state where two
 themes are both set, and an attribute makes that structural rather than
 a convention.
 
-**A three-valued preference** — `light`, `dark`, `system` — defaulting
-to `system`. The *preference* is what gets persisted to
-`localStorage` under `sento:theme`; the *resolved* value is what gets
-stamped on the element. The two are never conflated in either
-direction.
+**A two-valued preference** — `light` or `dark` — defaulting to
+`light`, persisted to `localStorage` under `sento:theme`. It is stored
+and stamped as the same value; there is nothing to resolve.
+
+This reverses an earlier decision in this ADR and the reversal is worth
+recording, because the original reasoning was sound and stopped being
+so once something else changed.
+
+The first version modelled three values, adding `system` to track
+`prefers-color-scheme`, on the argument that persisting a resolved
+boolean would freeze "follow my OS" at whatever the OS reported on the
+first visit. That argument holds **only while following the OS is the
+default**, which it originally was.
+
+Day is now the default instead. The day palette is the one this project
+was designed around, the hero is the day scene, and every screenshot of
+it is light — following the OS meant a dark-OS visitor met a version of
+the app nobody had chosen as its introduction.
+
+Once day became the default, nobody arrived in `system` mode, so it
+survived only as a state the UI could not select — `setPreference` had
+no caller anywhere. Briefly there was a "Follow system" switch to make
+it reachable, but it existed to justify the value rather than because
+anyone had asked to follow their OS. Removed rather than left
+unreachable: a modelled state nothing can reach is a liability, and the
+boolean the original decision rejected is simply correct once the
+default is explicit.
 
 **An inline blocking script in `index.html`** that reads the same key,
 applies the same resolution rule, and stamps `data-theme` during head
@@ -49,12 +72,10 @@ of the session.
 
 ## Alternatives Considered
 
-- **Boolean `isDark`.** Smaller API, and wrong. Persisting the resolved
-  boolean turns "follow my OS" into a one-time snapshot of it: a user
-  who never touched the setting gets frozen at whatever the OS reported
-  on their first visit, with no way back to following it. The bug is
-  invisible until someone switches their OS to dark and the app does
-  not follow.
+- **A third `system` value tracking `prefers-color-scheme`.** This was
+  the original decision here, and is now rejected — see above. It is
+  only correct while following the OS is the default; with an explicit
+  default it becomes a state nothing selects.
 - **Let `ThemeContext` alone set the attribute, no inline script.** One
   source of truth, no duplication — and a guaranteed light-to-dark
   flash on every single load, because effects run after FCP. The
@@ -70,22 +91,25 @@ of the session.
 
 ## Consequences
 
-- **The storage key and resolution rule exist in two places** —
-  `index.html` and `context/ThemeContext.jsx` — and can drift. Nothing
-  importable can run before first paint, so this is the cost of not
-  flashing. Both sites carry a comment naming the other; the context is
-  the authority.
-- **`localStorage` and `matchMedia` are both wrapped in try/catch** in
-  both places. Private browsing and locked-down embeddings throw on
-  access, and a theme preference is never worth taking the app down
-  for. Failure degrades to light.
-- **The OS listener stays attached even under an explicit preference,**
-  so returning to `system` later resolves against the OS's current
-  value rather than one captured at mount.
-- **`color-scheme` is not set yet.** Declaring `color-scheme: dark`
-  would restyle native scrollbars and form controls immediately, which
-  would look broken while the palette is still light. It belongs with
-  the dark values in phase 2.
+- **The storage key and its rule exist in two places** — `index.html`
+  and `context/ThemeContext.jsx` — and can drift. Nothing importable
+  can run before first paint, so this is the cost of not flashing. Both
+  sites carry a comment naming the other; the context is the authority.
+  Dropping `system` shrank the duplicated rule to a single comparison,
+  which makes the drift risk smaller than it was.
+- **`localStorage` access is wrapped in try/catch** in both places.
+  Private browsing and locked-down embeddings throw on access, and a
+  theme preference is never worth taking the app down for. Failure
+  degrades to light.
+- **The app ignores `prefers-color-scheme` entirely.** A visitor whose
+  OS is dark still gets day on first load. That is the intended
+  behaviour, not an oversight — but it is the thing to revisit first if
+  anyone ever asks why the app does not follow their system.
+- **`color-scheme` is declared per theme** so native scrollbars and
+  form controls follow the palette. It was deliberately held back from
+  the first version of this decision, since declaring it before the
+  dark values existed would have darkened controls against a light
+  palette.
 - **Nothing is themed by this decision alone.** Until phase 2 adds the
   `[data-theme="dark"]` block, the attribute flips and nothing moves.
   That is intentional — it keeps the mechanism reviewable on its own.

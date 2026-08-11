@@ -2,99 +2,73 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 const STORAGE_KEY = 'sento:theme';
 
-// Three values, not a boolean. "system" is a real preference — it means
-// "keep following the OS" — and is distinct from having picked light on a
-// machine that happens to be in light mode right now. Collapsing it to a
-// boolean would silently freeze the choice at whatever the OS said the
-// first time the app was opened.
-const PREFERENCES = ['light', 'dark', 'system'];
-const DEFAULT_PREFERENCE = 'system';
+// Two values, and deliberately not three. An earlier version modelled a
+// "system" preference that tracked prefers-color-scheme, on the reasoning
+// that persisting a resolved boolean would freeze "follow my OS" at
+// whatever the OS said on first visit. That reasoning only holds while
+// following the OS is the default — and it no longer is. Day is what a
+// first-time visitor sees, so nobody arrives in system mode, and the
+// value survived only as a state nothing could select. It is gone rather
+// than left unreachable.
+const THEMES = ['light', 'dark'];
 
-const DARK_QUERY = '(prefers-color-scheme: dark)';
+// Day is what a first-time visitor sees, regardless of what their OS
+// prefers. The palette in tokens.css is the day one, the hero art is the
+// day scene, and every screenshot of this project is light — following
+// the OS meant a dark-OS visitor met a version of the app nobody had
+// chosen for them.
+const DEFAULT_THEME = 'light';
 
 const ThemeContext = createContext(null);
 
-function readStoredPreference() {
+function readStoredTheme() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return PREFERENCES.includes(raw) ? raw : DEFAULT_PREFERENCE;
+    return THEMES.includes(raw) ? raw : DEFAULT_THEME;
   } catch {
-    return DEFAULT_PREFERENCE;
-  }
-}
-
-function prefersDark() {
-  try {
-    return window.matchMedia(DARK_QUERY).matches;
-  } catch {
-    return false;
+    return DEFAULT_THEME;
   }
 }
 
 /**
- * Theme preference, persisted, resolved, and stamped onto <html> as
- * data-theme for tokens.css to key off (ADR 013 / ADR 014).
+ * Theme preference, persisted and stamped onto <html> as data-theme for
+ * tokens.css to key off (ADR 013 / ADR 014).
  *
  * Follows the same plain-localStorage shape as the sound contexts and
  * useMastered — prefixed key, lazy initializer, write-back in an effect,
- * every access try/catch guarded so private browsing degrades silently
- * rather than throwing. No store library, no settings service.
+ * every localStorage access try/catch guarded so private browsing
+ * degrades silently rather than throwing. No store library.
  *
- * Mounted in main.jsx rather than App.jsx: this writes to
- * document.documentElement, so it sits at the same level as the global
- * stylesheet import rather than inside the app's view state.
+ * Mounted in main.jsx, not App.jsx: this writes to
+ * document.documentElement, so it belongs at the same level as the
+ * global stylesheet import rather than inside the app's view state.
  */
 export function ThemeProvider({ children }) {
-  const [preference, setPreferenceState] = useState(readStoredPreference);
-  const [systemIsDark, setSystemIsDark] = useState(prefersDark);
+  const [theme, setThemeState] = useState(readStoredTheme);
 
-  // Only meaningful while the preference is "system", but the listener is
-  // kept attached regardless: the OS can change theme while an explicit
-  // preference is set, and switching back to "system" afterwards must
-  // resolve against the current value, not a stale one from mount.
   useEffect(() => {
-    let mql;
-    try {
-      mql = window.matchMedia(DARK_QUERY);
-    } catch {
-      return undefined;
-    }
-    const onChange = (event) => setSystemIsDark(event.matches);
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
-  }, []);
-
-  const resolvedTheme = preference === 'system' ? (systemIsDark ? 'dark' : 'light') : preference;
-
-  // The resolved value goes on the element, never the preference — CSS
-  // has no way to evaluate "system", and the inline script in index.html
-  // stamps the same resolved value before this ever runs.
-  useEffect(() => {
-    document.documentElement.dataset.theme = resolvedTheme;
-  }, [resolvedTheme]);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, preference);
+      localStorage.setItem(STORAGE_KEY, theme);
     } catch {
       // ignore storage errors (private browsing, etc.)
     }
-  }, [preference]);
+  }, [theme]);
 
-  const setPreference = useCallback((next) => {
-    setPreferenceState(PREFERENCES.includes(next) ? next : DEFAULT_PREFERENCE);
+  const setTheme = useCallback((next) => {
+    setThemeState(THEMES.includes(next) ? next : DEFAULT_THEME);
   }, []);
 
-  // For the binary switch on the landing gate: flip to whichever theme is
-  // not showing. Deliberately lands on an explicit light/dark and drops
-  // "system" — the user just made a direct choice about what they can see.
   const toggleTheme = useCallback(() => {
-    setPreferenceState(resolvedTheme === 'dark' ? 'light' : 'dark');
-  }, [resolvedTheme]);
+    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   const value = useMemo(
-    () => ({ preference, resolvedTheme, setPreference, toggleTheme }),
-    [preference, resolvedTheme, setPreference, toggleTheme],
+    () => ({ theme, setTheme, toggleTheme }),
+    [theme, setTheme, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -18,8 +18,8 @@ import ToggleSwitch from './ToggleSwitch';
  */
 export default function StartGate({ hasStarted, onStart }) {
   const { start } = useBacksound();
-  const { resolvedTheme, toggleTheme } = useTheme();
-  const isNight = resolvedTheme === 'dark';
+  const { theme, toggleTheme } = useTheme();
+  const isNight = theme === 'dark';
 
   const handleBegin = () => {
     start();          // kicks off the audio inside a real user gesture
