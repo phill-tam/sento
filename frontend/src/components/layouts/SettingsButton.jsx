@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import SoundSettingsPanel from "../common/SoundSettingsPanel";
+import SettingsPanel from "../common/SettingsPanel";
 import styles from "../../styles/SettingsButton.module.css";
 
 /**
@@ -50,8 +50,8 @@ export default function SettingsButton() {
         </span>
       </button>
       {open && (
-        <div className={styles.popover} role="dialog" aria-label="Sound settings">
-          <SoundSettingsPanel />
+        <div className={styles.popover} role="dialog" aria-label="Settings">
+          <SettingsPanel />
         </div>
       )}
     </div>

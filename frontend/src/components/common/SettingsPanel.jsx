@@ -1,7 +1,7 @@
 import { useBacksound } from '../../context/BacksoundContext';
 import { useCardSound } from '../../context/CardSoundContext';
 import ToggleSwitch from './ToggleSwitch';
-import styles from '../../styles/SoundSettingsPanel.module.css';
+import styles from '../../styles/SettingsPanel.module.css';
 
 /**
  * One row per independent sound system: an on/off switch plus a volume
@@ -38,7 +38,12 @@ function SoundRow({ label, isMuted, onToggleMute, volume, maxVolume, onVolumeCha
   );
 }
 
-export default function SoundSettingsPanel() {
+/**
+ * The gear popover's contents. Sound was the only thing in here when it
+ * was SoundSettingsPanel; it is now one section among others, so the
+ * panel is named for the popover rather than for its first occupant.
+ */
+export default function SettingsPanel() {
   const backsound = useBacksound();
   const cardSound = useCardSound();
 
