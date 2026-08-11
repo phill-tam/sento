@@ -49,13 +49,7 @@ export default function FlashcardGrid({
 
     // Grid keeps the card as a direct child of .grid — no wrapper, so
     // the tile path's DOM is byte-for-byte what it was.
-    return isList ? (
-      <li key={item.id} className={styles.row}>
-        {card}
-      </li>
-    ) : (
-      card
-    );
+    return isList ? <li key={item.id}>{card}</li> : card;
   });
 
   return isList ? (

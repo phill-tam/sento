@@ -4,28 +4,20 @@
   gap: 16px;
 }
 
-/* epic 010 — the long-content container. Same shell as SentenceList's
-   own .list (border, radius, clipped corners), which is where the row
-   treatment is borrowed from; SentenceListItem itself is untouched.
-   The separator lives on the <li>, outside the rotating .inner, so it
-   stays put while the row flips. */
+/* epic 010 — the long-content container. Rows are separated by a gap
+   rather than by hairlines inside one clipped panel: each row carries
+   the tile's own border, radius and shadow (see FlashcardCard's .list
+   block), so a row reads as a card that happens to be full width, which
+   is also what keeps the two layouts looking like one component. The
+   gap is deliberately much tighter than the grid's 16px — these are
+   consecutive entries in one category, not a scatter of tiles. */
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border-card);
-  border-radius: 10px;
-  background: var(--surface-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
-.row {
-  border-bottom: 1px solid var(--border-card);
-}
-
-.row:last-child {
-  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .empty {

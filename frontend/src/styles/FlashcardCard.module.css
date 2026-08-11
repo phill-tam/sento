@@ -271,7 +271,6 @@
    500ms flip: height constant to the pixel. See ADR 016. */
 .card.list {
   height: auto;
-  border-radius: 0;
   /* 1000px is tuned for a 210px tile; across a full-width row the same
      value throws the far edge away hard enough to read as a fold. */
   perspective: 1400px;
@@ -286,13 +285,14 @@
   transform: rotateX(180deg);
 }
 
+/* The border, radius and shadow inherited from .face are left alone on
+   purpose — a row is the same card treatment as a tile, stretched. The
+   list's 5px gap is what separates rows; nothing is clipped by a
+   container, so the flip has room to rotate. */
 .card.list .face {
   position: relative;
   inset: auto;
   grid-area: 1 / 1;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
   align-items: flex-start;
   text-align: left;
   /* SentenceListItem's row rhythm, borrowed per epic 010 — that
@@ -359,9 +359,17 @@
 }
 
 /* Right-hand gutters keep text off the two absolutely-positioned
-   controls, which are otherwise unchanged from the tile. The front
-   reserves for the Mastered pill, the back only for the ✓. */
+   controls, which are otherwise unchanged from the tile. Both faces
+   reserve for the ✓; the front widens to clear the Mastered pill, but
+   only on the rows that actually have one. A flat 76px would have cost
+   every row 36px of text column to reserve for a badge most of them
+   don't show — which barely registers on a wide panel and bites hard on
+   a narrow one, where the sidebar has already taken 320px. */
 .card.list .front {
+  padding-right: 40px;
+}
+
+.card.list .front:has(.masteredBadge) {
   padding-right: 76px;
 }
 
@@ -408,6 +416,52 @@
       inset 0 0 0 9999px var(--accent-wash-hover);
   }
   50% {
+    box-shadow: inset 0 0 0 3px var(--accent),
+      inset 0 0 0 9999px var(--accent-wash-active);
+  }
+}
+
+/* ── reduced motion ──────────────────────────────────────────────────
+   Everything this component moves: a half-second 3D rotation on every
+   card click, and two glows that pulse for as long as selection mode is
+   open. The rotation is the obvious one; the pulses are the ones that
+   don't stop.
+
+   Each is switched off for its resting frame rather than simply
+   removed, because both are load-bearing — the pulse is the only thing
+   marking a card as selectable, and the second, brighter ring is the
+   only thing marking it as selected. Dropping the animation without
+   pinning a state would leave selection mode with no affordance at all.
+   The flip still happens; it just arrives instead of travelling.
+
+   (Not the same gap as the one on #90, which is about audio starting
+   before a first-time visitor can decline it. That one is still open.) */
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+  }
+
+  .selectable,
+  .selectable.selected,
+  .card.list.selectable .face,
+  .card.list.selectable.selected .face {
+    animation: none;
+  }
+
+  /* Grid only — the outer glow is the very thing a list row can't use. */
+  .card:not(.list).selectable {
+    box-shadow: var(--card-glow-idle-peak);
+  }
+
+  .card:not(.list).selectable.selected {
+    box-shadow: var(--card-glow-selected-peak);
+  }
+
+  .card.list.selectable .face {
+    box-shadow: inset 0 0 0 2px var(--accent-line-active);
+  }
+
+  .card.list.selectable.selected .face {
     box-shadow: inset 0 0 0 3px var(--accent),
       inset 0 0 0 9999px var(--accent-wash-active);
   }
