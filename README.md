@@ -3,7 +3,9 @@
 A JLPT N5 Japanese language learning platform — vocabulary, kanji, and
 grammar study lines, a mixed-type quiz mode, and an AI sentence
 generator that produces practice sentences (with reading and English
-meaning) from user-selected content items.
+meaning) from user-selected content items. Every study item also carries
+romaji, shown by default and searchable, so the app is usable without a
+Japanese keyboard.
 
 - **Frontend:** React 19 + Vite, plain CSS Modules
 - **Backend:** FastAPI + uv + Alembic + PostgreSQL (local) / Supabase (staging/prod)
@@ -22,12 +24,14 @@ meaning) from user-selected content items.
 | 006 — Global Quiz | Cross-line, mixed-type quiz pool incl. saved sentences (frontend) | Shipped |
 | 007 — Sound | Background music + card flip effects, per-system controls | Shipped |
 | 008 — Theming | Day/night themes with a user-selectable toggle | Shipped — see [Theming](#theming) |
+| 009 — Romaji | Romaji on every card, romaji search, visibility toggle | Shipped — see [Romaji](#romaji) |
+| 010 — Long-content layout | Flip-list rows for grammar and long vocab | Planned — [#116](https://github.com/phill-tam/sento/issues/116) |
 
-Only epics 001 and 002 have write-ups in `docs/epics/`. Later epics
-exist as shipped code, the GitHub issues that track them, and `epic N`
+Epics 001, 002 and 009 have write-ups in `docs/epics/`. The rest exist
+as shipped code, the GitHub issues that track them, and `epic N`
 comments in the source — treat those as more current than `docs/` when
 the two disagree. Architecture decisions are recorded as ADRs in
-`docs/adr/`, currently numbered up to 014.
+`docs/adr/`, currently numbered up to 015.
 
 ---
 
@@ -214,11 +218,74 @@ touching colours:
 
 ---
 
+## Romaji
+
+Every study item carries romaji. It is shown by default and can be
+turned off in the **Romaji** row of the settings popover, behind the gear
+at the bottom of the icon rail. The preference lives in `localStorage`
+under `sento:romaji`, per-browser, with no server involvement.
+
+**Search always matches romaji, whether or not it is displayed.**
+Suppressing a match for text the user explicitly typed would be a bug,
+not a setting — so `neko` finds 猫 even with romaji hidden. This is the
+one place the preference deliberately does not apply.
+
+Where the romaji comes from differs by content type, and the split is the
+central decision of the epic:
+
+| content | source |
+|---|---|
+| kanji `onyomi` / `kunyomi` / compound readings | **computed** at read time |
+| vocab `reading` (falling back to `word`) | **computed** at read time |
+| grammar `pattern` and example sentences | **stored**, hand-authored |
+| generated sentences | **stored**, supplied by the AI provider |
+
+Computed values come from `backend/app/services/romaji.py` and are
+produced in the `*EntryRead` schemas, so a newly uploaded kanji or vocab
+entry returns correct romaji immediately — no migration, no backfill, no
+authoring.
+
+Grammar and generated sentences cannot work that way. Both are
+multi-word Japanese text, and putting spaces between the words is
+*segmentation*, not transliteration — `わたしはがくせいです` run through a
+character-level pass yields `watashihagakuseidesu` rather than
+`watashi wa gakusei desu`. Grammar patterns additionally contain bare
+kanji with no reading to work from. Both are therefore authored:
+grammar in the seed data and CSV upload (`pattern_romaji`,
+`example_romaji` columns), sentences by the generation provider at
+creation time.
+
+Two consequences worth knowing:
+
+- **Sentences saved before epic 009 have no romaji and never will.** It
+  only exists if the provider produced it at generation time; there is
+  nothing to backfill from.
+- **Romanisation is kana-faithful, not macron Hepburn** — `ou`, never
+  `ō`. Telling 王 (`ō`) from 追う (`ou`) needs the morpheme boundary,
+  which a character-level pass cannot recover, so macrons would
+  mis-romanise every う-verb. It also matches what a learner types into
+  search.
+
+[`015 — Romaji computed except grammar`](docs/adr/015-romaji-computed-except-grammar.md)
+records the full reasoning, including the two rejected alternatives —
+storing everything, and computing everything.
+
+---
+
 ## Deployment
 
 The frontend is deployed to Vercel. Allowed CORS origins are hardcoded
 in `backend/app/middleware/cors.py` — update that list directly when
 adding a new deployed frontend origin; it is not env-driven.
+
+**Database migrations are manual.** CI runs `alembic upgrade head` only
+against its own ephemeral Postgres, and no deploy configuration runs it
+anywhere else — so a schema change reaches staging or production only
+when someone runs it by hand against that database's
+`MIGRATIONS_DATABASE_URL`. Migrations in this project are additive and
+nullable by convention, which keeps already-deployed code working
+against a newer schema, but the ordering is convention rather than
+something enforced.
 
 ---
 

@@ -12,15 +12,16 @@ user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Eight epics have shipped: Foundation, Content Management, Flashcards,
+Nine epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
-in code comments), Sound, and Theming. None of them are behind feature
-flags any more — see the section below.
+in code comments), Sound, Theming, and Romaji. None of them are behind
+feature flags any more — see the section below. Epic 010 (flip-list
+layout for long content) is planned but unimplemented — see issue #116.
 
-Only epics 001 and 002 have write-ups in `docs/epics/`; the rest exist
-as shipped code, the GitHub issues tracking them, and `epic N` comments
-in the source. ADRs run to 014. Treat in-code comments as the more
-current source of truth than `docs/epics/`, and verify docs against
+Only epics 001, 002 and 009 have write-ups in `docs/epics/`; the rest
+exist as shipped code, the GitHub issues tracking them, and `epic N`
+comments in the source. ADRs run to 015. Treat in-code comments as the
+more current source of truth than `docs/epics/`, and verify docs against
 `git log` / the code itself before relying on them.
 
 ## Commands
@@ -96,6 +97,30 @@ provider's own rate limit as the only backstop — a known, accepted gap
   `docs/adr/007-decoupled-from-sentence-generator-item.md`. A saved
   `GeneratedSentence.source_item_refs` is a raw `[{line_id, item_id}]`
   JSONB list with no FK, since it can point into any of three tables.
+- **Romaji is computed for two lines and stored for the other — the
+  split is by *single word vs. multi-word*, not by content type.**
+  `app/services/romaji.py` is a pure kana→romaji function with no ORM or
+  framework imports. Kanji (`onyomi`/`kunyomi`/`compound_reading`) and
+  vocab (`reading`, falling back to `word`) are computed in the
+  `*EntryRead` schemas via Pydantic `@computed_field`, so **those two
+  tables have no romaji column and need none** — a newly uploaded entry
+  returns correct romaji with no migration and no authoring. Grammar
+  (`pattern_romaji`, `example_romaji`) and `GeneratedSentence.romaji`
+  are stored columns, hand-authored and provider-supplied respectively,
+  because both are multi-word text needing word *segmentation* rather
+  than transliteration — `わたしはがくせいです` mechanically yields
+  `watashihagakuseidesu`, not `watashi wa gakusei desu`. Grammar
+  `pattern` additionally has bare kanji and no reading field at all. See
+  `docs/adr/015-romaji-computed-except-grammar.md`; both "store
+  everything" and "compute everything" were tried and rejected, so don't
+  re-derive either.
+- **Romaji output is kana-faithful, not macron Hepburn** — おう→`ou`,
+  never `ō`. This is correctness, not style: separating 王 (`ō`) from
+  追う (`ou`) needs the morpheme boundary, so macrons would mis-romanise
+  every う-verb. `to_romaji` also carries a two-entry fixed-expression
+  table (`こんにちは`/`こんばんは`) for fossilised topic-particle は. The
+  generation prompt pins the same rules so provider output can't drift
+  from computed output.
 - **CSV upload:** `app/services/content_upload_service.py` implements
   shared partial-success upload logic — one DB savepoint
   (`db.begin_nested()`) per row so one bad row doesn't poison the
@@ -211,9 +236,24 @@ provider's own rate limit as the only backstop — a known, accepted gap
   guarded so private browsing degrades silently instead of throwing.
   Follow that shape for new preferences — see `backsound:muted` /
   `backsound:volume`, `cardsound:muted` / `cardsound:volume`,
-  `sento:theme`, and `hooks/useMastered.js`'s `sento:mastered:{lineId}`.
-  Each preference gets its own key; there is no single `sento:prefs`
-  blob, deliberately.
+  `sento:theme`, `sento:romaji`, and `hooks/useMastered.js`'s
+  `sento:mastered:{lineId}`. Each preference gets its own key; there is
+  no single `sento:prefs` blob, deliberately.
+- **Romaji visibility gates display only, never search.**
+  `context/RomajiContext.jsx` (`sento:romaji`, mounted in `main.jsx`
+  beside `ThemeProvider`, defaults **on**) is read by the card
+  components. `utils/searchIndex.js` deliberately ignores it — matching
+  romaji is what makes the app usable without a Japanese keyboard, and
+  suppressing a match for text the user typed would be a bug, not a
+  setting. `romajiFor` mirrors `readingFor` field-for-field so a romaji
+  query hits exactly what the equivalent kana query would.
+  `readStoredVisible` must fall through to `DEFAULT_VISIBLE` on an
+  absent key — comparing `getItem(...) === 'true'` directly silently
+  pins new visitors to off regardless of the default.
+- **Nothing transliterates on the frontend.** Every romaji value arrives
+  from the API already rendered. There is no kana table in JS and no
+  romaji dependency — that's what keeps the frontend's runtime deps at
+  `react` + `react-dom`. Don't add one.
 - **Design tokens** live in `src/styles/tokens.css` as CSS custom
   properties, ported from the original design mockup — see
   `docs/adr/001-design-tokens-css-custom-properties.md`. Every
@@ -268,10 +308,11 @@ provider's own rate limit as the only backstop — a known, accepted gap
 ## Docs
 
 - `docs/epics/` — problem statement + architecture per epic (currently
-  only 001 and 002 are written up; later epics exist only as shipped
-  code + ADRs + in-code "epic N" comments).
+  only 001, 002 and 009 are written up; other epics exist only as
+  shipped code + ADRs + in-code "epic N" comments).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
-  the token layer (013), or theme resolution (014) — the "why not the
-  obvious alternative" is usually already answered there.
+  the token layer (013), theme resolution (014), or where romaji comes
+  from (015) — the "why not the obvious alternative" is usually already
+  answered there.
