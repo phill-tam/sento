@@ -1,15 +1,20 @@
 import { useState } from "react";
 import styles from "../../styles/FlashcardCard.module.css";
+import { useRomaji } from "../../context/RomajiContext";
 import { playCardOpenSound, playCardCloseSound } from "../../utils/cardSoundEffects";
 
 /**
  * Flip card matching sento-ui-mockup.html's .card/.card-face design exactly
  * (colors, sizes, tag/mark-btn placement — see mockup lines 153-183).
  *
- * item: { id, lineId, prompt, reading, answer, example: {jp, reading, en} | null,
- *          onyomi?, kunyomi? }
+ * item: { id, lineId, prompt, reading, romaji, answer,
+ *          example: {jp, reading, romaji, en} | null,
+ *          onyomi?, kunyomi?, onyomiRomaji?, kunyomiRomaji? }
  * onyomi/kunyomi are kanji-only, kept separate from the combined `reading`
  * string so the front face can label them (mockup's yomiHtml: 音/訓 prefixes).
+ * Their romaji is carried per-reading for the same reason — the labelled
+ * 音/訓 layout has to pair each romaji with its own reading, which a single
+ * joined string can't do (epic 009).
  * categoryLabel: active category's display label — mockup's .card-tag shows
  * this (theme.en) on every card in the grid.
  *
@@ -33,6 +38,9 @@ export default function FlashcardCard({
 }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const isKanji = item.lineId === "kanji";
+  // Display only — romaji still feeds search regardless of this. See
+  // RomajiContext.
+  const { isVisible: showRomaji } = useRomaji();
 
   function handleFlip() {
     setIsFlipped((prev) => {
@@ -106,11 +114,21 @@ export default function FlashcardCard({
                   </>
                 )}
               </div>
+              {showRomaji && (item.onyomiRomaji || item.kunyomiRomaji) && (
+                <div className={styles.romaji}>
+                  {item.onyomiRomaji}
+                  {item.onyomiRomaji && item.kunyomiRomaji && "　"}
+                  {item.kunyomiRomaji}
+                </div>
+              )}
             </>
           ) : (
             <>
               <div className={styles.jp}>{item.prompt}</div>
               {item.reading && <div className={styles.reading}>{item.reading}</div>}
+              {showRomaji && item.romaji && (
+                <div className={styles.romaji}>{item.romaji}</div>
+              )}
             </>
           )}
 
@@ -137,10 +155,20 @@ export default function FlashcardCard({
               {item.example.reading && (
                 <div className={styles.exampleReading}>{item.example.reading}</div>
               )}
+              {showRomaji && item.example.romaji && (
+                <div className={styles.exampleRomaji}>{item.example.romaji}</div>
+              )}
               <div className={styles.exampleMeaning}>{item.example.en}</div>
             </div>
           ) : (
-            item.reading && <div className={styles.meaningReading}>{item.reading}</div>
+            item.reading && (
+              <>
+                <div className={styles.meaningReading}>{item.reading}</div>
+                {showRomaji && item.romaji && (
+                  <div className={styles.meaningRomaji}>{item.romaji}</div>
+                )}
+              </>
+            )
           )}
 
           <button

@@ -1,4 +1,5 @@
 import styles from "../../styles/QuizCard.module.css";
+import { useRomaji } from "../../context/RomajiContext";
 
 /**
  * Single quiz question — 4 shuffled options (question.options), feedback
@@ -21,6 +22,8 @@ export default function QuizCard({
   totalQuestions,
   score,
 }) {
+  const { isVisible: showRomaji } = useRomaji();
+
   if (!question) return null;
 
   const { item, options } = question;
@@ -37,6 +40,9 @@ export default function QuizCard({
       <div className={styles.prompt}>
         <span className={styles.jp}>{item.prompt}</span>
         {item.reading && <span className={styles.reading}>{item.reading}</span>}
+        {showRomaji && item.romaji && (
+          <span className={styles.romaji}>{item.romaji}</span>
+        )}
       </div>
 
       <div className={styles.options}>

@@ -42,6 +42,19 @@
   display: block;
 }
 
+/* epic 009 — sized to match the flashcard's treatment. The quiz prompt
+   has the whole card width to itself, so this one wraps normally rather
+   than running off the edge the way the flashcard's has to. */
+.romaji {
+  font-size: 14px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  margin-top: 6px;
+  display: block;
+  letter-spacing: 0.03em;
+  font-style: italic;
+}
+
 .options {
   flex: 1;
   display: flex;

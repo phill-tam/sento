@@ -1,5 +1,6 @@
 import { useBacksound } from '../../context/BacksoundContext';
 import { useCardSound } from '../../context/CardSoundContext';
+import { useRomaji } from '../../context/RomajiContext';
 import { useTheme } from '../../context/ThemeContext';
 import ToggleSwitch from './ToggleSwitch';
 import styles from '../../styles/SettingsPanel.module.css';
@@ -46,6 +47,7 @@ function SoundRow({ label, isMuted, onToggleMute, volume, maxVolume, onVolumeCha
  */
 export default function SettingsPanel() {
   const { theme, toggleTheme } = useTheme();
+  const romaji = useRomaji();
   const backsound = useBacksound();
   const cardSound = useCardSound();
   const isNight = theme === 'dark';
@@ -60,6 +62,17 @@ export default function SettingsPanel() {
           onChange={toggleTheme}
           ariaLabel={
             isNight ? 'Switch to the day theme' : 'Switch to the night theme'
+          }
+        />
+      </div>
+      <p className={styles.heading}>Reading</p>
+      <div className={styles.row}>
+        <ToggleSwitch
+          label="Romaji"
+          checked={romaji.isVisible}
+          onChange={romaji.toggleVisible}
+          ariaLabel={
+            romaji.isVisible ? 'Hide romaji on cards' : 'Show romaji on cards'
           }
         />
       </div>

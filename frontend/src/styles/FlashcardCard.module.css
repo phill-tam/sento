@@ -97,6 +97,33 @@
   letter-spacing: 0.02em;
 }
 
+/* epic 009 — sized to be read, not squinted at. An earlier revision set
+   this at 9.5px to keep it strictly subordinate to .reading; in practice
+   that was too small to actually use, so it now sits just above the kana
+   it supports. Italic and the dimmer colour still mark it as secondary.
+
+   `white-space: nowrap` is deliberate and temporary. Long grammar
+   patterns (the sentence_structure category especially) produce romaji
+   far wider than the 200px card — "X wa Y ja nakatta desu / de wa
+   arimasen deshita" — and wrapping them fills the whole face and shoves
+   the rest of the content out. Letting the line run past the card edge
+   is the agreed stopgap until a dedicated branch reworks the card style
+   for long items.
+
+   No text-transform. An earlier version lowercased this defensively and
+   it was wrong: grammar patterns carry Latin placeholders that are
+   load-bearing, so `A wa B yori 〜` rendered as `a wa b yori 〜` and
+   stopped corresponding to the `AはBより〜` shown directly above it. */
+.romaji {
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  margin-top: 5px;
+  letter-spacing: 0.03em;
+  font-style: italic;
+  white-space: nowrap;
+}
+
 .meaning {
   font-family: var(--font-body);
   font-size: 15px;
@@ -110,6 +137,18 @@
   font-size: 10.5px;
   color: var(--text-on-chrome-dim);
   margin-top: 6px;
+}
+
+/* Back-face equivalents of .romaji. Separate rules rather than one shared
+   class because the back face sits on dark chrome and uses the
+   --text-on-chrome-* ramp, not --text-secondary. */
+.meaningRomaji {
+  font-size: 12px;
+  color: var(--text-on-chrome-dim);
+  opacity: 0.9;
+  margin-top: 4px;
+  letter-spacing: 0.03em;
+  font-style: italic;
 }
 
 .example {
@@ -131,6 +170,15 @@
   font-size: 10px;
   color: var(--text-on-chrome-dim);
   margin-top: 2px;
+}
+
+.exampleRomaji {
+  font-size: 11.5px;
+  color: var(--text-on-chrome-dim);
+  opacity: 0.9;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  font-style: italic;
 }
 
 .exampleMeaning {
