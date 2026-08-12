@@ -65,17 +65,36 @@
   .wrap {
     margin-top: 0;
     margin-left: auto;
+    /* Holds its size so the bar's brand gives way instead of the gear. */
+    flex: 0 0 auto;
+    /* Dropped from `relative` on purpose, so the popover below anchors to
+       the BAR rather than to this button. The gear stopped being the
+       rightmost thing in the bar once the brand moved in beside it, and a
+       panel right-aligned to the gear now lands short of the edge —
+       reading as though it had popped out somewhere near the middle.
+       Anchoring to the bar puts it back on the right. */
+    position: static;
   }
 
-  /* Kept in sync with IconRail's .railBtn, as the note above says. */
+  /* Kept in sync with IconRail's .railBtn, as the note above says,
+     including its flex-shrink: 0. */
   .railBtn {
     width: 44px;
     height: 44px;
+    flex: 0 0 44px;
   }
 
+  /* Now measured against .rail's padding box (see .wrap above). .rail is
+     position:sticky, so it was already a containing block, and it still
+     owns the z-index:2 stacking context this popover's z-index:20 lives
+     inside — the anchor moves, the stacking does not.
+
+     right lines up with the bar's own right padding, inherited from
+     IconRail, so the panel's edge sits in the same column as the brand's
+     rather than flush against the screen. */
   .popover {
-    top: calc(100% + 10px);
-    right: 0;
+    top: calc(100% + 8px);
+    right: var(--topbar-pad-right, 17px);
     bottom: auto;
     left: auto;
   }

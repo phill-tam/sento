@@ -586,6 +586,12 @@ function App() {
                 />
               ) : undefined
             }
+            // Same one-instance rule as the search: below the breakpoint
+            // the brand is in the bar, above it it's atop the sidebar.
+            // Passed unclassed so IconRail can size it for the bar —
+            // Sidebar's .brandLogo is 60px tall, which is taller than the
+            // bar itself.
+            brand={isNarrow ? <img src={logo} alt="Sento" /> : undefined}
           />
         }
         sidebarCollapsed={sidebarCollapsed}
@@ -596,10 +602,18 @@ function App() {
         contentHidden={!hasStarted}
         sidebar={
           <>
-            <div className={styles.brand}>
-              <img src={logo} alt="Sento" className={styles.brandLogo} />
-              <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
-            </div>
+            {/* epic 011 — desktop only. Below the breakpoint the mark is
+                in the top bar instead (see `brand` above). The subtitle
+                doesn't come with it: it is 26 characters of letterspaced
+                caps against a bar that is already five controls wide, and
+                a lone subtitle left behind in the drawer would be a
+                caption with nothing to caption. */}
+            {!isNarrow && (
+              <div className={styles.brand}>
+                <img src={logo} alt="Sento" className={styles.brandLogo} />
+                <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
+              </div>
+            )}
             {/* epic 011 — above the breakpoint only. Below it the same
                 field lives in the top bar instead (TopBarSearch), so
                 that the app's one cross-line control is not buried

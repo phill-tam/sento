@@ -33,6 +33,7 @@ export default function IconRail({
   sidebarCollapsed,
   onToggleSidebar,
   search,
+  brand,
 }) {
   return (
     <nav className={styles.rail} aria-label="Primary navigation">
@@ -69,6 +70,10 @@ export default function IconRail({
       ))}
       {search}
       <SettingsButton />
+      {/* Last child, so it lands at the far right of the bar. Narrow-only
+          like the two above — on desktop the brand lives at the top of
+          the sidebar and this is undefined. */}
+      {brand && <div className={styles.brand}>{brand}</div>}
     </nav>
   );
 }

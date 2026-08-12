@@ -73,23 +73,79 @@
     flex: 0 0 var(--shell-topbar-h, 56px);
     flex-direction: row;
     align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
+    /* 6px, not the 8 this started at. Five 44px controls plus the brand
+       leave very little slack on a phone, and the buttons cannot give
+       any of it up without dropping under the tap-target floor — so the
+       gaps do. Worth 10px, which is the difference between the mark
+       rendering at its declared size on a 360px phone and being scaled
+       down to fit. */
+    gap: 6px;
+    /* Extra breathing room on the right so the brand isn't jammed
+       against the screen edge. Published as a custom property because
+       SettingsButton's popover has to line its right edge up with the
+       same column — it inherits this rather than repeating the number. */
+    --topbar-pad-right: 17px;
+    padding: 6px var(--topbar-pad-right) 6px 12px;
     border-right: none;
     border-bottom: 1px solid var(--border-on-chrome);
   }
 
   /* 44px is the tap-target floor, and it is what sets the bar's 56px
-     height (44 + 6px padding top and bottom). */
+     height (44 + 6px padding top and bottom).
+
+     flex-shrink: 0 is load-bearing, not tidiness. These are flex items in
+     a row, and once the brand was added the bar became over-subscribed —
+     the default flex-shrink: 1 quietly took every button down to 40px,
+     silently undoing the tap-target work. The controls hold their size
+     and the brand absorbs the shortfall. */
   .railBtn {
     width: 44px;
     height: 44px;
+    flex: 0 0 44px;
   }
 
   /* Separated from the view switcher: it acts on the drawer, not on
      which view is showing, and sitting flush against the view buttons
-     would read as a fourth one. */
+     would read as a fourth one. 2px on top of the bar's 6px gap is
+     enough to read as a break now that the gap itself is tighter. */
   .menuBtn {
-    margin-right: 4px;
+    margin-right: 2px;
+  }
+
+  /* The brand moves out of the drawer and onto the far right of the bar.
+     It has to be the flexible item: the mark is 969x257, so at the
+     sidebar's 60px it would be 226px wide, against a 375px bar already
+     carrying five 44px controls. Sized to the bar instead, and allowed
+     to shrink rather than push anything off the end — flex 0 1 auto with
+     min-width 0 lets it give way, and object-fit keeps it in proportion
+     while it does. It is the one thing here that can degrade gracefully;
+     every control beside it has a tap target to protect. */
+  .brand {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-left: 8px;
+    overflow: hidden;
+  }
+
+  /* 22px. The mark is 3.77:1, so height drives width hard — the 28px
+     this started at wanted 105px against a bar with 91px to give, and
+     object-fit honoured that by quietly scaling it down anyway. 22px
+     asks for 83px and gets it, so the mark renders at the size it is
+     declared at.
+
+     max-width and object-fit stay as the floor below that: on a very
+     narrow phone the bar runs out of room altogether, and the mark
+     scaling down in proportion is the right way to lose that argument.
+     object-fit: contain keeps the whole wordmark visible when it does,
+     rather than cropping it. */
+  .brand img {
+    display: block;
+    height: 22px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: right center;
   }
 }
