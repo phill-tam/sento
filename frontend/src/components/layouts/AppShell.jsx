@@ -46,8 +46,24 @@ export default function AppShell({
   useEffect(() => {
     if (!drawerOpen) return undefined;
 
-    restoreRef.current = document.activeElement;
-    closeRef.current?.focus();
+    // Focus moves into the drawer when it opens, so the next Tab stays
+    // inside the modal surface — EXCEPT when the user is mid-sentence in
+    // a text field. The top bar's search opens the drawer as soon as
+    // there is a query to show results for, and the bar is deliberately
+    // not inert, so stealing the caret would make the field untypable
+    // after one character.
+    const active = document.activeElement;
+    const isTyping =
+      active &&
+      (active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA" ||
+        active.isContentEditable);
+    if (isTyping) {
+      restoreRef.current = null;
+    } else {
+      restoreRef.current = active;
+      closeRef.current?.focus();
+    }
 
     function onKeyDown(e) {
       if (e.key === "Escape") dismissRef.current?.();

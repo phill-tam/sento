@@ -21,6 +21,7 @@ import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
 import AppShell from "./components/layouts/AppShell";
 import CategoryTree from "./components/layouts/CategoryTree";
 import IconRail from "./components/layouts/IconRail";
+import TopBarSearch from "./components/layouts/TopBarSearch";
 import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
 import QuizCard from "./components/quiz/QuizCard";
@@ -540,6 +541,17 @@ function App() {
     setSearchQuery("");
   }
 
+  // epic 011 — below the breakpoint the field is in the top bar but the
+  // RESULTS still render in the sidebar, which is now a drawer. A query
+  // typed against a closed drawer would have nowhere to show, so a
+  // non-empty one opens it. Closing is left to the usual controls: this
+  // deliberately does not re-close the drawer when the query empties,
+  // for the same reason picking a category does not.
+  function handleSearchQueryChange(next) {
+    setSearchQuery(next);
+    if (isNarrow && next.trim()) setSidebarCollapsed(false);
+  }
+
   const activeLine = CONTENT_LINES.find((l) => l.id === activeLineId);
   const activeEntries = (dataByLine[activeLineId] ?? []).filter((e) => e.category === activeCategoryId);
   const activeItems = activeLineId ? toFlashcardItems(activeLineId, activeEntries) : [];
@@ -561,6 +573,19 @@ function App() {
             // right now; above the breakpoint they are undefined and it
             // renders exactly the DOM it did before this epic.
             onToggleSidebar={isNarrow ? () => setSidebarCollapsed((prev) => !prev) : undefined}
+            // Rendered here or in the sidebar, never both — see
+            // TopBarSearch's docblock. Same value, same handler, same
+            // readOnly rule as the sidebar field it replaces, so this is
+            // a relocation and not a behaviour change.
+            search={
+              isNarrow ? (
+                <TopBarSearch
+                  value={showStudySidebar ? searchQuery : ""}
+                  onChange={handleSearchQueryChange}
+                  readOnly={!showStudySidebar}
+                />
+              ) : undefined
+            }
           />
         }
         sidebarCollapsed={sidebarCollapsed}
@@ -575,15 +600,21 @@ function App() {
               <img src={logo} alt="Sento" className={styles.brandLogo} />
               <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
             </div>
-            <div className={styles.searchWrap}>
-              <input
-                type="text"
-                placeholder="Search everything…"
-                value={showStudySidebar ? searchQuery : ""}
-                onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
-                readOnly={!showStudySidebar}
-              />
-            </div>
+            {/* epic 011 — above the breakpoint only. Below it the same
+                field lives in the top bar instead (TopBarSearch), so
+                that the app's one cross-line control is not buried
+                inside a per-line drawer. Desktop markup is untouched. */}
+            {!isNarrow && (
+              <div className={styles.searchWrap}>
+                <input
+                  type="text"
+                  placeholder="Search everything…"
+                  value={showStudySidebar ? searchQuery : ""}
+                  onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
+                  readOnly={!showStudySidebar}
+                />
+              </div>
+            )}
             {showStudySidebar ? (
               searchQuery.trim() ? (
                 <SearchResults
