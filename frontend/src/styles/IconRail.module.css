@@ -51,3 +51,38 @@
   font-size: 18px;
   line-height: 1;
 }
+
+/* epic 011 — below the breakpoint the rail lays out as a horizontal top
+   bar. This is the SAME component, restyled: it is not rendered a second
+   time inside a separate mobile bar, and nothing is added to the
+   information architecture. That distinction is what keeps ADR 004
+   intact — the TopNav it rejected was a section switcher duplicating the
+   sidebar tree, whereas this is the existing rail in a different
+   orientation, with the same controls and the same state.
+
+   Everything about the rail's stacking is deliberately left alone.
+   position:sticky and z-index:2 both carry over unchanged, which is what
+   lets the drawer sit between the bar and the content, and what lets
+   SettingsButton's popover keep working without touching its z-index.
+   Do not set position:static here — sticky is what creates the stacking
+   context the popover lives in. */
+@media (max-width: 1024px) {
+  .rail {
+    width: 100%;
+    height: var(--shell-topbar-h, 56px);
+    flex: 0 0 var(--shell-topbar-h, 56px);
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-on-chrome);
+  }
+
+  /* 44px is the tap-target floor, and it is what sets the bar's 56px
+     height (44 + 6px padding top and bottom). */
+  .railBtn {
+    width: 44px;
+    height: 44px;
+  }
+}

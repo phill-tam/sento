@@ -47,3 +47,36 @@
   left: calc(100% + 10px);
   z-index: 20;
 }
+
+/* epic 011 — the popover's STACKING needs no change when the rail turns
+   into a top bar, and that was the test: z-index 20 is confined to
+   .rail's own stacking context, so it only works because .rail keeps
+   z-index 2 and therefore outranks the drawer. Measured with the drawer
+   open, the popover still wins the hit test where the two overlap.
+
+   Its ANCHORING does have to change, because "right of the rail, aligned
+   to its bottom" describes a vertical rail. In a horizontal bar the same
+   rule put the panel at y = -373 and overflowing the right edge —
+   entirely unreachable. Below the bar and right-aligned is the same
+   intent expressed for the rotated rail. margin-top:auto likewise only
+   pushes to the end of a COLUMN, so the gear needs margin-left to reach
+   the end of a row. */
+@media (max-width: 1024px) {
+  .wrap {
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  /* Kept in sync with IconRail's .railBtn, as the note above says. */
+  .railBtn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .popover {
+    top: calc(100% + 10px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+  }
+}

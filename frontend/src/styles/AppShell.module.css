@@ -121,3 +121,104 @@
   max-width: 100%;
   transition: max-width 0.25s ease;
 }
+
+/* ==========================================================================
+   epic 011 — the app's first width breakpoint.
+
+   1024px is chosen from the content, not from a device class. With the
+   sidebar open the content box is viewport - 472, so a third column of
+   180px tiles stops fitting at a viewport of 1044px; 1024 is the round
+   number just below that, and the point at which the desktop layout is
+   already down to two columns. Below it the shell was spending 384px of
+   chrome to show less content than the chrome costs — at 375px the
+   content box measured literally 0px.
+
+   One breakpoint, not two: the measured failure is a single event (the
+   sidebar and the content stop being able to coexist), so one boundary
+   describes it honestly, and two tiers would double the states to keep
+   from drifting in a codebase that had zero width media queries.
+
+   Crossing the boundary WIDENS the content sharply — 552px at 1024,
+   ~983px at 1023. That pop is only ever visible to someone resizing a
+   desktop window; a phone never crosses it. It is evidence that a
+   permanently reserved 320px sidebar is expensive at every width, not an
+   argument against the boundary. See ADR 017.
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .shell {
+    /* Shared with IconRail.module.css (bar height) and with .lineRail
+       below (the drawer's top offset). The two must agree or the drawer
+       tucks under the bar, so it is stated once here and inherited
+       rather than duplicated across modules. IconRail repeats the 56px
+       only as a var() fallback, for the case where it is mounted
+       outside this shell. */
+    --shell-topbar-h: 56px;
+    flex-direction: column;
+  }
+
+  /* The sidebar stops taking width from the content and becomes an
+     overlay drawer. This is the actual fix: the bug was never that the
+     content was styled badly, it was that the sidebar and the content
+     competed for a budget that ran out. Fixed rather than absolute so
+     the drawer stays put while the content scrolls underneath.
+
+     A full-width band collapsing by height was rejected — the category
+     tree is tall, and an expanded tree would push the content clean off
+     the bottom of a phone, trading a horizontal squeeze for a vertical
+     one. Off-canvas push was rejected because the content is never
+     visible while navigating. */
+  .lineRail {
+    position: fixed;
+    top: var(--shell-topbar-h);
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: 320px;
+    min-width: 0;
+    max-width: 85vw;
+    flex: none;
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+    /* Desktop animates the box's width; the drawer animates its
+       position, so the hint has to move with it. */
+    will-change: transform;
+  }
+
+  /* The desktop collapse shrinks the box to zero width and fades its
+     contents out mid-transition. A drawer does neither: it keeps its
+     size and its contents and moves off-canvas, or the slide would be a
+     slide of nothing. */
+  .lineRail.collapsed {
+    width: 320px;
+    max-width: 85vw;
+    padding: 26px 0 28px 0;
+    border-right-color: var(--border-on-chrome);
+    overflow-y: auto;
+    transform: translateX(-100%);
+  }
+
+  .lineRail.collapsed > * {
+    opacity: 1;
+  }
+
+  /* 44 -> 20 horizontally. The tile grid renders one column at every
+     gutter from 44px down to 12px, so this buys the grid nothing; what
+     it buys is 48px of text width (a 21% widening) in epic 010's flip
+     rows, which is where the app's genuinely long content lives.
+
+     20 rather than 16 or 12 for two reasons: it stays larger than the
+     card's own 16px internal padding, since a page gutter narrower than
+     the padding inside the card inverts the nesting and reads as a
+     mistake; and it stops short of edge-to-edge so --shadow-card and the
+     10px radius still read as cards on a page rather than full-bleed
+     sheets — which matters more than usual here because the backdrop is
+     a photographic hero image.
+
+     Vertically 36 -> 20 at the top, since the top bar now provides the
+     separation that padding was doing, and 60 -> 40 at the bottom to
+     keep the last row off the viewport edge. The bar is a bar, not a
+     floating overlay, so no clearance is reserved for it. */
+  .platform {
+    padding: 20px 20px 40px 20px;
+  }
+}
