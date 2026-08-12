@@ -12,15 +12,16 @@ user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Ten epics have shipped: Foundation, Content Management, Flashcards,
+Eleven epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
-in code comments), Sound, Theming, Romaji, and the Long-Content Layout
-(flip-list rows, #116). None of them are behind feature flags any more
-— see the section below.
+in code comments), Sound, Theming, Romaji, the Long-Content Layout
+(flip-list rows, #116), and the Responsive Shell (1024px breakpoint,
+top bar + overlay drawer, #122). None of them are behind feature flags
+any more — see the section below.
 
 Only epics 001, 002 and 009 have write-ups in `docs/epics/`; the rest
 exist as shipped code, the GitHub issues tracking them, and `epic N`
-comments in the source. ADRs run to 016. Treat in-code comments as the
+comments in the source. ADRs run to 017. Treat in-code comments as the
 more current source of truth than `docs/epics/`, and verify docs against
 `git log` / the code itself before relying on them.
 
@@ -159,24 +160,88 @@ provider's own rate limit as the only backstop — a known, accepted gap
 - **`AppShell`** (`components/layouts/AppShell.jsx`) is the one shared
   two-pane (icon rail + sidebar + main panel) layout used by every
   page — see `docs/adr/002-appshell-single-shared-layout.md`. There is
-  no top nav; all section-switching happens via the sidebar
-  (`docs/adr/004-sidebar-only-navigation-topnav-dropped.md`) and the
-  icon rail added for the two-tier nav in epic 002
+  no top nav on desktop; all section-switching happens via the sidebar
+  (`docs/adr/004-sidebar-only-navigation-topnav-dropped.md`, scoped to
+  desktop by epic 011 — see below) and the icon rail added for the
+  two-tier nav in epic 002
   (`docs/adr/010-two-tier-sidebar-collapsible-navigation.md`). The rail
   renders unconditionally — it carries the settings gear, which stays
   relevant even with every view flag off — while individual view buttons
   are still flag-filtered via `App.jsx`'s `visibleViews`. `AppShell`
   itself is purely structural: it knows nothing about what fills its
-  slots.
+  slots, and still doesn't — epic 011 added one prop
+  (`onDismissSidebar`) but not a second `sidebar`-shaped one; see below.
 - **Rail/sidebar stacking is load-bearing.** Both `.rail` and
-  `.lineRail` are `position: sticky`, and sticky creates a stacking
-  context *unconditionally* (unlike `relative`/`absolute`, which only do
-  so with a non-auto z-index). A popover inside the rail therefore
-  cannot escape it by raising its own z-index — the rail itself has to
-  outrank its sibling, which is why `.rail` carries `z-index: 2` against
-  `.lineRail`'s `1`. Anything that must cover both (e.g.
-  `ConfirmDialog`'s `z-index: 10` backdrop) has to live outside
-  `.shell`, which is its own stacking context at `z-index: 1`.
+  `.lineRail` are `position: sticky` on desktop (`.lineRail` becomes
+  `position: fixed` as the narrow-layout drawer — still under `.rail`),
+  and sticky creates a stacking context *unconditionally* (unlike
+  `relative`/`absolute`, which only do so with a non-auto z-index). A
+  popover inside the rail therefore cannot escape it by raising its own
+  z-index — the rail itself has to outrank its sibling, which is why
+  `.rail` carries `z-index: 2` against `.lineRail`'s `1`. This is why
+  the epic 011 drawer sits *under* the top bar rather than over it: the
+  drawer only has to outrank `.platform`, not `.rail`, so neither
+  `.rail`'s z-index nor `SettingsButton`'s popover's needed to change.
+  `ConfirmDialog` now portals itself to `document.body` (`createPortal`)
+  rather than relying on every caller to render it outside `.shell` —
+  `SentenceFolderTree` was rendering its own instance *inside* the
+  sidebar slot, where the old "z-index 10, but only if you remember to
+  render it outside .shell" contract silently didn't hold; the rail
+  painted over it. Portalling inside the component fixes every caller at
+  once and is now the actual guarantee — don't revert to a bare
+  `position: fixed` div and rely on placement again.
+- **The shell has exactly one width breakpoint, at 1024px, and it lives
+  in five places with no shared source of truth.**
+  `AppShell.module.css`, `IconRail.module.css`,
+  `SettingsButton.module.css` and `FlashcardGrid.module.css` each carry
+  their own `@media (max-width: 1024px)` block; `App.jsx`'s
+  `NARROW_LAYOUT_QUERY` constant repeats the same string for
+  `useMediaQuery` (`hooks/useMediaQuery.js`), used only for the two
+  things CSS can't decide — which slot search and the brand mark render
+  into (see below). There's no build-time constant sharing between a
+  stylesheet and JS in this toolchain, so all five have to change
+  together or the CSS-decided layout and the JS-decided slots disagree
+  about where the line is. See `docs/adr/017-responsive-shell-breakpoint-and-drawer.md`
+  for why 1024 and not a device-class number, and for a one-pixel
+  discrepancy in the originating issue that this implementation
+  resolved by taking the literal query (narrow *at* 1024px, not just
+  below it).
+- **Below 1024px `.lineRail` stops being a sidebar and becomes an
+  overlay drawer** — `position: fixed`, a scrim, closed by default
+  (reusing `sidebarCollapsed`, not a second piece of state; `isNarrow`
+  from `useMediaQuery` just decides which meaning the boolean has).
+  Four ways to dismiss it — the top bar's trigger, the scrim, Escape, an
+  arrow inside the drawer — and **selecting a category does not close
+  it**; that's what the in-drawer arrow is for. The open drawer is modal
+  via `inert` on `<main>`, not a hand-rolled focus trap. Search
+  promotion into the drawer (a non-empty query opens it, since results
+  render in the drawer) required a focus-handling exception: the drawer
+  normally steals focus to its close arrow on open, but not when the
+  currently focused element is a text input, or every keystroke in
+  search would eject the caret. `IconRail` itself is one instance,
+  restyled horizontally below the breakpoint via props
+  (`onToggleSidebar`, `search`, `brand`, all `undefined` above it) —
+  **never render a second `IconRail` for a mobile bar**; a WIP branch
+  that predates this epic did that and is exactly the anti-pattern the
+  epic's ADR records rejecting. Same one-instance rule for
+  `TopBarSearch` (search moves from the sidebar into the bar below the
+  breakpoint, never renders in both) and the brand mark (sidebar logo
+  above the breakpoint, resized top-bar logo below it). Full writeup:
+  `docs/adr/017-responsive-shell-breakpoint-and-drawer.md`.
+- **Touch targets are expanded via a pseudo-element, keyed on
+  `(pointer: coarse)`, not on the width breakpoint** — a tap target is a
+  pointer question, not a viewport one. See the ✓ buttons in
+  `FlashcardCard.module.css` and `SentenceListItem.module.css`, and the
+  folder actions in `SentenceFolderTree.module.css`. The flashcard ✓
+  specifically needs an *asymmetric* inset, not a symmetric one — the
+  flip uses `transform-style: preserve-3d`, and hit-testing does not
+  extend past a face's own edge inside that context, so a pseudo-element
+  hanging outside the face never receives a tap; bias the expansion
+  toward the dot's own corner instead. Separately,
+  `SentenceFolderTree.module.css`'s rename/delete buttons used to be
+  `opacity: 0` until `.folderHead:hover` — invisible *and* unreachable
+  on touch, not just undiscoverable. They're visible by default now,
+  hidden again only under `(hover: hover)` paired with `:focus-within`.
 - **`CategoryTree`** uses a generic `count`/`total`/`complete` prop
   contract rather than a `mastered`-specific one, so it isn't coupled
   to the flashcard mastery feature — see
@@ -204,6 +269,18 @@ provider's own rate limit as the only backstop — a known, accepted gap
   it. An unknown *line* or no category falls back to grid; an unlisted
   *category* falls back to its line's default, deliberately, so a new
   grammar category doesn't silently get tiles it will overflow.
+- **`FlashcardGrid`'s tile cap is scoped to the narrow layout, not
+  global — this is deliberate, not an oversight.**
+  `grid-template-columns: repeat(auto-fill, minmax(180px, 260px))`
+  (epic 011) only applies below 1024px, replacing the uncapped
+  `minmax(180px, 1fr)` that let a single narrow-viewport column stretch
+  a 210px-designed tile to 335px. Applying the same cap above the
+  breakpoint was tried and measured: `auto-fill` counts its repetitions
+  from the track's *maximum* sizing function once that's no longer
+  `1fr`, so swapping in `260px` changes the desktop grid from four
+  226px columns to three 260px ones — moving the tile further from its
+  210px design width, not closer. Don't remove the media-query scoping
+  to "simplify" this.
 - **The saved-sentence row flips too, and repeats the mechanic rather
   than sharing it.** `SentenceListItem` is a second flipping list —
   front is `jp_text` + romaji, back is `reading` + romaji +
@@ -351,6 +428,7 @@ provider's own rate limit as the only backstop — a known, accepted gap
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
   the token layer (013), theme resolution (014), where romaji comes
-  from (015), or which layout a category gets and how a variable-height
-  row flips (016) — the "why not the obvious alternative" is usually
+  from (015), which layout a category gets and how a variable-height
+  row flips (016), or the shell's breakpoint and the drawer's stacking
+  contract (017) — the "why not the obvious alternative" is usually
   already answered there.

@@ -26,12 +26,13 @@ Japanese keyboard.
 | 008 — Theming | Day/night themes with a user-selectable toggle | Shipped — see [Theming](#theming) |
 | 009 — Romaji | Romaji on every card, romaji search, visibility toggle | Shipped — see [Romaji](#romaji) |
 | 010 — Long-content layout | Flip-list rows for grammar and long vocab | Shipped — see [Long-content layout](#long-content-layout) |
+| 011 — Responsive shell | 1024px breakpoint, top bar + overlay drawer (frontend) | Shipped — see [Responsive layout](#responsive-layout) |
 
 Epics 001, 002 and 009 have write-ups in `docs/epics/`. The rest exist
 as shipped code, the GitHub issues that track them, and `epic N`
 comments in the source — treat those as more current than `docs/` when
 the two disagree. Architecture decisions are recorded as ADRs in
-`docs/adr/`, currently numbered up to 016.
+`docs/adr/`, currently numbered up to 017.
 
 ---
 
@@ -337,6 +338,51 @@ the front — they are browsing actions, not answer-side ones.
 records why this is a table rather than a measurement of the rendered
 text, why the faces are in flow, and — in its phase 4 addendum — why the
 sentence list repeats the mechanic instead of sharing it.
+
+---
+
+## Responsive layout
+
+The app has one width breakpoint, at **1024px**. Above it, nothing
+changes from how the app has always looked: an icon rail on the left,
+a content sidebar next to it, the study surface taking whatever's left.
+Below it, the rail lays flat into a horizontal top bar and the sidebar
+becomes a dismissible overlay drawer instead of permanently taking width
+away from the content — the fix for a real bug, not a cosmetic
+narrow-screen pass: at 375px, before this epic, the content area
+measured **0px** wide.
+
+Nothing new was added to get there. The top bar is the same icon rail
+component, restyled — not a second nav bar built alongside it — so
+there's still exactly one view switcher and one settings gear in the
+app, just laid out differently depending on viewport. The drawer is the
+same sidebar, repositioned as an overlay rather than a permanent column.
+
+A few things worth knowing if you're touching this layer:
+
+- **Search and the brand mark move into the top bar below the
+  breakpoint, and only there.** Above it they're both in the sidebar as
+  before. Search moves because it's the one control that already works
+  across all three content lines — leaving it in a drawer that's closed
+  by default would have made it two taps away from everywhere.
+- **The drawer doesn't close when you pick a category.** Choosing
+  several categories in a row shouldn't mean reopening the drawer each
+  time — there's a dedicated close arrow inside it for that, alongside
+  the top bar's trigger, tapping the scrim, and Escape.
+- **Tap targets are 44px effective, even where the visible control is
+  smaller.** The ✓ marks and the folder tree's rename/delete buttons
+  stay their original visual size — enlarging them would mean
+  redesigning the card — but their actual hit area is expanded via CSS,
+  keyed to `(pointer: coarse)` rather than to screen width, since a
+  touch laptop at 1400px has the same problem a narrow phone does.
+
+[`017 — The 1024px breakpoint, the drawer's stacking contract, and
+scoping ADR 004 to desktop`](docs/adr/017-responsive-shell-breakpoint-and-drawer.md)
+has the full record: why 1024 rather than a device-size number, the
+drawer's stacking contract (and the pre-existing modal-dialog bug its
+prototype phase caught and fixed along the way), and why this doesn't
+reopen [ADR 004](docs/adr/004-sidebar-only-navigation-topnav-dropped.md)'s
+decision against a persistent top nav so much as scope it to desktop.
 
 ---
 
