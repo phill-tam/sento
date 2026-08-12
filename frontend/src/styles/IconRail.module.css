@@ -9,7 +9,9 @@
   padding: 26px 0;
   position: sticky;
   top: 0;
+  /* Paired vh/svh — see the note on .shell in AppShell.module.css. */
   height: 100vh;
+  height: 100svh;
   border-right: 1px solid var(--border-on-chrome);
   /* Must outrank .lineRail (z-index 1) so SettingsButton's popover can
      spill over the sidebar. position:sticky creates a stacking context
