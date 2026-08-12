@@ -378,11 +378,20 @@ function App() {
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
-  const masteredByLine = {
-    kanji: kanjiMastered.mastered,
-    vocab: vocabMastered.mastered,
-    grammar: grammarMastered.mastered,
-  };
+  // Memoised because `tree` below depends on it. As a bare object
+  // literal this was a new reference on every render, so that useMemo
+  // never actually memoised anything — toStudyTreeShape re-ran on every
+  // keystroke in search, every flip, every mode change. The three Sets
+  // are replaced by useMastered whenever an item is toggled, so identity
+  // still changes exactly when the tree's counts need to.
+  const masteredByLine = useMemo(
+    () => ({
+      kanji: kanjiMastered.mastered,
+      vocab: vocabMastered.mastered,
+      grammar: grammarMastered.mastered,
+    }),
+    [kanjiMastered.mastered, vocabMastered.mastered, grammarMastered.mastered]
+  );
   const toggleByLine = {
     kanji: kanjiMastered.toggle,
     vocab: vocabMastered.toggle,
