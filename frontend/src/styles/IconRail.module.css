@@ -85,4 +85,11 @@
     width: 44px;
     height: 44px;
   }
+
+  /* Separated from the view switcher: it acts on the drawer, not on
+     which view is showing, and sitting flush against the view buttons
+     would read as a fourth one. */
+  .menuBtn {
+    margin-right: 4px;
+  }
 }

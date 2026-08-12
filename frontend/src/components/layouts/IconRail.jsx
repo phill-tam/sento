@@ -13,10 +13,43 @@ import SettingsButton from "./SettingsButton";
  * SettingsButton is appended as a permanent last child, pinned to the
  * bottom of the rail. It is not part of `views` because it opens a
  * popover rather than switching the active view.
+ *
+ * epic 011 — below the breakpoint this same nav lays out as a horizontal
+ * top bar (see the media query in IconRail.module.css). It is not
+ * rendered a second time inside a separate mobile bar: one instance,
+ * restyled, so there is no pair of synced components to drift apart.
+ *
+ * onToggleSidebar / search are both optional and both narrow-only. The
+ * caller passes them exactly when the sidebar is an overlay drawer, so
+ * above the breakpoint this renders the identical DOM it always did.
+ * The drawer trigger has to exist because the sidebar stops being
+ * persistently available down there, which is the part of ADR 004's
+ * reasoning that stops holding once it becomes an overlay.
  */
-export default function IconRail({ views, activeView, onSelectView }) {
+export default function IconRail({
+  views,
+  activeView,
+  onSelectView,
+  sidebarCollapsed,
+  onToggleSidebar,
+  search,
+}) {
   return (
     <nav className={styles.rail} aria-label="Primary navigation">
+      {onToggleSidebar && (
+        <button
+          type="button"
+          className={`${styles.railBtn} ${styles.menuBtn}`}
+          title={sidebarCollapsed ? "Open navigation" : "Close navigation"}
+          aria-label={sidebarCollapsed ? "Open navigation" : "Close navigation"}
+          aria-expanded={!sidebarCollapsed}
+          onClick={onToggleSidebar}
+        >
+          <span className={styles.icon} aria-hidden="true">
+            ☰
+          </span>
+        </button>
+      )}
       {views.map((view) => (
         <button
           key={view.id}
@@ -34,6 +67,7 @@ export default function IconRail({ views, activeView, onSelectView }) {
           </span>
         </button>
       ))}
+      {search}
       <SettingsButton />
     </nav>
   );

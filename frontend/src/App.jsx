@@ -14,6 +14,7 @@ import {
 } from "./api";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useQuiz } from "./hooks/useQuiz";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
 import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
@@ -40,6 +41,12 @@ const VIEWS = [
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
+
+// epic 011 — MUST match the @media block in AppShell.module.css. There
+// is no build step that could share one value between the stylesheet and
+// here, so the duplication is deliberate and the two have to be changed
+// together. See useMediaQuery's docblock for why any of this is in JS.
+const NARROW_LAYOUT_QUERY = "(max-width: 1024px)";
 
 const SELECTION_CAP = 20;
 // epic 6 — quiz eligibility is now global (all lines + sentences), not
@@ -183,6 +190,12 @@ function App() {
   const [view, setView] = useState("study");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
+
+  // epic 011 — below the breakpoint the sidebar is an overlay drawer.
+  // There is no second piece of state for it: `sidebarCollapsed` means
+  // "closed drawer" down here and "hidden sidebar" up there, and this
+  // flag is only what decides which of the two it means.
+  const isNarrow = useMediaQuery(NARROW_LAYOUT_QUERY);
 
   const [dataByLine, setDataByLine] = useState({ kanji: [], vocab: [], grammar: [] });
   const [isLoadingStudy, setIsLoadingStudy] = useState(true);
@@ -451,9 +464,19 @@ function App() {
     sentenceCount: generatorFolderCounts[f.id],
   }));
 
+  // Crossing DOWN into the narrow layout closes the drawer. A drawer
+  // that is already open when it becomes an overlay would be covering
+  // the content the learner came for. Crossing up is left alone: an
+  // expanded desktop sidebar is the normal state, and a collapsed one is
+  // a state the desktop toggle can reach anyway.
+  useEffect(() => {
+    if (isNarrow) setSidebarCollapsed(true);
+  }, [isNarrow]);
+
   function handleStart() {
     setHasStarted(true);
-    setSidebarCollapsed(false);
+    // Open on desktop as before; stay closed below the breakpoint.
+    setSidebarCollapsed(isNarrow);
   }
 
   function toggleLine(lineId) {
@@ -484,7 +507,12 @@ function App() {
         setSidebarCollapsed((prev) => !prev);
       } else {
         setView(nextView);
-        setSidebarCollapsed(false);
+        // Desktop reveals the new view's sidebar. Narrow keeps the
+        // drawer out of the way, so the view you just asked for is what
+        // you actually see. This is NOT the auto-close that decision 2
+        // rules out — that one is about picking a category *within* the
+        // current tree, which deliberately leaves the drawer open.
+        setSidebarCollapsed(isNarrow);
       }
     });
   }
@@ -524,9 +552,22 @@ function App() {
       <StartGate hasStarted={hasStarted} onStart={handleStart} />
       <AppShell
         rail={
-          <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
+          <IconRail
+            views={visibleViews}
+            activeView={view}
+            onSelectView={handleSelectView}
+            sidebarCollapsed={sidebarCollapsed}
+            // Passing these two is how the rail is told it is a top bar
+            // right now; above the breakpoint they are undefined and it
+            // renders exactly the DOM it did before this epic.
+            onToggleSidebar={isNarrow ? () => setSidebarCollapsed((prev) => !prev) : undefined}
+          />
         }
         sidebarCollapsed={sidebarCollapsed}
+        // Same signal for the shell: present means "the sidebar is a
+        // drawer", which is what turns on the scrim, the close arrow,
+        // Escape and the modal focus handling.
+        onDismissSidebar={isNarrow ? () => setSidebarCollapsed(true) : undefined}
         contentHidden={!hasStarted}
         sidebar={
           <>
