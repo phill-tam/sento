@@ -1,20 +1,68 @@
-.item {
+/* epic 010 phase 4 — the saved-sentence row flips.
+
+   The mechanic below is FlashcardCard's, deliberately re-stated rather
+   than shared. CSS modules can't share a rule, and the two blocks are
+   not actually the same code: FlashcardCard's `.list` variant is mostly
+   *undoing* the 200px tile it starts from (`position: relative`,
+   `inset: auto`, `height: auto`), while this component has no tile to
+   undo and states the mechanic positively. `composes:` would have been
+   the other option, but it appears nowhere else in this codebase and
+   introducing it to save ~10 lines is a worse trade than the
+   duplication. See ADR 016 for the mechanic itself. */
+
+.card {
+  /* 1000px is tuned for a 210px tile; across a full-width row it throws
+     the far edge away hard enough to read as a fold. */
+  perspective: 1400px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 10px;
+}
+
+/* Both faces are grid items in ONE cell, so both stay in flow and the
+   taller one sizes the row. A row is variable-height and its two faces
+   differ — front is one Japanese sentence, back is kana plus a
+   translation — so with the faces out of flow the row would resize
+   mid-flip. */
+.inner {
+  display: grid;
+  transition: transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+  transform-style: preserve-3d;
+}
+
+.card.flipped .inner {
+  transform: rotateX(180deg);
+}
+
+.face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
 }
 
-.item:last-child {
-  border-bottom: none;
+.front {
+  background: linear-gradient(160deg, var(--surface-card-sheen), var(--surface-card));
+}
+
+.back {
+  transform: rotateX(180deg);
+  background: linear-gradient(160deg, var(--chrome-surface-raised), var(--chrome-surface));
+  color: var(--text-on-chrome);
 }
 
 .text {
   flex: 1;
   min-width: 0;
 }
+
+/* ── front face ─────────────────────────────────────────────────────── */
 
 .jp {
   font-family: var(--font-display);
@@ -23,15 +71,9 @@
   line-height: 1.4;
 }
 
-.reading {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
 /* epic 009 phase 2 — matches the flashcard's romaji treatment. Wraps
-   normally: a list row has the full panel width, so it never needs the
-   nowrap escape hatch the 200px card does. */
+   normally: a list row has the full panel width, so it never needed the
+   nowrap escape hatch the 200px card used to carry. */
 .romaji {
   font-size: 12px;
   color: var(--text-secondary);
@@ -41,11 +83,37 @@
   font-style: italic;
 }
 
-.meaning {
-  font-size: 13px;
-  color: var(--text-hint);
-  margin-top: 4px;
+/* ── back face ──────────────────────────────────────────────────────
+   The reading and the meaning moved here in phase 4, so both now sit on
+   dark chrome and take the --text-on-chrome ramp rather than the page
+   ramp they used when every line was visible at once. */
+
+.reading {
+  font-size: 12px;
+  color: var(--text-on-chrome-dim);
 }
+
+/* Back-face twin of .romaji. A separate rule rather than a shared class
+   for the same reason FlashcardCard keeps .meaningRomaji separate: the
+   grounds are different and only the type treatment is shared. */
+.romajiOnChrome {
+  font-size: 12px;
+  color: var(--text-on-chrome-dim);
+  opacity: 0.9;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  font-style: italic;
+}
+
+/* The answer, given the weight FlashcardCard's back face gives its own. */
+.meaning {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-on-chrome-strong);
+  margin-top: 6px;
+}
+
+/* ── controls ───────────────────────────────────────────────────────── */
 
 .actions {
   display: flex;
@@ -90,10 +158,6 @@
   background: var(--bad-wash);
 }
 
-.item.selected {
-  background: var(--accent-wash-hover);
-}
-
 .checkBtn {
   width: 26px;
   height: 26px;
@@ -110,6 +174,13 @@
   transition: all 0.15s ease;
 }
 
+/* The ✓ is on both faces so a flipped row can still be picked; the back
+   one sits on chrome, exactly as FlashcardCard's .markBtnBack does. */
+.checkBtnOnChrome {
+  border-color: var(--border-on-chrome-ghost);
+  color: var(--text-on-chrome-ghost);
+}
+
 .checkBtnOn {
   background: var(--good);
   border-color: var(--good);
@@ -119,4 +190,22 @@
 .checkBtn:disabled {
   cursor: not-allowed;
   opacity: 0.35;
+}
+
+/* Selected used to be a background wash on the row. An opaque face now
+   covers that, so it becomes an inset ring plus a 9999px inset spread
+   standing in for the wash — the same technique the flashcard list uses.
+   Static, not pulsing: this list has never had the flashcards' idle
+   pulse and phase 4 isn't the place to give it one. --shadow-card is
+   restated so the row doesn't lose its elevation when selected. */
+.card.selected .face {
+  box-shadow: inset 0 0 0 2px var(--accent-line-active),
+    inset 0 0 0 9999px var(--accent-wash-hover), var(--shadow-card);
+}
+
+/* The flip is the only thing this component animates. */
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+  }
 }

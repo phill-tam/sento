@@ -1,11 +1,14 @@
+/* epic 010 phase 4 — rows are separated by a gap rather than by
+   hairlines inside one clipped panel, matching FlashcardGrid's own list.
+   Each row now carries its own border, radius and shadow (see
+   SentenceListItem's .face), and nothing clips the flip. */
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-card);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .empty {
