@@ -154,7 +154,7 @@ function toSentenceQuizItems(sentences) {
  * from — App.jsx intercepts quizPhase === "active" above the view
  * switch, so StudyPage/GeneratePage never mount while a quiz is active.
  */
-function QuizRunner({ selectedItems, globalPool, onFinish }) {
+function QuizRunner({ selectedItems, globalPool, onFinish, onQuit }) {
   const quiz = useQuiz(selectedItems, globalPool);
 
   useEffect(() => {
@@ -182,6 +182,7 @@ function QuizRunner({ selectedItems, globalPool, onFinish }) {
       questionNumber={quiz.questionNumber}
       totalQuestions={quiz.totalQuestions}
       score={quiz.score}
+      onQuit={onQuit}
     />
   );
 }
@@ -551,6 +552,16 @@ function App() {
     setQuizPhase("active");
   }
 
+  // Quitting reuses the discard confirmation that navigating away already
+  // triggers, rather than adding a second dialog that says the same
+  // thing. guardNavigation opens it precisely because a quiz is active,
+  // and confirmDiscardInProgress is what tears the quiz down — so there
+  // is no follow-up action to run here. The point is the confirmation,
+  // not a destination.
+  function handleQuitQuiz() {
+    guardNavigation(() => {});
+  }
+
   function handleFinishQuiz() {
     setQuizPhase("idle");
     setSelectedIds(new Set());
@@ -680,6 +691,7 @@ function App() {
             selectedItems={selectedQuizItems}
             globalPool={globalQuizPool}
             onFinish={handleFinishQuiz}
+            onQuit={handleQuitQuiz}
           />
         ) : view === "cms" && ADMIN_WRITES_ENABLED ? (
           <ContentManagementPage />
