@@ -43,10 +43,12 @@ alternative — a parallel `FlashcardListItem` — would have had to
 reimplement selection mode, mastery, sounds and the category tag on day
 one and then track every later change to them.
 
-`SentenceListItem` was considered as a base and rejected. It shows all
-three lines at once with no flip, and carries folder-select and delete
-controls, so it is not a drop-in. Only its visual rhythm (14px/16px
-padding) is borrowed; the component itself is untouched.
+`SentenceListItem` was considered as a base and rejected. At the time it
+showed all four of its lines at once with no flip, and it carries
+folder-select and delete controls, so it was not a drop-in. Only its
+visual rhythm (14px/16px padding) was borrowed, and the component itself
+was left alone. **That is no longer the current state** — it grew a flip
+of its own in phase 4; see the addendum at the end of this record.
 
 ### An explicit per-category table, not a measurement heuristic
 
