@@ -2,18 +2,19 @@
   padding: 0 24px 18px 24px;
   font-family: var(--font-display);
   letter-spacing: 0.04em;
+  text-align: center;
 }
+
+/* The logo is a block with `width: auto`, so it takes the width of the
+   SVG itself rather than the column — .brand's text-align can't reach
+   it, and it needs its own auto margins to sit under the centre of the
+   subtitle. */
 .brand .brandLogo {
   height: 60px;
   width: auto;
   display: block;
+  margin-inline: auto;
 }
-.brand .kanji {
-  font-size: px;
-  color: var(--text-on-chrome-strong);
-  display: block;
-}
-
 .brand .sub {
   font-size: 10.5px;
   color: var(--text-on-chrome-muted);

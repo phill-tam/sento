@@ -11,6 +11,13 @@ import { useRomaji } from "../../context/RomajiContext";
  * questions only — the current question counts toward the displayed
  * denominator once it's answered, not before (matches the running-tally
  * UX in the mockup, e.g. "Score: 0/2" while sitting on question 3).
+ *
+ * onQuit: optional. An active quiz used to have no labelled way out —
+ * you either answered every question or navigated away and met the
+ * discard dialog by accident. This renders the same exit on purpose. It
+ * sits in the header rather than the footer to keep it away from
+ * "Next question", and it is optional so the component still renders
+ * without an exit if a caller has no teardown to offer.
  */
 export default function QuizCard({
   question,
@@ -21,6 +28,7 @@ export default function QuizCard({
   questionNumber,
   totalQuestions,
   score,
+  onQuit,
 }) {
   const { isVisible: showRomaji } = useRomaji();
 
@@ -34,7 +42,19 @@ export default function QuizCard({
   return (
     <div className={styles.card}>
       <div className={styles.header}>
-        Stop {questionNumber} of {totalQuestions} — what does this mean?
+        <span className={styles.headerText}>
+          Stop {questionNumber} of {totalQuestions} — what does this mean?
+        </span>
+        {onQuit && (
+          <button
+            type="button"
+            className={styles.quitBtn}
+            onClick={onQuit}
+            title="End this quiz and discard your progress"
+          >
+            Quit
+          </button>
+        )}
       </div>
 
       <div className={styles.prompt}>

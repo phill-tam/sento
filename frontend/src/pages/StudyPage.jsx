@@ -28,6 +28,7 @@ export default function StudyPage({
   selectedIds = new Set(),
   onToggleSelect,
   onStartQuiz,
+  onCancelSelection,
   generatorSelectionPhase = "idle",
   generatorSelectedIds = new Set(),
   onToggleGeneratorSelect,
@@ -95,6 +96,7 @@ export default function StudyPage({
             quizPhase={quizPhase}
             selectedCount={selectedIds.size}
             onStartQuiz={onStartQuiz}
+            onCancelSelection={onCancelSelection}
             generatorPhase={generatorSelectionPhase}
             generatorSelectedCount={generatorSelectedIds.size}
             generatorSelectionCap={generatorSelectionCap}

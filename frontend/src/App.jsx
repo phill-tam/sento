@@ -154,7 +154,7 @@ function toSentenceQuizItems(sentences) {
  * from — App.jsx intercepts quizPhase === "active" above the view
  * switch, so StudyPage/GeneratePage never mount while a quiz is active.
  */
-function QuizRunner({ selectedItems, globalPool, onFinish }) {
+function QuizRunner({ selectedItems, globalPool, onFinish, onQuit }) {
   const quiz = useQuiz(selectedItems, globalPool);
 
   useEffect(() => {
@@ -182,6 +182,7 @@ function QuizRunner({ selectedItems, globalPool, onFinish }) {
       questionNumber={quiz.questionNumber}
       totalQuestions={quiz.totalQuestions}
       score={quiz.score}
+      onQuit={onQuit}
     />
   );
 }
@@ -300,10 +301,17 @@ function App() {
       // Generator's own source-item picker stays Study-page-only
       // (unchanged scope) — force the view there so this button works
       // identically whether it's clicked from Study or Generate.
-      setView("study"); 
+      setView("study");
       setMode("generate");
       setGeneratorSelectionPhase("selecting");
       setGeneratorSelectedIds(new Set());
+      // Entering one picker leaves the other. The two selecting phases
+      // were always *described* as mutually exclusive but nothing
+      // enforced it, so both counters could run at once while the ✓ on a
+      // card silently fed only the quiz set (StudyPage resolves the tie
+      // in quiz's favour). See the matching clause in handleModeChange.
+      setQuizPhase("idle");
+      setSelectedIds(new Set());
     });
   }
 
@@ -370,11 +378,20 @@ function App() {
   const kanjiMastered = useMastered("kanji");
   const vocabMastered = useMastered("vocab");
   const grammarMastered = useMastered("grammar");
-  const masteredByLine = {
-    kanji: kanjiMastered.mastered,
-    vocab: vocabMastered.mastered,
-    grammar: grammarMastered.mastered,
-  };
+  // Memoised because `tree` below depends on it. As a bare object
+  // literal this was a new reference on every render, so that useMemo
+  // never actually memoised anything — toStudyTreeShape re-ran on every
+  // keystroke in search, every flip, every mode change. The three Sets
+  // are replaced by useMastered whenever an item is toggled, so identity
+  // still changes exactly when the tree's counts need to.
+  const masteredByLine = useMemo(
+    () => ({
+      kanji: kanjiMastered.mastered,
+      vocab: vocabMastered.mastered,
+      grammar: grammarMastered.mastered,
+    }),
+    [kanjiMastered.mastered, vocabMastered.mastered, grammarMastered.mastered]
+  );
   const toggleByLine = {
     kanji: kanjiMastered.toggle,
     vocab: vocabMastered.toggle,
@@ -523,11 +540,35 @@ function App() {
       setMode(nextMode);
       setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
       setSelectedIds(new Set());
+      // The other half of the exclusion — see handleGeneratorClick.
+      // Unconditional rather than scoped to "quiz": leaving for Study
+      // has to drop a generator selection too, or the Continue counter
+      // survives a mode it no longer belongs to.
+      setGeneratorSelectionPhase("idle");
+      setGeneratorSelectedIds(new Set());
     });
+  }
+
+  // Backing out of either picker is exactly "go back to Study", which
+  // already clears both phases and both selections. Delegating rather
+  // than repeating that reset keeps the two from drifting apart if
+  // either phase grows more state later.
+  function handleCancelSelection() {
+    handleModeChange("study");
   }
 
   function handleStartQuiz() {
     setQuizPhase("active");
+  }
+
+  // Quitting reuses the discard confirmation that navigating away already
+  // triggers, rather than adding a second dialog that says the same
+  // thing. guardNavigation opens it precisely because a quiz is active,
+  // and confirmDiscardInProgress is what tears the quiz down — so there
+  // is no follow-up action to run here. The point is the confirmation,
+  // not a destination.
+  function handleQuitQuiz() {
+    guardNavigation(() => {});
   }
 
   function handleFinishQuiz() {
@@ -659,6 +700,7 @@ function App() {
             selectedItems={selectedQuizItems}
             globalPool={globalQuizPool}
             onFinish={handleFinishQuiz}
+            onQuit={handleQuitQuiz}
           />
         ) : view === "cms" && ADMIN_WRITES_ENABLED ? (
           <ContentManagementPage />
@@ -681,6 +723,7 @@ function App() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
+            onCancelSelection={handleCancelSelection}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}
@@ -707,6 +750,7 @@ function App() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
+            onCancelSelection={handleCancelSelection}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             generatorMinSelection={GENERATOR_MIN_SELECTION}
