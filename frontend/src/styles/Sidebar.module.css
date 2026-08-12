@@ -15,12 +15,6 @@
   display: block;
   margin-inline: auto;
 }
-.brand .kanji {
-  font-size: px;
-  color: var(--text-on-chrome-strong);
-  display: block;
-}
-
 .brand .sub {
   font-size: 10.5px;
   color: var(--text-on-chrome-muted);
