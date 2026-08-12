@@ -300,10 +300,17 @@ function App() {
       // Generator's own source-item picker stays Study-page-only
       // (unchanged scope) — force the view there so this button works
       // identically whether it's clicked from Study or Generate.
-      setView("study"); 
+      setView("study");
       setMode("generate");
       setGeneratorSelectionPhase("selecting");
       setGeneratorSelectedIds(new Set());
+      // Entering one picker leaves the other. The two selecting phases
+      // were always *described* as mutually exclusive but nothing
+      // enforced it, so both counters could run at once while the ✓ on a
+      // card silently fed only the quiz set (StudyPage resolves the tie
+      // in quiz's favour). See the matching clause in handleModeChange.
+      setQuizPhase("idle");
+      setSelectedIds(new Set());
     });
   }
 
@@ -523,6 +530,12 @@ function App() {
       setMode(nextMode);
       setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
       setSelectedIds(new Set());
+      // The other half of the exclusion — see handleGeneratorClick.
+      // Unconditional rather than scoped to "quiz": leaving for Study
+      // has to drop a generator selection too, or the Continue counter
+      // survives a mode it no longer belongs to.
+      setGeneratorSelectionPhase("idle");
+      setGeneratorSelectedIds(new Set());
     });
   }
 

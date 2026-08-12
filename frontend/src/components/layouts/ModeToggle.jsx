@@ -16,9 +16,15 @@ import styles from "../../styles/ModeToggle.module.css";
  * generatorPhase/generatorSelectedCount/onContinueGenerator (epic 005):
  * same pending/ready treatment, parameterized with the Generator's own
  * cap (default 5) and minimum (default 2) instead of Quiz's 20/4. Kept
- * as fully separate props from Quiz's — selecting for Quiz and selecting
- * for Generator are mutually exclusive phases owned by App.jsx, never
- * simultaneously active, but the two aren't the same state machine.
+ * as fully separate props from Quiz's — the two aren't the same state
+ * machine.
+ *
+ * The two selecting phases are mutually exclusive, and App.jsx is what
+ * makes that true: handleModeChange and handleGeneratorClick each clear
+ * the other's phase and selection. This comment used to assert the
+ * exclusion as a standing fact while nothing enforced it, so both
+ * counters could render side by side. Don't rely on it here — this
+ * component will happily render both if it is handed both.
  */
 export default function ModeToggle({
   mode,
