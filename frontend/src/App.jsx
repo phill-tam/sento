@@ -539,6 +539,14 @@ function App() {
     });
   }
 
+  // Backing out of either picker is exactly "go back to Study", which
+  // already clears both phases and both selections. Delegating rather
+  // than repeating that reset keeps the two from drifting apart if
+  // either phase grows more state later.
+  function handleCancelSelection() {
+    handleModeChange("study");
+  }
+
   function handleStartQuiz() {
     setQuizPhase("active");
   }
@@ -694,6 +702,7 @@ function App() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
+            onCancelSelection={handleCancelSelection}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}
@@ -720,6 +729,7 @@ function App() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
+            onCancelSelection={handleCancelSelection}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             generatorMinSelection={GENERATOR_MIN_SELECTION}

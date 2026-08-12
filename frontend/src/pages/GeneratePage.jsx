@@ -31,6 +31,7 @@ export default function GeneratePage({
   selectedIds = new Set(),
   onToggleSelect,
   onStartQuiz,
+  onCancelSelection,
   generatorSelectionPhase = "idle",
   generatorSelectedIds = new Set(),
   generatorMinSelection = 2,
@@ -81,6 +82,7 @@ export default function GeneratePage({
           quizPhase={quizPhase}
           selectedCount={selectedIds.size}
           onStartQuiz={onStartQuiz}
+          onCancelSelection={onCancelSelection}
           generatorPhase={generatorSelectionPhase}
           generatorSelectedCount={generatorSelectedIds.size}
           generatorSelectionCap={generatorSelectionCap}
