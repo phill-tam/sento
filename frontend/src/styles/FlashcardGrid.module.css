@@ -27,3 +27,24 @@
   text-align: center;
   padding: 40px 0;
 }
+
+/* epic 011 — cap the tile. minmax(180px, 1fr) has no ceiling, so at
+   375px a single column stretched one tile to the full 335px content
+   box, from a design drawn at 210px — a slab rather than a card. The cap
+   plus a centred track gives a tile at roughly its intended proportions
+   instead, and it also tames the jump just below the breakpoint, where a
+   ~983px content box would otherwise lay out five columns.
+
+   Scoped to the narrow layout deliberately, NOT applied globally.
+   auto-fill counts repetitions using the track's max sizing function
+   once that is definite, so swapping 1fr for 260px changes the count as
+   well as the width: measured at 1440px it takes the desktop grid from
+   four 226px columns to three 260px ones. That is a regression on its
+   own terms — it moves the tile further from the 210px it was drawn at,
+   not closer — so the ceiling belongs where the stretching happens. */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 260px));
+    justify-content: center;
+  }
+}

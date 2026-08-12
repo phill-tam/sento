@@ -35,12 +35,22 @@
     url("../assets/hero-night.gif");
 }
 
+/* epic 011 — every viewport-height value in the shell is stated twice:
+   a plain vh declaration, then the same value in svh for browsers that
+   understand it. On a desktop the two are identical; on a mobile browser
+   vh resolves to the LARGEST viewport (the height with the URL bar
+   hidden), which is why 100vh forced a scrollable page here even with no
+   content. svh rather than dvh deliberately: dvh tracks the visible
+   viewport and therefore *changes* as the toolbar shows and hides, which
+   would reflow the sticky drawer mid-scroll. svh is the small-viewport
+   height — stable, and never clipped in any toolbar state. */
 .shell {
   position: relative;
   z-index: 1;
   display: flex;
   width: 100%;
   min-height: 100vh;
+  min-height: 100svh;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease-in-out;
 }
 
@@ -50,6 +60,7 @@
    button for free. */
 .shell.contentHidden {
   transform: translateY(100vh);
+  transform: translateY(100svh);
   opacity: 0;
   pointer-events: none;
 }
@@ -68,6 +79,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100svh;
   overflow-y: auto;
   border-right: 1px solid var(--border-on-chrome);
   /* Explicit so the rail (z-index 2) reliably paints above this rather
@@ -108,4 +120,179 @@
   min-width: 0;
   max-width: 100%;
   transition: max-width 0.25s ease;
+}
+
+/* Both of these belong to the drawer and do not exist above the
+   breakpoint. Kept in the DOM rather than conditionally rendered so the
+   media query is the single place the narrow layout is described;
+   display:none also keeps the close button out of the tab order. */
+.scrim,
+.drawerClose {
+  display: none;
+}
+
+/* ==========================================================================
+   epic 011 — the app's first width breakpoint.
+
+   1024px is chosen from the content, not from a device class. With the
+   sidebar open the content box is viewport - 472, so a third column of
+   180px tiles stops fitting at a viewport of 1044px; 1024 is the round
+   number just below that, and the point at which the desktop layout is
+   already down to two columns. Below it the shell was spending 384px of
+   chrome to show less content than the chrome costs — at 375px the
+   content box measured literally 0px.
+
+   One breakpoint, not two: the measured failure is a single event (the
+   sidebar and the content stop being able to coexist), so one boundary
+   describes it honestly, and two tiers would double the states to keep
+   from drifting in a codebase that had zero width media queries.
+
+   Crossing the boundary WIDENS the content sharply — 552px at 1024,
+   ~983px at 1023. That pop is only ever visible to someone resizing a
+   desktop window; a phone never crosses it. It is evidence that a
+   permanently reserved 320px sidebar is expensive at every width, not an
+   argument against the boundary. See ADR 017.
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .shell {
+    /* Shared with IconRail.module.css (bar height) and with .lineRail
+       below (the drawer's top offset). The two must agree or the drawer
+       tucks under the bar, so it is stated once here and inherited
+       rather than duplicated across modules. IconRail repeats the 56px
+       only as a var() fallback, for the case where it is mounted
+       outside this shell. */
+    --shell-topbar-h: 56px;
+    flex-direction: column;
+  }
+
+  /* The sidebar stops taking width from the content and becomes an
+     overlay drawer. This is the actual fix: the bug was never that the
+     content was styled badly, it was that the sidebar and the content
+     competed for a budget that ran out. Fixed rather than absolute so
+     the drawer stays put while the content scrolls underneath.
+
+     A full-width band collapsing by height was rejected — the category
+     tree is tall, and an expanded tree would push the content clean off
+     the bottom of a phone, trading a horizontal squeeze for a vertical
+     one. Off-canvas push was rejected because the content is never
+     visible while navigating. */
+  .lineRail {
+    position: fixed;
+    top: var(--shell-topbar-h);
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: 320px;
+    min-width: 0;
+    max-width: 85vw;
+    flex: none;
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+    /* Desktop animates the box's width; the drawer animates its
+       position, so the hint has to move with it. */
+    will-change: transform;
+  }
+
+  /* The desktop collapse shrinks the box to zero width and fades its
+     contents out mid-transition. A drawer does neither: it keeps its
+     size and its contents and moves off-canvas, or the slide would be a
+     slide of nothing. */
+  .lineRail.collapsed {
+    width: 320px;
+    max-width: 85vw;
+    padding: 26px 0 28px 0;
+    border-right-color: var(--border-on-chrome);
+    overflow-y: auto;
+    transform: translateX(-100%);
+  }
+
+  .lineRail.collapsed > * {
+    opacity: 1;
+  }
+
+  /* 44 -> 20 horizontally. The tile grid renders one column at every
+     gutter from 44px down to 12px, so this buys the grid nothing; what
+     it buys is 48px of text width (a 21% widening) in epic 010's flip
+     rows, which is where the app's genuinely long content lives.
+
+     20 rather than 16 or 12 for two reasons: it stays larger than the
+     card's own 16px internal padding, since a page gutter narrower than
+     the padding inside the card inverts the nesting and reads as a
+     mistake; and it stops short of edge-to-edge so --shadow-card and the
+     10px radius still read as cards on a page rather than full-bleed
+     sheets — which matters more than usual here because the backdrop is
+     a photographic hero image.
+
+     Vertically 36 -> 20 at the top, since the top bar now provides the
+     separation that padding was doing, and 60 -> 40 at the bottom to
+     keep the last row off the viewport edge. The bar is a bar, not a
+     floating overlay, so no clearance is reserved for it. */
+  .platform {
+    padding: 20px 20px 40px 20px;
+  }
+
+  /* Covers the content, not the chrome. It only has to outrank
+     .platform, which is why the rail keeps z-index 2 and
+     SettingsButton's popover keeps working untouched inside it — the
+     drawer and its scrim sit BETWEEN the content and the bar. */
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: var(--shell-topbar-h) 0 0 0;
+    z-index: 1;
+    background: var(--scrim);
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  /* Fades rather than unmounts so it can animate out with the drawer;
+     pointer-events is what actually makes it stop intercepting taps. */
+  .scrimHidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* The way out of the drawer. Selecting a category deliberately does
+     NOT close it — picking several categories in a row should not mean
+     reopening the drawer each time — so there has to be an explicit
+     control that does. */
+  .drawerClose {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-end;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin: 0 12px 4px 12px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-on-chrome-muted);
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .drawerClose:hover {
+    background: var(--accent-wash-hover);
+    color: var(--text-on-chrome);
+  }
+
+  .drawerClose:focus-visible {
+    border-color: var(--border-focus);
+    color: var(--text-on-chrome-strong);
+  }
+}
+
+/* epic 010 established this for the card flip; the drawer's slide and
+   its scrim's fade get the same treatment. The drawer still opens and
+   closes — it just arrives rather than travels. */
+@media (prefers-reduced-motion: reduce) {
+  .lineRail,
+  .scrim {
+    transition: none;
+  }
 }

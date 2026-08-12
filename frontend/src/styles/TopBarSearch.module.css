@@ -1,0 +1,89 @@
+/* epic 011 — top-bar search, rendered only below the breakpoint. There
+   is no desktop half to this file: above 1024px App.jsx renders the
+   sidebar's own search markup instead and this component never mounts,
+   which is why none of these rules are wrapped in a media query. */
+
+.wrap {
+  display: flex;
+  align-items: center;
+}
+
+/* Matches IconRail's .railBtn — a third copy of those values, for the
+   same reason SettingsButton carries the second: CSS Modules are scoped
+   per component and this codebase uses `composes:` nowhere. If the rail
+   button changes, all three change. */
+.trigger,
+.dismiss {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-on-chrome-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.trigger:hover,
+.dismiss:hover {
+  background: var(--accent-wash-hover);
+  color: var(--text-on-chrome);
+}
+
+.trigger:focus-visible,
+.dismiss:focus-visible {
+  border-color: var(--border-focus);
+  color: var(--text-on-chrome-strong);
+}
+
+/* Overlays the bar rather than expanding inline — see the component's
+   docblock for the measurement that forces this. Positioned against
+   .rail, which is position:sticky and therefore already a containing
+   block; the inset matches the bar's own 6px/12px padding so the field
+   lands exactly on its content box.
+
+   z-index is local to .rail's stacking context (which exists because the
+   rail is sticky), so this covers the bar's other buttons without
+   needing to compete with the drawer or the scrim at all. */
+.field {
+  position: absolute;
+  inset: 6px 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--chrome-surface);
+}
+
+.field input {
+  flex: 1;
+  /* The floor from the measured worst case: 174px for
+     yoroshikuonegaishimasu at 13px, plus slack for the placeholder and a
+     clear affordance. Below roughly 256px of viewport the field stops
+     fitting and the text scrolls within it instead — acceptable
+     degradation at a width almost no device reports. */
+  min-width: 200px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-on-chrome-subtle);
+  background: var(--surface-field-on-chrome);
+  color: var(--text-on-chrome);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+
+.field input::placeholder {
+  color: var(--text-on-chrome-placeholder);
+}
+
+.field input:focus {
+  border-color: var(--border-focus);
+}

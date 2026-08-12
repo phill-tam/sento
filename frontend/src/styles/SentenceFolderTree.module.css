@@ -72,16 +72,58 @@
   outline: none;
 }
 
+/* epic 011 — these were opacity:0 until .folderHead:hover, which on a
+   touch screen means rename and delete are invisible AND unreachable:
+   there is no hover, so nothing ever revealed them. That is a
+   functional loss, not a missing polish cue — it was the whole
+   visibility of the control, and it is the most serious thing the hover
+   audit turned up.
+
+   Visible by default now, and hidden again only where a hover pointer
+   actually exists to bring them back. focus-within is paired with the
+   hover rule so keyboard users on a mouse-driven machine can still
+   reach them by tabbing. */
 .actions {
   display: flex;
   gap: 4px;
   flex: 0 0 auto;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.12s ease;
 }
 
-.folderHead:hover .actions {
-  opacity: 1;
+@media (hover: hover) {
+  .actions {
+    opacity: 0;
+  }
+
+  .folderHead:hover .actions,
+  .folderHead:focus-within .actions {
+    opacity: 1;
+  }
+}
+
+/* 20px buttons, sitting side by side in a 320px drawer row. They get
+   the full 44px vertically, but only 32px horizontally: reaching 44
+   across would need 24px of gap between them and another 24 of row, and
+   the row does not have it beside the icon, name and count. The
+   horizontal expansion stops at the midpoint of the widened gap so the
+   two targets meet without overlapping — as close to the floor as the
+   row allows, which is the honest answer here rather than a 44 that
+   would have to steal its neighbour's taps to be true. */
+@media (pointer: coarse) {
+  .actions {
+    gap: 12px;
+  }
+
+  .iconBtn {
+    position: relative;
+  }
+
+  .iconBtn::after {
+    content: "";
+    position: absolute;
+    inset: -12px -6px;
+  }
 }
 
 .iconBtn {

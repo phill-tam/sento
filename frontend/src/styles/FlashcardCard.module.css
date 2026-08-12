@@ -207,6 +207,34 @@
   color: var(--text-secondary);
 }
 
+/* epic 011 — the ✓ is a 20px dot, well under the 44px tap-target floor.
+   The DOT stays 20px: it sits in the corner of a 260px tile and drawing
+   it at 44px would redesign the card. What grows is the hit area, via a
+   transparent pseudo-element, so the target is 44x44 while the layout
+   and the visual weight are untouched.
+
+   Keyed on pointer:coarse rather than on the width breakpoint. A tap
+   target is a question about the pointer, not the viewport — a touch
+   laptop at 1400px has exactly the same problem, and a narrow window on
+   a mouse-driven desktop has none. */
+@media (pointer: coarse) {
+  .markBtn::after {
+    content: "";
+    position: absolute;
+    /* Asymmetric on purpose. A symmetric -12px would reach 44px on
+       paper, but the part hanging outside the face does not hit-test:
+       the flip's preserve-3d context flattens to the face's plane, and
+       elementFromPoint past the edge returns the grid instead. Measured
+       that way the target came out 32px, not 44.
+
+       The dot sits 9px from the face's right edge and 8px from its
+       bottom, so the expansion is pushed up and left instead —
+       16 + 20 + 8 = 44 across and down, entirely inside the face where
+       it is actually hittable. */
+    inset: -16px -8px -8px -16px;
+  }
+}
+
 .markBtn.on {
   background: var(--good);
   border-color: var(--good);

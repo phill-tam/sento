@@ -14,12 +14,14 @@ import {
 } from "./api";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { useQuiz } from "./hooks/useQuiz";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
 import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
 import AppShell from "./components/layouts/AppShell";
 import CategoryTree from "./components/layouts/CategoryTree";
 import IconRail from "./components/layouts/IconRail";
+import TopBarSearch from "./components/layouts/TopBarSearch";
 import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
 import QuizCard from "./components/quiz/QuizCard";
@@ -40,6 +42,12 @@ const VIEWS = [
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
+
+// epic 011 — MUST match the @media block in AppShell.module.css. There
+// is no build step that could share one value between the stylesheet and
+// here, so the duplication is deliberate and the two have to be changed
+// together. See useMediaQuery's docblock for why any of this is in JS.
+const NARROW_LAYOUT_QUERY = "(max-width: 1024px)";
 
 const SELECTION_CAP = 20;
 // epic 6 — quiz eligibility is now global (all lines + sentences), not
@@ -183,6 +191,12 @@ function App() {
   const [view, setView] = useState("study");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
+
+  // epic 011 — below the breakpoint the sidebar is an overlay drawer.
+  // There is no second piece of state for it: `sidebarCollapsed` means
+  // "closed drawer" down here and "hidden sidebar" up there, and this
+  // flag is only what decides which of the two it means.
+  const isNarrow = useMediaQuery(NARROW_LAYOUT_QUERY);
 
   const [dataByLine, setDataByLine] = useState({ kanji: [], vocab: [], grammar: [] });
   const [isLoadingStudy, setIsLoadingStudy] = useState(true);
@@ -451,9 +465,19 @@ function App() {
     sentenceCount: generatorFolderCounts[f.id],
   }));
 
+  // Crossing DOWN into the narrow layout closes the drawer. A drawer
+  // that is already open when it becomes an overlay would be covering
+  // the content the learner came for. Crossing up is left alone: an
+  // expanded desktop sidebar is the normal state, and a collapsed one is
+  // a state the desktop toggle can reach anyway.
+  useEffect(() => {
+    if (isNarrow) setSidebarCollapsed(true);
+  }, [isNarrow]);
+
   function handleStart() {
     setHasStarted(true);
-    setSidebarCollapsed(false);
+    // Open on desktop as before; stay closed below the breakpoint.
+    setSidebarCollapsed(isNarrow);
   }
 
   function toggleLine(lineId) {
@@ -484,7 +508,12 @@ function App() {
         setSidebarCollapsed((prev) => !prev);
       } else {
         setView(nextView);
-        setSidebarCollapsed(false);
+        // Desktop reveals the new view's sidebar. Narrow keeps the
+        // drawer out of the way, so the view you just asked for is what
+        // you actually see. This is NOT the auto-close that decision 2
+        // rules out — that one is about picking a category *within* the
+        // current tree, which deliberately leaves the drawer open.
+        setSidebarCollapsed(isNarrow);
       }
     });
   }
@@ -512,6 +541,17 @@ function App() {
     setSearchQuery("");
   }
 
+  // epic 011 — below the breakpoint the field is in the top bar but the
+  // RESULTS still render in the sidebar, which is now a drawer. A query
+  // typed against a closed drawer would have nowhere to show, so a
+  // non-empty one opens it. Closing is left to the usual controls: this
+  // deliberately does not re-close the drawer when the query empties,
+  // for the same reason picking a category does not.
+  function handleSearchQueryChange(next) {
+    setSearchQuery(next);
+    if (isNarrow && next.trim()) setSidebarCollapsed(false);
+  }
+
   const activeLine = CONTENT_LINES.find((l) => l.id === activeLineId);
   const activeEntries = (dataByLine[activeLineId] ?? []).filter((e) => e.category === activeCategoryId);
   const activeItems = activeLineId ? toFlashcardItems(activeLineId, activeEntries) : [];
@@ -524,25 +564,71 @@ function App() {
       <StartGate hasStarted={hasStarted} onStart={handleStart} />
       <AppShell
         rail={
-          <IconRail views={visibleViews} activeView={view} onSelectView={handleSelectView} />
+          <IconRail
+            views={visibleViews}
+            activeView={view}
+            onSelectView={handleSelectView}
+            sidebarCollapsed={sidebarCollapsed}
+            // Passing these two is how the rail is told it is a top bar
+            // right now; above the breakpoint they are undefined and it
+            // renders exactly the DOM it did before this epic.
+            onToggleSidebar={isNarrow ? () => setSidebarCollapsed((prev) => !prev) : undefined}
+            // Rendered here or in the sidebar, never both — see
+            // TopBarSearch's docblock. Same value, same handler, same
+            // readOnly rule as the sidebar field it replaces, so this is
+            // a relocation and not a behaviour change.
+            search={
+              isNarrow ? (
+                <TopBarSearch
+                  value={showStudySidebar ? searchQuery : ""}
+                  onChange={handleSearchQueryChange}
+                  readOnly={!showStudySidebar}
+                />
+              ) : undefined
+            }
+            // Same one-instance rule as the search: below the breakpoint
+            // the brand is in the bar, above it it's atop the sidebar.
+            // Passed unclassed so IconRail can size it for the bar —
+            // Sidebar's .brandLogo is 60px tall, which is taller than the
+            // bar itself.
+            brand={isNarrow ? <img src={logo} alt="Sento" /> : undefined}
+          />
         }
         sidebarCollapsed={sidebarCollapsed}
+        // Same signal for the shell: present means "the sidebar is a
+        // drawer", which is what turns on the scrim, the close arrow,
+        // Escape and the modal focus handling.
+        onDismissSidebar={isNarrow ? () => setSidebarCollapsed(true) : undefined}
         contentHidden={!hasStarted}
         sidebar={
           <>
-            <div className={styles.brand}>
-              <img src={logo} alt="Sento" className={styles.brandLogo} />
-              <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
-            </div>
-            <div className={styles.searchWrap}>
-              <input
-                type="text"
-                placeholder="Search everything…"
-                value={showStudySidebar ? searchQuery : ""}
-                onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
-                readOnly={!showStudySidebar}
-              />
-            </div>
+            {/* epic 011 — desktop only. Below the breakpoint the mark is
+                in the top bar instead (see `brand` above). The subtitle
+                doesn't come with it: it is 26 characters of letterspaced
+                caps against a bar that is already five controls wide, and
+                a lone subtitle left behind in the drawer would be a
+                caption with nothing to caption. */}
+            {!isNarrow && (
+              <div className={styles.brand}>
+                <img src={logo} alt="Sento" className={styles.brandLogo} />
+                <span className={styles.sub}>Grammar · Kanji · Vocabulary</span>
+              </div>
+            )}
+            {/* epic 011 — above the breakpoint only. Below it the same
+                field lives in the top bar instead (TopBarSearch), so
+                that the app's one cross-line control is not buried
+                inside a per-line drawer. Desktop markup is untouched. */}
+            {!isNarrow && (
+              <div className={styles.searchWrap}>
+                <input
+                  type="text"
+                  placeholder="Search everything…"
+                  value={showStudySidebar ? searchQuery : ""}
+                  onChange={showStudySidebar ? (e) => setSearchQuery(e.target.value) : undefined}
+                  readOnly={!showStudySidebar}
+                />
+              </div>
+            )}
             {showStudySidebar ? (
               searchQuery.trim() ? (
                 <SearchResults
