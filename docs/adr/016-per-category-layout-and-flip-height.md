@@ -158,3 +158,51 @@ mixed contexts.
   panel badly. That is the shell's problem and affects the grid
   identically; inventing a responsive system for one component was out
   of scope here.
+
+## Addendum — the saved-sentence list (phase 4)
+
+The original write-up said `SentenceListItem` was left unmodified and
+only its visual rhythm borrowed. That held for phases 0–3; phase 4 is
+the revisit it flagged as possible. Three further decisions came out of
+it, none of which change anything above.
+
+**The row flips, and the meaning moves to the back.** A saved sentence
+is study content — it feeds the global quiz pool alongside kanji, vocab
+and grammar — and its list was the one surface that showed the answer
+before you had tried to recall it. Front is `jp_text` plus romaji; back
+is `reading`, romaji again, and `meaning_en`. Romaji appears on both
+faces because it plays a different part on each: reading aid for the
+Japanese on the front, and the Latin partner to the kana on the back. It
+stays conditional rather than merely preference-gated, since `romaji` is
+null on anything saved before epic 009 phase 2 and there is nothing to
+backfill it from.
+
+This does soften epic 5's posture. That epic chose "list display, not
+grid" for this surface, and the list doubles as a management surface —
+relocate and delete. Putting the meaning behind a flip makes it a study
+surface first and a management one second. That is the intended change,
+and it is the first thing to look at if the result ever feels wrong.
+
+**The controls split across the faces rather than being duplicated onto
+both.** The ✓ is on both, as `FlashcardCard`'s mark button is, so a
+flipped row can still be picked for a quiz. Relocate and delete are
+front-only: they are browsing actions, the back is the answer you
+flipped to check, and a `<select>` on the dark face would have needed a
+second set of on-chrome form styles to say nothing new. Every control
+stops the row gesture — click *and* keydown, since the row answers Space
+and Space is also how a `<select>` opens.
+
+**The mechanic is re-stated, not shared.** `SentenceListItem.module.css`
+repeats the grid-stacked-faces rules rather than importing them.
+CSS Modules cannot share a rule, and the two blocks are not the same
+code: `FlashcardCard`'s `.list` variant is largely *undoing* the 200px
+tile it starts from, while this component has no tile to undo and states
+the mechanic positively. `composes:` was the alternative, and was
+declined — it appears nowhere else in the codebase, and introducing the
+concept to save roughly ten lines is the worse trade. If a third
+flipping list ever appears, that calculus changes.
+
+One thing deliberately *not* carried across: the flashcards' idle
+selection pulse. This list has never had one, and phase 4 was not the
+place to give it one — selected is a static inset ring plus wash, which
+is the old background-wash treatment ported onto an opaque face.

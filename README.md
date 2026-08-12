@@ -313,9 +313,30 @@ Two things worth knowing:
   `prefers-reduced-motion`.** Each is pinned to a resting state rather
   than removed, so selection mode keeps its affordance.
 
+### Saved sentences flip too
+
+The generator's saved-sentence list uses the same flip. A saved sentence
+is study content — it feeds the global quiz pool alongside kanji, vocab
+and grammar — and its list was the one surface that showed you the
+answer before you had tried to recall it.
+
+| face | content |
+|---|---|
+| front | the Japanese sentence + romaji |
+| back | the kana reading + romaji + the English |
+
+Romaji is on both faces because it does a different job on each: reading
+aid for the Japanese, and the Latin partner to the kana. Sentences saved
+before epic 009 have no romaji at all, so both faces render without it.
+
+The ✓ used to pick sentences for a quiz sits on both faces, so a flipped
+row is still selectable. The folder dropdown and delete button stay on
+the front — they are browsing actions, not answer-side ones.
+
 [`016 — Per-category layout and the flip-height mechanic`](docs/adr/016-per-category-layout-and-flip-height.md)
 records why this is a table rather than a measurement of the rendered
-text, and why the faces are in flow.
+text, why the faces are in flow, and — in its phase 4 addendum — why the
+sentence list repeats the mechanic instead of sharing it.
 
 ---
 

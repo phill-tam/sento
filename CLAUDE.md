@@ -204,6 +204,20 @@ provider's own rate limit as the only backstop — a known, accepted gap
   it. An unknown *line* or no category falls back to grid; an unlisted
   *category* falls back to its line's default, deliberately, so a new
   grammar category doesn't silently get tiles it will overflow.
+- **The saved-sentence row flips too, and repeats the mechanic rather
+  than sharing it.** `SentenceListItem` is a second flipping list —
+  front is `jp_text` + romaji, back is `reading` + romaji +
+  `meaning_en`, so romaji is on both faces. Its CSS re-states the
+  grid-stacked-faces rules instead of importing them: CSS Modules can't
+  share a rule, `composes:` is used nowhere in this codebase, and
+  `FlashcardCard`'s version is mostly *undoing* the 200px tile while
+  this one has no tile to undo. **If you change the flip mechanic,
+  change it in both modules.** The ✓ is on both faces so a flipped row
+  stays selectable; relocate/delete are front-only, and every control
+  stops the row gesture on click *and* keydown (the row answers Space,
+  which is also how a `<select>` opens). This softens epic 5's "list
+  display, not grid" posture on purpose — see the phase 4 addendum in
+  `docs/adr/016-per-category-layout-and-flip-height.md`.
 - **Selection model spans pages.** Both quiz-item selection
   (`selectedIds`, keyed `"${itemType}:${itemId}"` since ids alone
   can't disambiguate kanji vs. vocab vs. sentence) and the generator's
