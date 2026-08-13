@@ -74,9 +74,22 @@ def _parse_candidates(raw_text: str, *, expected_count: int) -> list[GeneratedSe
 
 class SentenceProvider(Protocol):
     """Common interface both AI providers implement, so the orchestration
-    function below never branches on provider identity itself."""
+    function below never branches on provider identity itself.
 
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]: ...
+    Deliberately narrow: prompt in, raw text out. A provider owns its SDK
+    call and the mapping from that SDK's errors onto this module's two
+    exception types, and nothing else. Prompt construction and response
+    parsing belong to the *feature* asking for the completion, not to the
+    provider — a second caller wanting a different response shape (epic
+    012's answer grading) cannot reuse a method that returns
+    GeneratedSentenceCandidate.
+
+    max_tokens is a parameter rather than a constant because the two
+    callers genuinely differ: three sentences fit comfortably in 1024,
+    six graded verdicts with per-word notes do not.
+    """
+
+    def complete(self, *, prompt: str, max_tokens: int = 1024) -> str: ...
 
 
 class GeminiSentenceProvider:
@@ -85,7 +98,12 @@ class GeminiSentenceProvider:
     def __init__(self) -> None:
         self._client = genai.Client(api_key=settings.gemini_api_key)
 
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]:
+    def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
+        # max_tokens is accepted for protocol conformance and not sent:
+        # this SDK takes it as max_output_tokens inside a generation config
+        # rather than a top-level argument, and adding one here would be an
+        # untested behaviour change riding along with a refactor. Gemini's
+        # own default ceiling is well above what either caller needs.
         try:
             response = self._client.models.generate_content(
                 model=settings.gemini_model,
@@ -104,7 +122,7 @@ class GeminiSentenceProvider:
             # (blocked prompt, safety filtering, empty candidates)
             raise SentenceGenerationFailedError(f"provider returned no text: {exc}") from exc
 
-        return _parse_candidates(text, expected_count=count)
+        return text
 
 
 class ClaudeSentenceProvider:
@@ -113,11 +131,11 @@ class ClaudeSentenceProvider:
     def __init__(self) -> None:
         self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]:
+    def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
         try:
             response = self._client.messages.create(
                 model=settings.anthropic_model,
-                max_tokens=1024,
+                max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
             )
         except anthropic.RateLimitError as exc:
@@ -125,8 +143,7 @@ class ClaudeSentenceProvider:
         except anthropic.APIError as exc:
             raise SentenceGenerationFailedError(str(exc)) from exc
 
-        text = "".join(block.text for block in response.content if block.type == "text")
-        return _parse_candidates(text, expected_count=count)
+        return "".join(block.text for block in response.content if block.type == "text")
 
 
 def get_provider() -> SentenceProvider:
@@ -153,7 +170,12 @@ def generate_sentences(
     propagate uncaught — the route layer maps each to its own HTTP response,
     per this codebase's "404/409/501 handled at the service layer" standard
     extended here to 429/502 for this feature's two failure modes.
+
+    Owns the parse now that the provider only returns text. This is the
+    same three steps in the same order as before — build, call, parse —
+    with the last one on this side of the boundary.
     """
     provider = get_provider()
     prompt = _build_prompt(source_items, count, nuance)
-    return provider.generate(prompt=prompt, count=count)
+    raw_text = provider.complete(prompt=prompt)
+    return _parse_candidates(raw_text, expected_count=count)
