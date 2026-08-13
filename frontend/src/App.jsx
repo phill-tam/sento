@@ -57,6 +57,13 @@ const MIN_QUIZ_ITEMS = 4;
 const GENERATOR_SELECTION_CAP = 5;
 const GENERATOR_MIN_SELECTION = 2;
 
+// Module-level so their identity is stable across renders — `selectedIds`
+// and `generatorSelectedIds` are derived below and feed useMemo
+// dependency arrays, which a fresh `new Set()` per render would defeat.
+// Never mutated: every toggle builds a new Set.
+const NO_SELECTION_IDS = new Set();
+const NO_SELECTION = { kind: null, ids: NO_SELECTION_IDS };
+
 /**
  * Maps one line's raw entries into FlashcardCard's normalized item shape.
  * Unchanged from epic 3/5 — still used both for the active category's
@@ -206,11 +213,19 @@ function App() {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [quizPhase, setQuizPhase] = useState("idle");
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  // ONE picker at a time, enforced by the shape rather than by remembering
+  // to clear the other one. `kind` names whose selection this is; entering
+  // any picker replaces the whole object, so there is no second set left
+  // behind to go stale. Before this there were two independent
+  // phase+ids pairs and exclusivity was hand-written into each entry point
+  // (163b9b4) — two pickers needed two clears, and a third would have
+  // needed six.
+  const [selection, setSelection] = useState(NO_SELECTION);
 
-  const [generatorSelectionPhase, setGeneratorSelectionPhase] = useState("idle");
-  const [generatorSelectedIds, setGeneratorSelectedIds] = useState(new Set());
+  // Whether a quiz is actually RUNNING, which is all this ever meant once
+  // selection moved out of it: "idle" | "active".
+  const [quizRunPhase, setQuizRunPhase] = useState("idle");
+
   const [generatorWorkflowPhase, setGeneratorWorkflowPhase] = useState("browsing");
   const [generatorSourceItemRefs, setGeneratorSourceItemRefs] = useState([]);
 
@@ -231,7 +246,18 @@ function App() {
   // only an ACTIVE quiz blocks navigation. "selecting" no longer does —
   // the user needs to browse both pages freely while building a
   // cross-page, cross-type selection before starting.
-  const quizInProgress = quizPhase === "active";
+  // Derived so every child keeps the exact prop contract it already had —
+  // this refactor is contained to this file. `selection.kind` stays "quiz"
+  // through the active run, which is what keeps selectedQuizItems
+  // populated after Start.
+  const selectedIds = selection.kind === "quiz" ? selection.ids : NO_SELECTION_IDS;
+  const generatorSelectedIds =
+    selection.kind === "generator" ? selection.ids : NO_SELECTION_IDS;
+  const quizPhase =
+    quizRunPhase === "active" ? "active" : selection.kind === "quiz" ? "selecting" : "idle";
+  const generatorSelectionPhase = selection.kind === "generator" ? "selecting" : "idle";
+
+  const quizInProgress = quizRunPhase === "active";
   const generatorInProgress =
     generatorWorkflowPhase === "configuring" ||
     generatorWorkflowPhase === "generating" ||
@@ -246,10 +272,7 @@ function App() {
   }
 
   function confirmDiscardInProgress() {
-    setQuizPhase("idle");
-    setSelectedIds(new Set());
-    setGeneratorSelectionPhase("idle");
-    setGeneratorSelectedIds(new Set());
+    clearSelection();
     setGeneratorWorkflowPhase("browsing");
     setGeneratorSourceItemRefs([]);
     setMode("study");
@@ -269,31 +292,56 @@ function App() {
     return `${itemType}:${itemId}`;
   }
 
-  function toggleSelectItem(itemType, itemId) {
+  // Split on the FIRST colon only. Line ids are colon-free, but the id
+  // half is opaque to this function and splitting on every colon would
+  // corrupt any id that ever contains one.
+  function splitSelectionKey(key) {
+    const boundary = key.indexOf(":");
+    return [key.slice(0, boundary), key.slice(boundary + 1)];
+  }
+
+  // Entering a picker REPLACES the selection rather than clearing a
+  // sibling. That is the whole point of the unified shape: exclusivity
+  // can't be forgotten because there is nowhere for a second selection to
+  // survive.
+  function beginSelection(kind) {
+    setSelection({ kind, ids: new Set() });
+    setQuizRunPhase("idle");
+  }
+
+  function clearSelection() {
+    setSelection(NO_SELECTION);
+    setQuizRunPhase("idle");
+  }
+
+  // One toggle for both pickers, parameterised by which picker is asking
+  // and its own cap. The `kind` guard means a card left rendered by a
+  // picker that has since been replaced cannot write into the new one.
+  function toggleSelectionItem(kind, cap, itemType, itemId) {
     const key = makeSelectionKey(itemType, itemId);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+    setSelection((prev) => {
+      if (prev.kind !== kind) return prev;
+      const next = new Set(prev.ids);
       if (next.has(key)) {
         next.delete(key);
       } else {
-        if (next.size >= SELECTION_CAP) return prev;
+        if (next.size >= cap) return prev;
         next.add(key);
       }
-      return next;
+      return { kind, ids: next };
     });
   }
 
-  function toggleGeneratorSelectItem(itemId) {
-    setGeneratorSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        if (next.size >= GENERATOR_SELECTION_CAP) return prev;
-        next.add(itemId);
-      }
-      return next;
-    });
+  function toggleSelectItem(itemType, itemId) {
+    toggleSelectionItem("quiz", SELECTION_CAP, itemType, itemId);
+  }
+
+  // Keyed the same way as the quiz's set, and for the same reason: the
+  // picker does not close when the learner changes category, so a
+  // selection can span content lines and a bare id can no longer say
+  // which table it came from.
+  function toggleGeneratorSelectItem(itemType, itemId) {
+    toggleSelectionItem("generator", GENERATOR_SELECTION_CAP, itemType, itemId);
   }
 
   function handleGeneratorClick() {
@@ -303,26 +351,26 @@ function App() {
       // identically whether it's clicked from Study or Generate.
       setView("study");
       setMode("generate");
-      setGeneratorSelectionPhase("selecting");
-      setGeneratorSelectedIds(new Set());
-      // Entering one picker leaves the other. The two selecting phases
-      // were always *described* as mutually exclusive but nothing
-      // enforced it, so both counters could run at once while the ✓ on a
-      // card silently fed only the quiz set (StudyPage resolves the tie
-      // in quiz's favour). See the matching clause in handleModeChange.
-      setQuizPhase("idle");
-      setSelectedIds(new Set());
+      // Any quiz selection goes with it — see beginSelection.
+      beginSelection("generator");
     });
   }
 
   function handleContinueGenerator() {
-    const refs = [...generatorSelectedIds].map((itemId) => ({
-      line_id: activeLineId,
-      item_id: itemId,
-    }));
+    // Each key carries the line its item came from, so the ref is built
+    // from the key rather than from whatever category is open now. This
+    // used to read `line_id: activeLineId` for every id at once: selecting
+    // two vocab items, switching to the kanji line and pressing Continue
+    // sent both vocab ids labelled "kanji", and _resolve_source_items 404s
+    // the whole run. Nothing clears the selection on a category change and
+    // generator selection deliberately does not block navigation (epic 6),
+    // so the two could disagree freely.
+    const refs = [...generatorSelectedIds].map((key) => {
+      const [lineId, itemId] = splitSelectionKey(key);
+      return { line_id: lineId, item_id: itemId };
+    });
     setGeneratorSourceItemRefs(refs);
-    setGeneratorSelectionPhase("idle");
-    setGeneratorSelectedIds(new Set());
+    clearSelection();
     setMode("study");
     setGeneratorWorkflowPhase("configuring");
     setView("generate");
@@ -538,14 +586,15 @@ function App() {
   function handleModeChange(nextMode) {
     guardNavigation(() => {
       setMode(nextMode);
-      setQuizPhase(nextMode === "quiz" ? "selecting" : "idle");
-      setSelectedIds(new Set());
-      // The other half of the exclusion — see handleGeneratorClick.
-      // Unconditional rather than scoped to "quiz": leaving for Study
-      // has to drop a generator selection too, or the Continue counter
-      // survives a mode it no longer belongs to.
-      setGeneratorSelectionPhase("idle");
-      setGeneratorSelectedIds(new Set());
+      // Leaving for Study drops whichever picker was open, so a counter
+      // can't survive a mode it no longer belongs to. That used to be four
+      // setters and a comment explaining why two of them were
+      // unconditional.
+      if (nextMode === "quiz") {
+        beginSelection("quiz");
+      } else {
+        clearSelection();
+      }
     });
   }
 
@@ -558,7 +607,7 @@ function App() {
   }
 
   function handleStartQuiz() {
-    setQuizPhase("active");
+    setQuizRunPhase("active");
   }
 
   // Quitting reuses the discard confirmation that navigating away already
@@ -572,8 +621,7 @@ function App() {
   }
 
   function handleFinishQuiz() {
-    setQuizPhase("idle");
-    setSelectedIds(new Set());
+    clearSelection();
     setMode("study");
   }
 

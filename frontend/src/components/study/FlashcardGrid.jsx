@@ -12,6 +12,16 @@ import styles from "../../styles/FlashcardGrid.module.css";
  * doesn't fit a tile. Only the container and the prop passed down change
  * — the cards themselves are constructed identically either way. The
  * caller decides; see utils/categoryLayout.js.
+ *
+ * selectedCount: how many items are selected in TOTAL, when that differs
+ * from `selectedIds.size`. Selection state above this component is keyed
+ * by "lineId:itemId" and spans every content line, but this grid only
+ * ever renders one line, so callers hand it the subset for the line on
+ * screen. That subset is the right answer for which cards show a tick and
+ * the wrong one for whether the cap is reached — a caller passing only
+ * the subset would let a learner keep selecting on line B after filling
+ * the cap on line A. Defaults to `selectedIds.size` so a caller whose
+ * selection genuinely is single-line needs nothing.
  */
 export default function FlashcardGrid({
   items,
@@ -20,6 +30,7 @@ export default function FlashcardGrid({
   onToggleMastered,
   selectionMode = false,
   selectedIds = new Set(),
+  selectedCount,
   onToggleSelect,
   selectionCap = 20,
   layout = "grid",
@@ -28,7 +39,7 @@ export default function FlashcardGrid({
     return <p className={styles.empty}>No entries in this category yet.</p>;
   }
 
-  const capReached = selectedIds.size >= selectionCap;
+  const capReached = (selectedCount ?? selectedIds.size) >= selectionCap;
   const isList = layout === "list";
 
   const cards = items.map((item) => {

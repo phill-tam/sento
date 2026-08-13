@@ -53,19 +53,36 @@ export default function StudyPage({
   const isGeneratorSelecting = generatorSelectionPhase === "selecting";
   const activeSelectionMode = isSelecting ? "quiz" : isGeneratorSelecting ? "generator" : null;
 
-  // selectedIds is the global, composite-key Set ("lineId:itemId") owned
-  // by App.jsx — FlashcardGrid stays generic, only ever dealing in bare
-  // ids for whichever line is on screen, so this derives that subset.
-  const quizSelectedIdsForLine = useMemo(() => {
+  // Both selection sets are global, composite-key Sets ("lineId:itemId")
+  // owned by App.jsx — FlashcardGrid stays generic, only ever dealing in
+  // bare ids for whichever line is on screen, so these derive that subset.
+  // The generator's set joined this shape when its refs started being
+  // resolved per item rather than by the active line.
+  function subsetForLine(keys) {
     const prefix = `${activeLineId}:`;
-    const bareIds = [...selectedIds]
-      .filter((key) => key.startsWith(prefix))
-      .map((key) => key.slice(prefix.length));
-    return new Set(bareIds);
-  }, [selectedIds, activeLineId]);
+    return new Set(
+      [...keys].filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length))
+    );
+  }
+
+  const quizSelectedIdsForLine = useMemo(
+    () => subsetForLine(selectedIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedIds, activeLineId]
+  );
+
+  const generatorSelectedIdsForLine = useMemo(
+    () => subsetForLine(generatorSelectedIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [generatorSelectedIds, activeLineId]
+  );
 
   function handleToggleQuizSelect(itemId) {
     onToggleSelect(activeLineId, itemId);
+  }
+
+  function handleToggleGeneratorSelect(itemId) {
+    onToggleGeneratorSelect(activeLineId, itemId);
   }
 
   function handleModeChange(nextMode) {
@@ -128,14 +145,23 @@ export default function StudyPage({
             activeSelectionMode === "quiz"
               ? quizSelectedIdsForLine
               : activeSelectionMode === "generator"
-              ? generatorSelectedIds
+              ? generatorSelectedIdsForLine
               : new Set()
+          }
+          // Only the generator passes this. Its set is now per-line like
+          // the quiz's, and its cap of 5 is low enough to reach on one
+          // line and then keep filling on the next, which is what the
+          // total guards against. The quiz's own affordance has the same
+          // gap and does not pass it — see the commit body; fixing that is
+          // a change to shipped quiz behaviour and belongs on its own.
+          selectedCount={
+            activeSelectionMode === "generator" ? generatorSelectedIds.size : undefined
           }
           onToggleSelect={
             activeSelectionMode === "quiz"
               ? handleToggleQuizSelect
               : activeSelectionMode === "generator"
-              ? onToggleGeneratorSelect
+              ? handleToggleGeneratorSelect
               : undefined
           }
           selectionCap={activeSelectionMode === "generator" ? generatorSelectionCap : 20}
