@@ -62,14 +62,14 @@
 
 .kanjiBig {
   font-family: var(--font-display);
-  font-size: 44px;
+  font-size: 46px;
   line-height: 1;
   color: var(--text-primary);
 }
 
 .yomi {
   margin-top: 10px;
-  font-size: 11.5px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -82,7 +82,7 @@
 
 .jp {
   font-family: var(--font-display);
-  font-size: 23px;
+  font-size: 25px;
   line-height: 1.2;
   color: var(--text-primary);
   word-break: normal;
@@ -91,7 +91,7 @@
 }
 
 .reading {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-top: 6px;
   letter-spacing: 0.02em;
@@ -116,7 +116,7 @@
    load-bearing, so `A wa B yori 〜` rendered as `a wa b yori 〜` and
    stopped corresponding to the `AはBより〜` shown directly above it. */
 .romaji {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-secondary);
   opacity: 0.85;
   margin-top: 5px;
@@ -126,7 +126,7 @@
 
 .meaning {
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: var(--text-on-card-back-strong);
   margin-bottom: 10px;
@@ -134,7 +134,7 @@
 
 .meaningReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
-  font-size: 10.5px;
+  font-size: 12.5px;
   color: var(--text-on-card-back-dim);
   margin-top: 6px;
 }
@@ -143,7 +143,7 @@
    class because the back face has its own ground and uses the
    --text-on-card-back-* ramp, not --text-secondary. */
 .meaningRomaji {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 4px;
@@ -161,19 +161,19 @@
 
 .exampleWord {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 18px;
   color: var(--text-on-card-back);
 }
 
 .exampleReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-on-card-back-dim);
   margin-top: 2px;
 }
 
 .exampleRomaji {
-  font-size: 11.5px;
+  font-size: 13.5px;
   color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 3px;
@@ -183,7 +183,7 @@
 
 .exampleMeaning {
   /* cfe6e4: mockup's own hardcoded value, not a defined token */
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-on-card-back-soft);
   margin-top: 4px;
   font-style: italic;
@@ -413,7 +413,7 @@
 }
 
 .card.list .jp {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 /* The grid's pulse is a box-shadow *outside* the card, which cannot
