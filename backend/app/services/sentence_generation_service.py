@@ -1,23 +1,13 @@
 import json
-from typing import Protocol
 
-import anthropic
-from google import genai
-from google.genai import errors as genai_errors
-
-from app.config.settings import settings
 from app.schemas.sentence_generate import GeneratedSentenceCandidate
 
-
-class SentenceGenerationRateLimitExceeded(Exception):
-    """Raised when the underlying AI provider reports a rate/usage-limit
-    error. Caught in the route layer (Step 5) to return the API's own
-    distinct SentenceGenerationError response, not a generic 500."""
-
-
-class SentenceGenerationFailedError(Exception):
-    """Raised for any other provider-side failure — malformed response,
-    network error, unparseable output. Not a rate limit."""
+# Only what this module actually uses. The previous commit re-exported the
+# whole provider layer so the move would not touch routes/sentences.py;
+# that route now imports from app.services.ai_provider directly, so the
+# passthrough is gone rather than left behind as a second name for the
+# same thing.
+from app.services.ai_provider import AiProviderFailedError, get_provider
 
 
 def _build_prompt(source_items: list[str], count: int, nuance: str | None) -> str:
@@ -62,80 +52,14 @@ def _parse_candidates(raw_text: str, *, expected_count: int) -> list[GeneratedSe
     try:
         parsed = json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        raise SentenceGenerationFailedError(f"provider returned unparseable output: {exc}") from exc
+        raise AiProviderFailedError(f"provider returned unparseable output: {exc}") from exc
 
     try:
         candidates = [GeneratedSentenceCandidate(**item) for item in parsed]
     except (TypeError, ValueError) as exc:
-        raise SentenceGenerationFailedError(f"provider response missing expected fields: {exc}") from exc
+        raise AiProviderFailedError(f"provider response missing expected fields: {exc}") from exc
 
     return candidates[:expected_count]
-
-
-class SentenceProvider(Protocol):
-    """Common interface both AI providers implement, so the orchestration
-    function below never branches on provider identity itself."""
-
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]: ...
-
-
-class GeminiSentenceProvider:
-    """Dev-environment provider."""
-
-    def __init__(self) -> None:
-        self._client = genai.Client(api_key=settings.gemini_api_key)
-
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]:
-        try:
-            response = self._client.models.generate_content(
-                model=settings.gemini_model,
-                contents=prompt,
-            )
-            text = response.text
-        except genai_errors.ClientError as exc:
-            if exc.code == 429:
-                raise SentenceGenerationRateLimitExceeded(str(exc)) from exc
-            raise SentenceGenerationFailedError(str(exc)) from exc
-        except genai_errors.APIError as exc:
-            # covers ServerError (5xx) and any other APIError subtype
-            raise SentenceGenerationFailedError(str(exc)) from exc
-        except ValueError as exc:
-            # .text raises ValueError when there's no text part
-            # (blocked prompt, safety filtering, empty candidates)
-            raise SentenceGenerationFailedError(f"provider returned no text: {exc}") from exc
-
-        return _parse_candidates(text, expected_count=count)
-
-
-class ClaudeSentenceProvider:
-    """Prod-environment provider."""
-
-    def __init__(self) -> None:
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
-    def generate(self, *, prompt: str, count: int) -> list[GeneratedSentenceCandidate]:
-        try:
-            response = self._client.messages.create(
-                model=settings.anthropic_model,
-                max_tokens=1024,
-                messages=[{"role": "user", "content": prompt}],
-            )
-        except anthropic.RateLimitError as exc:
-            raise SentenceGenerationRateLimitExceeded(str(exc)) from exc
-        except anthropic.APIError as exc:
-            raise SentenceGenerationFailedError(str(exc)) from exc
-
-        text = "".join(block.text for block in response.content if block.type == "text")
-        return _parse_candidates(text, expected_count=count)
-
-
-def get_provider() -> SentenceProvider:
-    """Environment-based switch — the only place that reads
-    settings.environment for this feature, per the epic's requirement
-    that swapping providers never touches the route or schema layer."""
-    if settings.environment == "production":
-        return ClaudeSentenceProvider()
-    return GeminiSentenceProvider()
 
 
 def generate_sentences(
@@ -149,11 +73,16 @@ def generate_sentences(
     resolves them first (the annotation here previously said otherwise and
     was simply wrong; nothing behaved differently).
 
-    Lets SentenceGenerationRateLimitExceeded and SentenceGenerationFailedError
+    Lets AiProviderRateLimitExceeded and AiProviderFailedError
     propagate uncaught — the route layer maps each to its own HTTP response,
     per this codebase's "404/409/501 handled at the service layer" standard
     extended here to 429/502 for this feature's two failure modes.
+
+    Owns the parse now that the provider only returns text. This is the
+    same three steps in the same order as before — build, call, parse —
+    with the last one on this side of the boundary.
     """
     provider = get_provider()
     prompt = _build_prompt(source_items, count, nuance)
-    return provider.generate(prompt=prompt, count=count)
+    raw_text = provider.complete(prompt=prompt)
+    return _parse_candidates(raw_text, expected_count=count)

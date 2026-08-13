@@ -24,7 +24,7 @@ class GeneratedSentenceCandidate(BaseModel):
     reading: str
     # Optional so a provider that ignores the romaji instruction degrades
     # to a sentence without it, rather than raising
-    # SentenceGenerationFailedError and discarding an entire round of
+    # AiProviderFailedError and discarding an entire round of
     # otherwise-valid output. The frontend already renders romaji
     # conditionally.
     romaji: str | None = None
