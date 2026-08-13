@@ -162,3 +162,21 @@ export function moveSentence(sentenceId, folderId) {
 export function deleteSentence(sentenceId) {
   return request(`/api/v1/sentences/${sentenceId}`, { method: "DELETE" });
 }
+
+/**
+ * Grades a whole Word Pairs run in one call (epic 012).
+ *
+ * `answers` is already backend-shaped — [{ pair_id, words, answer }] with
+ * snake_case keys — matching how generateSentences takes source_item_refs
+ * rather than converting here.
+ *
+ * Needs no error handling of its own: the grade endpoint returns the same
+ * 429 body shape as sentence generation, so `request` already turns a
+ * rate limit into RateLimitError.
+ */
+export function gradePairAnswers({ answers }) {
+  return request("/api/v1/pair-writing/grade", {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  });
+}
