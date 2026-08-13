@@ -88,8 +88,12 @@
    the card's own back face and take the --text-on-card-back ramp rather than the page
    ramp they used when every line was visible at once. */
 
+/* Weighted to match FlashcardCard's back face — the two flipping lists
+   are one system, and the reverse side reads heavier than the front in
+   both. The ✓ is left alone; it is a button. */
 .reading {
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
 }
 
@@ -98,6 +102,7 @@
    grounds are different and only the type treatment is shared. */
 .romajiOnChrome {
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 3px;
@@ -108,7 +113,7 @@
 /* The answer, given the weight FlashcardCard's back face gives its own. */
 .meaning {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-on-card-back-strong);
   margin-top: 6px;
 }

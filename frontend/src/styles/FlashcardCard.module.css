@@ -124,10 +124,17 @@
   font-style: italic;
 }
 
+/* The back face carries a heavier weight than the front throughout. Its
+   supporting lines are the smallest type in the card and sit on the
+   lower-contrast end of their ramp, which is the combination that is
+   actually hard to read; 600 buys legibility there without changing any
+   size or spacing. .meaning goes to 700 rather than staying level with
+   them, so the answer keeps the emphasis it had when it was the only
+   weighted thing on the face. The ✓ is left alone — it is a button. */
 .meaning {
   font-family: var(--font-body);
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-on-card-back-strong);
   margin-bottom: 10px;
 }
@@ -135,6 +142,7 @@
 .meaningReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
   font-size: 12.5px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
   margin-top: 6px;
 }
@@ -144,6 +152,7 @@
    --text-on-card-back-* ramp, not --text-secondary. */
 .meaningRomaji {
   font-size: 14px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 4px;
@@ -159,21 +168,28 @@
   width: 100%;
 }
 
+/* 600 rather than 700 on the Japanese: --font-display is a Mincho serif,
+   and the weight above its regular is usually synthesised rather than a
+   real cut. At 18px that thickens the kanji strokes without closing
+   them up, which 700 starts to do. */
 .exampleWord {
   font-family: var(--font-display);
   font-size: 18px;
+  font-weight: 600;
   color: var(--text-on-card-back);
 }
 
 .exampleReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
   margin-top: 2px;
 }
 
 .exampleRomaji {
   font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 3px;
@@ -184,6 +200,7 @@
 .exampleMeaning {
   /* cfe6e4: mockup's own hardcoded value, not a defined token */
   font-size: 13px;
+  font-weight: 600;
   color: var(--text-on-card-back-soft);
   margin-top: 4px;
   font-style: italic;
