@@ -41,8 +41,8 @@
 
 .back {
   transform: rotateY(180deg);
-  background: linear-gradient(160deg, var(--chrome-surface-raised), var(--chrome-surface));
-  color: var(--text-on-chrome);
+  background: linear-gradient(160deg, var(--surface-card-back-raised), var(--surface-card-back));
+  color: var(--text-on-card-back);
   justify-content: flex-start;
   padding-top: 26px;
   /* not in the mockup — kept as a robustness net for future longer content;
@@ -62,14 +62,14 @@
 
 .kanjiBig {
   font-family: var(--font-display);
-  font-size: 44px;
+  font-size: 46px;
   line-height: 1;
   color: var(--text-primary);
 }
 
 .yomi {
   margin-top: 10px;
-  font-size: 11.5px;
+  font-size: 13.5px;
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -82,7 +82,7 @@
 
 .jp {
   font-family: var(--font-display);
-  font-size: 23px;
+  font-size: 25px;
   line-height: 1.2;
   color: var(--text-primary);
   word-break: normal;
@@ -91,7 +91,7 @@
 }
 
 .reading {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-top: 6px;
   letter-spacing: 0.02em;
@@ -116,7 +116,7 @@
    load-bearing, so `A wa B yori 〜` rendered as `a wa b yori 〜` and
    stopped corresponding to the `AはBより〜` shown directly above it. */
 .romaji {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-secondary);
   opacity: 0.85;
   margin-top: 5px;
@@ -124,27 +124,36 @@
   font-style: italic;
 }
 
+/* The back face carries a heavier weight than the front throughout. Its
+   supporting lines are the smallest type in the card and sit on the
+   lower-contrast end of their ramp, which is the combination that is
+   actually hard to read; 600 buys legibility there without changing any
+   size or spacing. .meaning goes to 700 rather than staying level with
+   them, so the answer keeps the emphasis it had when it was the only
+   weighted thing on the face. The ✓ is left alone — it is a button. */
 .meaning {
   font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-on-chrome-strong);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-on-card-back-strong);
   margin-bottom: 10px;
 }
 
 .meaningReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
-  font-size: 10.5px;
-  color: var(--text-on-chrome-dim);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-on-card-back-dim);
   margin-top: 6px;
 }
 
 /* Back-face equivalents of .romaji. Separate rules rather than one shared
-   class because the back face sits on dark chrome and uses the
-   --text-on-chrome-* ramp, not --text-secondary. */
+   class because the back face has its own ground and uses the
+   --text-on-card-back-* ramp, not --text-secondary. */
 .meaningRomaji {
-  font-size: 12px;
-  color: var(--text-on-chrome-dim);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 4px;
   letter-spacing: 0.03em;
@@ -152,29 +161,36 @@
 }
 
 .example {
-  background: var(--surface-field-on-chrome);
-  border: 1px solid var(--accent-strong-line);
+  background: var(--surface-field-on-card-back);
+  border: 1px solid var(--border-on-card-back);
   border-radius: 8px;
   padding: 8px 10px;
   width: 100%;
 }
 
+/* 600 rather than 700 on the Japanese: --font-display is a Mincho serif,
+   and the weight above its regular is usually synthesised rather than a
+   real cut. At 18px that thickens the kanji strokes without closing
+   them up, which 700 starts to do. */
 .exampleWord {
   font-family: var(--font-display);
-  font-size: 16px;
-  color: var(--text-on-chrome);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-on-card-back);
 }
 
 .exampleReading {
   /* 9fc2c0: mockup's own hardcoded value, not a defined token */
-  font-size: 10px;
-  color: var(--text-on-chrome-dim);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-on-card-back-dim);
   margin-top: 2px;
 }
 
 .exampleRomaji {
-  font-size: 11.5px;
-  color: var(--text-on-chrome-dim);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 3px;
   letter-spacing: 0.03em;
@@ -183,8 +199,9 @@
 
 .exampleMeaning {
   /* cfe6e4: mockup's own hardcoded value, not a defined token */
-  font-size: 11px;
-  color: var(--text-on-chrome-soft);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-on-card-back-soft);
   margin-top: 4px;
   font-style: italic;
 }
@@ -413,7 +430,7 @@
 }
 
 .card.list .jp {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 /* The grid's pulse is a box-shadow *outside* the card, which cannot

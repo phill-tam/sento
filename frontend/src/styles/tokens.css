@@ -93,6 +93,17 @@
   --chrome-surface-raised: var(--teal-mid);
   --chrome-surface-selected: var(--teal-mid-2);
 
+  /* Surfaces — the flipped BACK of a card. Identical to the chrome by
+     day, and it borrowed the chrome's tokens outright until now, but it
+     is not chrome: it is a content surface that happens to share the
+     rail's colour. Split out so a theme can move the card's reverse
+     without dragging the rail and sidebar along with it. Same reason
+     --text-on-chrome-* exists at all. */
+  --surface-card-back: var(--teal-deep);
+  --surface-card-back-raised: var(--teal-mid);
+  --surface-field-on-card-back: rgba(255, 255, 255, 0.06);
+  --border-on-card-back: rgba(240, 211, 143, 0.25);
+
   /* Text — on the light page */
   --text-primary: var(--ink);
   --text-secondary: var(--mist-line);
@@ -111,6 +122,14 @@
   --text-on-chrome-placeholder: #8fb3b1;
   --text-on-chrome-ghost: rgba(255, 255, 255, 0.7);
   --text-on-status: #ffffff;
+
+  /* Text — on a card's flipped back. Mirrors the four --text-on-chrome
+     steps the back face actually used, and resolves to the same values
+     by day. */
+  --text-on-card-back: var(--sky);
+  --text-on-card-back-strong: var(--gold-light);
+  --text-on-card-back-dim: #9fc2c0;
+  --text-on-card-back-soft: #cfe6e4;
 
   /* Borders */
   --border: var(--mist-line);
@@ -241,6 +260,25 @@
   --chrome-surface-raised: #232a5e;
   --chrome-surface-selected: var(--night-indigo);
 
+  /* The card's back changes sides at night: the surface takes the gold
+     the accent usually carries, and the type takes the indigo the
+     surface usually carries. Only the back — the front face, the rail,
+     the sidebar and every button are untouched, which is what splitting
+     these away from the chrome ramp bought.
+
+     The gradient runs raised → surface, so raised is the paler gold. It
+     spans the palette's whole gold range: --gold-light at the lit corner
+     down to --gold itself at the far one, rather than the narrow step
+     between two neighbouring mixes. On a 200px face that reads as a
+     struck surface catching light across its width, which is the point
+     of putting the gold on the side you turn over to. */
+  --surface-card-back: var(--gold);
+  --surface-card-back-raised: var(--gold-light);
+  /* Day lightens the example block against dark chrome; on gold it has
+     to darken instead, or it disappears. */
+  --surface-field-on-card-back: rgba(26, 32, 80, 0.08);
+  --border-on-card-back: rgba(26, 32, 80, 0.22);
+
   /* Text — on the content area. --text-primary is the moon, pulled
      fractionally off #eee4ab so a full page of it does not glare. */
   --text-primary: #ede6cc;
@@ -257,6 +295,23 @@
   --text-on-chrome-placeholder: #7e81a8;
   --text-on-chrome-ghost: rgba(255, 255, 255, 0.7);
   --text-on-status: #0c0e2e;
+
+  /* Text — on the card's gold back. Every value checked against the
+     DARKER gradient stop, which is the worse of the two grounds:
+     7.60 / 6.77 / 5.17 / 4.59 : 1. All clear AA. The ordering the day
+     ramp uses is preserved — strong is the most emphatic, dim the least
+     — it is just inverted from "lightest wins" to "darkest wins", which
+     is what changing the ground's polarity requires.
+
+     --dim is the step that had to move when the surface went darker.
+     Against the paler gold it could sit at #4c4a85; against --gold that
+     is 3.53:1 and fails outright. It is now solved into the narrow band
+     between AA's 4.5 floor and --soft's 5.17, so it still reads as the
+     least emphatic step without dropping under the floor. */
+  --text-on-card-back: #1a2050;
+  --text-on-card-back-strong: #14173c;
+  --text-on-card-back-dim: #383a72;
+  --text-on-card-back-soft: #2a3270;
 
   /* Borders. By day these are pigments; at night they are white at low
      alpha, so one value works over every surface in the depth ramp
