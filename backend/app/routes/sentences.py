@@ -20,11 +20,11 @@ from app.schemas.sentence_generate import (
     SentenceGenerationError,
     SourceItemRef,
 )
-from app.services.sentence_generation_service import (
-    SentenceGenerationFailedError,
-    SentenceGenerationRateLimitExceeded,
-    generate_sentences,
+from app.services.ai_provider import (
+    AiProviderFailedError,
+    AiProviderRateLimitExceeded,
 )
+from app.services.sentence_generation_service import generate_sentences
 
 router = APIRouter(prefix="/sentences", tags=["sentences"])
 
@@ -73,12 +73,12 @@ def generate_sentences_endpoint(
 
     try:
         candidates = generate_sentences(resolved_items, payload.count, payload.nuance)
-    except SentenceGenerationRateLimitExceeded as exc:
+    except AiProviderRateLimitExceeded as exc:
         raise HTTPException(
             status_code=429,
             detail=SentenceGenerationError(detail=str(exc)).model_dump(),
         ) from exc
-    except SentenceGenerationFailedError as exc:
+    except AiProviderFailedError as exc:
         raise HTTPException(status_code=502, detail=f"sentence generation failed: {exc}") from exc
 
     return GenerateSentencesResponse(candidates=candidates)

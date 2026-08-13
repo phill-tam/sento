@@ -21,18 +21,18 @@ from google.genai import errors as genai_errors
 from app.config.settings import settings
 
 
-class SentenceGenerationRateLimitExceeded(Exception):
+class AiProviderRateLimitExceeded(Exception):
     """Raised when the underlying AI provider reports a rate/usage-limit
     error. Caught in the route layer (Step 5) to return the API's own
     distinct SentenceGenerationError response, not a generic 500."""
 
 
-class SentenceGenerationFailedError(Exception):
+class AiProviderFailedError(Exception):
     """Raised for any other provider-side failure — malformed response,
     network error, unparseable output. Not a rate limit."""
 
 
-class SentenceProvider(Protocol):
+class AiProvider(Protocol):
     """Common interface both AI providers implement, so the orchestration
     function below never branches on provider identity itself.
 
@@ -52,7 +52,7 @@ class SentenceProvider(Protocol):
     def complete(self, *, prompt: str, max_tokens: int = 1024) -> str: ...
 
 
-class GeminiSentenceProvider:
+class GeminiProvider:
     """Dev-environment provider."""
 
     def __init__(self) -> None:
@@ -72,20 +72,20 @@ class GeminiSentenceProvider:
             text = response.text
         except genai_errors.ClientError as exc:
             if exc.code == 429:
-                raise SentenceGenerationRateLimitExceeded(str(exc)) from exc
-            raise SentenceGenerationFailedError(str(exc)) from exc
+                raise AiProviderRateLimitExceeded(str(exc)) from exc
+            raise AiProviderFailedError(str(exc)) from exc
         except genai_errors.APIError as exc:
             # covers ServerError (5xx) and any other APIError subtype
-            raise SentenceGenerationFailedError(str(exc)) from exc
+            raise AiProviderFailedError(str(exc)) from exc
         except ValueError as exc:
             # .text raises ValueError when there's no text part
             # (blocked prompt, safety filtering, empty candidates)
-            raise SentenceGenerationFailedError(f"provider returned no text: {exc}") from exc
+            raise AiProviderFailedError(f"provider returned no text: {exc}") from exc
 
         return text
 
 
-class ClaudeSentenceProvider:
+class ClaudeProvider:
     """Prod-environment provider."""
 
     def __init__(self) -> None:
@@ -99,17 +99,17 @@ class ClaudeSentenceProvider:
                 messages=[{"role": "user", "content": prompt}],
             )
         except anthropic.RateLimitError as exc:
-            raise SentenceGenerationRateLimitExceeded(str(exc)) from exc
+            raise AiProviderRateLimitExceeded(str(exc)) from exc
         except anthropic.APIError as exc:
-            raise SentenceGenerationFailedError(str(exc)) from exc
+            raise AiProviderFailedError(str(exc)) from exc
 
         return "".join(block.text for block in response.content if block.type == "text")
 
 
-def get_provider() -> SentenceProvider:
+def get_provider() -> AiProvider:
     """Environment-based switch — the only place that reads
     settings.environment for this feature, per the epic's requirement
     that swapping providers never touches the route or schema layer."""
     if settings.environment == "production":
-        return ClaudeSentenceProvider()
-    return GeminiSentenceProvider()
+        return ClaudeProvider()
+    return GeminiProvider()

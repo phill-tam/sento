@@ -2,18 +2,12 @@ import json
 
 from app.schemas.sentence_generate import GeneratedSentenceCandidate
 
-# The provider layer moved to its own module once answer grading (epic
-# 012) became a second caller. Re-exported here rather than merely
-# imported: routes/sentences.py imports both exceptions from this module,
-# and re-pointing that is a rename's job, not a move's.
-from app.services.ai_provider import (  # noqa: F401
-    ClaudeSentenceProvider,
-    GeminiSentenceProvider,
-    SentenceGenerationFailedError,
-    SentenceGenerationRateLimitExceeded,
-    SentenceProvider,
-    get_provider,
-)
+# Only what this module actually uses. The previous commit re-exported the
+# whole provider layer so the move would not touch routes/sentences.py;
+# that route now imports from app.services.ai_provider directly, so the
+# passthrough is gone rather than left behind as a second name for the
+# same thing.
+from app.services.ai_provider import AiProviderFailedError, get_provider
 
 
 def _build_prompt(source_items: list[str], count: int, nuance: str | None) -> str:
@@ -58,12 +52,12 @@ def _parse_candidates(raw_text: str, *, expected_count: int) -> list[GeneratedSe
     try:
         parsed = json.loads(cleaned)
     except json.JSONDecodeError as exc:
-        raise SentenceGenerationFailedError(f"provider returned unparseable output: {exc}") from exc
+        raise AiProviderFailedError(f"provider returned unparseable output: {exc}") from exc
 
     try:
         candidates = [GeneratedSentenceCandidate(**item) for item in parsed]
     except (TypeError, ValueError) as exc:
-        raise SentenceGenerationFailedError(f"provider response missing expected fields: {exc}") from exc
+        raise AiProviderFailedError(f"provider response missing expected fields: {exc}") from exc
 
     return candidates[:expected_count]
 
@@ -79,7 +73,7 @@ def generate_sentences(
     resolves them first (the annotation here previously said otherwise and
     was simply wrong; nothing behaved differently).
 
-    Lets SentenceGenerationRateLimitExceeded and SentenceGenerationFailedError
+    Lets AiProviderRateLimitExceeded and AiProviderFailedError
     propagate uncaught — the route layer maps each to its own HTTP response,
     per this codebase's "404/409/501 handled at the service layer" standard
     extended here to 429/502 for this feature's two failure modes.
