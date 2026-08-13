@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.config.settings import settings
-from app.routes import grammar, kanji, sentence_folders, sentences, vocab
+from app.routes import grammar, kanji, pair_writing, sentence_folders, sentences, vocab
 
 router = APIRouter(prefix="/api/v1")
 
@@ -12,6 +12,7 @@ router.include_router(vocab.router)
 router.include_router(grammar.router)
 router.include_router(sentences.router)
 router.include_router(sentence_folders.router)
+router.include_router(pair_writing.router)
 
 # The one remaining gate, and it is access control rather than epic
 # gating: content writes (CSV upload, status changes) have no
