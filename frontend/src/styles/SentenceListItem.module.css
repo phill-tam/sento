@@ -53,8 +53,8 @@
 
 .back {
   transform: rotateX(180deg);
-  background: linear-gradient(160deg, var(--chrome-surface-raised), var(--chrome-surface));
-  color: var(--text-on-chrome);
+  background: linear-gradient(160deg, var(--surface-card-back-raised), var(--surface-card-back));
+  color: var(--text-on-card-back);
 }
 
 .text {
@@ -85,12 +85,12 @@
 
 /* ── back face ──────────────────────────────────────────────────────
    The reading and the meaning moved here in phase 4, so both now sit on
-   dark chrome and take the --text-on-chrome ramp rather than the page
+   the card's own back face and take the --text-on-card-back ramp rather than the page
    ramp they used when every line was visible at once. */
 
 .reading {
   font-size: 12px;
-  color: var(--text-on-chrome-dim);
+  color: var(--text-on-card-back-dim);
 }
 
 /* Back-face twin of .romaji. A separate rule rather than a shared class
@@ -98,7 +98,7 @@
    grounds are different and only the type treatment is shared. */
 .romajiOnChrome {
   font-size: 12px;
-  color: var(--text-on-chrome-dim);
+  color: var(--text-on-card-back-dim);
   opacity: 0.9;
   margin-top: 3px;
   letter-spacing: 0.03em;
@@ -109,7 +109,7 @@
 .meaning {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-on-chrome-strong);
+  color: var(--text-on-card-back-strong);
   margin-top: 6px;
 }
 
