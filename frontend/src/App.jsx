@@ -269,6 +269,14 @@ function App() {
     return `${itemType}:${itemId}`;
   }
 
+  // Split on the FIRST colon only. Line ids are colon-free, but the id
+  // half is opaque to this function and splitting on every colon would
+  // corrupt any id that ever contains one.
+  function splitSelectionKey(key) {
+    const boundary = key.indexOf(":");
+    return [key.slice(0, boundary), key.slice(boundary + 1)];
+  }
+
   function toggleSelectItem(itemType, itemId) {
     const key = makeSelectionKey(itemType, itemId);
     setSelectedIds((prev) => {
@@ -283,14 +291,19 @@ function App() {
     });
   }
 
-  function toggleGeneratorSelectItem(itemId) {
+  // Keyed the same way as the quiz's set, and for the same reason: the
+  // picker does not close when the learner changes category, so a
+  // selection can span content lines and a bare id can no longer say
+  // which table it came from.
+  function toggleGeneratorSelectItem(itemType, itemId) {
+    const key = makeSelectionKey(itemType, itemId);
     setGeneratorSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
         if (next.size >= GENERATOR_SELECTION_CAP) return prev;
-        next.add(itemId);
+        next.add(key);
       }
       return next;
     });
@@ -316,10 +329,18 @@ function App() {
   }
 
   function handleContinueGenerator() {
-    const refs = [...generatorSelectedIds].map((itemId) => ({
-      line_id: activeLineId,
-      item_id: itemId,
-    }));
+    // Each key carries the line its item came from, so the ref is built
+    // from the key rather than from whatever category is open now. This
+    // used to read `line_id: activeLineId` for every id at once: selecting
+    // two vocab items, switching to the kanji line and pressing Continue
+    // sent both vocab ids labelled "kanji", and _resolve_source_items 404s
+    // the whole run. Nothing clears the selection on a category change and
+    // generator selection deliberately does not block navigation (epic 6),
+    // so the two could disagree freely.
+    const refs = [...generatorSelectedIds].map((key) => {
+      const [lineId, itemId] = splitSelectionKey(key);
+      return { line_id: lineId, item_id: itemId };
+    });
     setGeneratorSourceItemRefs(refs);
     setGeneratorSelectionPhase("idle");
     setGeneratorSelectedIds(new Set());
