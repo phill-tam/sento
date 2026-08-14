@@ -634,6 +634,33 @@ function App() {
 
   const canQuizGlobally = globalQuizPool.length >= MIN_QUIZ_ITEMS;
 
+  // epic 012 — word pairs needs two eligible items to exist at all, not
+  // two to be selected. Counted across the whole pool rather than the
+  // open category, matching how quiz eligibility already works.
+  const pairEligibleCount = useMemo(
+    () => globalQuizPool.filter((item) => PAIR_ELIGIBLE_LINES.has(item.lineId)).length,
+    [globalQuizPool]
+  );
+  const pairsDisabled = pairEligibleCount < PAIR_MIN_SELECTION;
+  const pairsDisabledReason = pairsDisabled
+    ? `Word pairs need at least ${PAIR_MIN_SELECTION} kanji or vocabulary cards. There ${
+        pairEligibleCount === 1 ? "is 1" : `are ${pairEligibleCount}`
+      } available.`
+    : undefined;
+
+  // Why the cards on this line don't tick, said on the line where the
+  // learner is trying to tick them. Null on every eligible line, and null
+  // outside a pair selection, so it costs nothing anywhere else.
+  const pairLineBlockedReason =
+    isPairSelection && activeLineId && !PAIR_ELIGIBLE_LINES.has(activeLineId)
+      ? `Word pairs are built from single words with one meaning, so ${
+          // Resolved from CONTENT_LINES rather than `activeLine`, which is
+          // declared further down — reading it here would be a temporal
+          // dead zone crash, not a silent undefined.
+          CONTENT_LINES.find((l) => l.id === activeLineId)?.label?.toLowerCase() ?? "these"
+        } can't be paired. Switch to Kanji or Vocabulary to pick words.`
+      : null;
+
   // Study and Generate are always available. The CMS drives
   // unauthenticated write endpoints, so it stays opt-in (ADR 012).
   const visibleViews = VIEWS.filter((v) => v.id !== "cms" || ADMIN_WRITES_ENABLED);
@@ -903,6 +930,9 @@ function App() {
             onQuizTypeChange={handleQuizTypeChange}
             quizSelectionCap={quizSelectionCap}
             quizMinSelection={quizMinSelection}
+            pairsDisabled={pairsDisabled}
+            pairsDisabledReason={pairsDisabledReason}
+            pairLineBlockedReason={pairLineBlockedReason}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}

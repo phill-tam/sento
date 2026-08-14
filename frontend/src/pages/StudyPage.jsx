@@ -34,6 +34,9 @@ export default function StudyPage({
   onQuizTypeChange,
   quizSelectionCap = 20,
   quizMinSelection = 4,
+  pairsDisabled = false,
+  pairsDisabledReason,
+  pairLineBlockedReason = null,
   generatorSelectionPhase = "idle",
   generatorSelectedIds = new Set(),
   onToggleGeneratorSelect,
@@ -56,7 +59,15 @@ export default function StudyPage({
 
   const isSelecting = quizPhase === "selecting";
   const isGeneratorSelecting = generatorSelectionPhase === "selecting";
+
   const activeSelectionMode = isSelecting ? "quiz" : isGeneratorSelecting ? "generator" : null;
+
+  // A line the pair grader can't use stays IN selection mode with every
+  // card refused, rather than dropping out of it. Outside selection the ✓
+  // is the mastery toggle, so leaving would silently repurpose the control
+  // a learner is reaching for. App.jsx decides which lines these are and
+  // supplies the reason rendered beside the chooser.
+  const selectionLocked = Boolean(pairLineBlockedReason);
 
   // Both selection sets are global, composite-key Sets ("lineId:itemId")
   // owned by App.jsx — FlashcardGrid stays generic, only ever dealing in
@@ -136,7 +147,17 @@ export default function StudyPage({
           to apply it to. */}
       {isSelecting ? (
         <div className={styles.quizTypeRow}>
-          <QuizTypeChooser value={quizType} onChange={onQuizTypeChange} />
+          <QuizTypeChooser
+            value={quizType}
+            onChange={onQuizTypeChange}
+            pairsDisabled={pairsDisabled}
+            pairsDisabledReason={pairsDisabledReason}
+          />
+          {pairLineBlockedReason ? (
+            <p className={styles.selectionBlocked} role="status">
+              {pairLineBlockedReason}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -181,6 +202,7 @@ export default function StudyPage({
               ? handleToggleGeneratorSelect
               : undefined
           }
+          selectionLocked={selectionLocked}
           selectionCap={
             activeSelectionMode === "generator" ? generatorSelectionCap : quizSelectionCap
           }

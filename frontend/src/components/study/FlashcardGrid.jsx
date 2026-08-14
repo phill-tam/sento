@@ -22,6 +22,15 @@ import styles from "../../styles/FlashcardGrid.module.css";
  * the subset would let a learner keep selecting on line B after filling
  * the cap on line A. Defaults to `selectedIds.size` so a caller whose
  * selection genuinely is single-line needs nothing.
+ *
+ * selectionLocked (epic 012): stay IN selection mode but refuse every
+ * card. Used when a run is being built that this content line can't
+ * contribute to — word pairs and a grammar category. Leaving selection
+ * mode instead would be worse than it sounds: the ✓ is the MASTERY
+ * toggle outside selection, so the same control would silently change
+ * meaning and a learner reaching to select would mark cards mastered
+ * instead. The caller is expected to say why nearby; this only makes the
+ * refusal visible rather than mysterious.
  */
 export default function FlashcardGrid({
   items,
@@ -31,6 +40,7 @@ export default function FlashcardGrid({
   selectionMode = false,
   selectedIds = new Set(),
   selectedCount,
+  selectionLocked = false,
   onToggleSelect,
   selectionCap = 20,
   layout = "grid",
@@ -53,7 +63,7 @@ export default function FlashcardGrid({
         selectionMode={selectionMode}
         isSelected={selectedIds.has(item.id)}
         onToggleSelect={onToggleSelect}
-        selectDisabled={capReached && !selectedIds.has(item.id)}
+        selectDisabled={selectionLocked || (capReached && !selectedIds.has(item.id))}
         layout={layout}
       />
     );
