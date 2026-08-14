@@ -136,3 +136,34 @@
   color: var(--accent);
   margin-right: 4px;
 }
+
+/* The learner's sentence rendered in Japanese. Indented off a rule rather
+   than boxed: it belongs TO the quoted sentence above it, and another
+   bordered block would read as a separate finding alongside the feedback
+   and the suggestion. */
+.translation {
+  margin: -2px 0 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.translationJp {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.translationRomaji {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
