@@ -7,7 +7,7 @@
   width: 680px;
   max-width: 100%;
   margin: 0 auto;
-  background: var(--surface-card);
+  background: var(--quiz-card-bg);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 36px 40px;
@@ -44,7 +44,7 @@
   border-radius: 16px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-on-quiz-card-secondary);
   font-family: var(--font-body);
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -54,7 +54,11 @@
 
 .quitBtn:hover {
   border-color: var(--border-focus);
-  color: var(--text-primary);
+  /* Lifts to the brighter gold rather than --text-on-quiz-card, which is
+     the SAME gold as the resting state by day and would leave the border
+     doing all the work. Night is unaffected — this token reverts to
+     --text-primary there, which is what the hover already used. */
+  color: var(--text-on-quiz-notice);
 }
 
 /* Two equal columns that collapse to one when they can't both hold a
@@ -75,7 +79,7 @@
   padding: 16px 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--surface-field);
+  background: var(--quiz-card-content-bg);
   text-align: center;
   min-width: 0;
 }
@@ -100,7 +104,7 @@
 
 .romaji {
   font-size: 12px;
-  color: var(--text-hint);
+  color: var(--text-hint-on-quiz-content);
   font-style: italic;
   overflow-wrap: anywhere;
 }
@@ -111,14 +115,14 @@
   margin-top: 2px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-on-quiz-content);
   overflow-wrap: anywhere;
 }
 
 .prompt {
   font-family: var(--font-body);
   font-size: 13.5px;
-  color: var(--text-primary);
+  color: var(--text-on-quiz-card);
 }
 
 .input {
@@ -128,7 +132,7 @@
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid var(--border);
-  background: var(--surface-page);
+  background: var(--quiz-card-content-bg);
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
@@ -152,20 +156,20 @@
   gap: 12px;
   margin-top: -8px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-on-quiz-card-secondary);
 }
 
 .count {
-  color: var(--text-secondary);
+  color: var(--text-on-quiz-card-secondary);
 }
 
 .countFull {
-  color: var(--bad);
+  color: var(--bad-on-quiz-card);
   font-weight: 600;
 }
 
 .skipNote {
-  color: var(--text-hint);
+  color: var(--text-on-quiz-card-secondary);
   font-style: italic;
 }
 
@@ -180,7 +184,7 @@
   border-radius: 20px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-on-quiz-card-secondary);
   font-family: var(--font-body);
   font-size: 13px;
   cursor: pointer;
@@ -199,7 +203,7 @@
 .primaryBtn {
   padding: 9px 20px;
   border-radius: 20px;
-  border: 1px solid var(--btn-primary-bg);
+  border: 1px solid var(--quiz-card-btn-border);
   background: var(--btn-primary-bg);
   color: var(--btn-primary-fg);
   font-family: var(--font-body);
@@ -240,11 +244,14 @@
   border-left-width: 3px;
   font-size: 12.5px;
   line-height: 1.45;
-  color: var(--text-primary);
+  color: var(--text-on-quiz-notice);
 }
 
+/* Both washes are semi-transparent and composite against the dark card,
+   so the marker stripes need the lifted status tone to stay visible —
+   --bad is 3.07:1 there. --accent already clears at 5.01:1. */
 .error {
-  border-left-color: var(--bad);
+  border-left-color: var(--bad-on-quiz-card);
   background: var(--bad-wash);
 }
 

@@ -195,6 +195,93 @@
   --shadow-start: 0 10px 30px rgba(15, 44, 46, 0.35);
   --shadow-start-hover: 0 14px 36px var(--gold-light);
 
+  /* ── The quiz cards, day only ──────────────────────────────────────
+     Shared by BOTH quiz types: QuizCard (multiple choice) and
+     PairPromptCard (word pairs). By day the card becomes dark teal with
+     gold type and cream content boxes — an inversion of the ordinary
+     light-page treatment, so essentially every text role on it has to
+     be restated.
+
+     NOT the shared --surface-card/--surface-field: re-pointing those
+     would recolour every card and field in the app (flashcards, dialogs,
+     the sentence list, every text input) for a change scoped to two
+     screens. --quiz-card-content-bg is --cream, which is exactly what
+     --surface-card resolves to — the card's own former colour, now
+     describing the boxes inside it.
+
+     Night is untouched. Every token here re-points to its ordinary
+     shared counterpart in the dark block, so both cards render through
+     the same chain they did before this existed.
+
+     Why the type had to move at all: the card is now dark (relative
+     luminance 0.042), and the light-page text roles are all dark ink.
+     Measured against #164042 — --text-primary 1.18:1, --text-secondary
+     1.61:1, --bad 3.07:1, --good 3.61:1. Gold is the one existing role
+     that already works on dark teal, because that is what it does on the
+     chrome. --gold lands at 5.01:1.
+
+     The two "text-on-quiz-card" tokens are the SAME gold by day and
+     differ only at night, where one reverts to --text-primary and the
+     other to --text-secondary. Splitting them is what lets the day theme
+     collapse to a single gold without flattening the night theme's
+     existing hierarchy. By day that hierarchy rests on size, weight and
+     style instead — the header's uppercase tracking, the 34px display
+     prompt, romaji's italic. */
+  --quiz-card-bg: var(--teal-mid);
+  /* A real beige, not --cream. --cream (#faf6ec) is only 1.08:1 away
+     from pure white, so against the dark card it reads as a white box
+     and gives the verdict border almost nothing to sit against. This is
+     1.29:1 off white — visibly warm — while still 8.80:1 against the
+     card and 10.42:1 under --text-primary. Its own token rather than a
+     new pigment: --cream is --surface-card by day and moving it would
+     recolour every card in the app. */
+  --quiz-card-content-bg: #efe1c4;
+  --text-on-quiz-card: var(--gold); /* 5.01:1 */
+  --text-on-quiz-card-secondary: var(--gold); /* 5.01:1 */
+
+  /* Notices inside the card (PairPromptCard's error / rate-limit
+     banners). Their washes are semi-transparent and composite against
+     the CARD, so gold lands at 4.53 and 4.43 — one of them just under
+     the floor. Gold-light clears both at 7.06 / 6.90. */
+  --text-on-quiz-notice: var(--gold-light);
+
+  /* Status, and there are TWO pairs because the two grounds run in
+     opposite directions.
+
+     ON THE DARK CARD — lifted, same relighting as --good-night/--bad-night
+     above. Used by the quit button's hover, the over-limit character
+     count, and the error banner's marker stripe, all of which sit
+     directly on the teal. --bad is 3.07:1 there. 5.19:1 lifted.
+
+     ON THE BEIGE CONTENT BOX — darkened instead, because in there the
+     polarity is back to dark-on-light. The multiple-choice answer keeps
+     its beige background when marked (only the border and text change
+     colour), so --good at 2.68:1 and --bad at 3.15:1 both fail on it.
+     Darkened to 5.42:1 and 5.41:1 against #efe1c4 — these carry the
+     verdict on their own now, so they are solved to the 4.5 text floor
+     rather than the 3:1 a border alone would need. They moved with the
+     box: against the paler original they were a step lighter. */
+  --good-on-quiz-card: #86c8a2;
+  --bad-on-quiz-card: #ea9c84;
+  --good-on-quiz-content: #356249;
+  --bad-on-quiz-content: #943f29;
+
+  /* Inside the cream content boxes the polarity flips back to dark-on-
+     light, so --text-primary and --text-secondary work unchanged
+     (12.49 / 6.53). These two do not: --accent is 2.10 on cream and
+     --text-hint is 2.82. Both were already failing on the white boxes
+     these replace (2.27 / 3.00) — the cream is not what broke them, it
+     just made them worth fixing while here. Darkened until they clear:
+     5.52 and 5.40. */
+  --accent-on-quiz-content: #7d5f1b;
+  --text-hint-on-quiz-content: #4a6b6a;
+
+  /* The primary button keeps its dark fill, which now sits on a dark
+     card — 1.30:1, so its shape disappears even though its label is
+     fine. A gold edge restores the boundary at 5.01:1 without changing
+     the button's established dark-pill treatment. */
+  --quiz-card-btn-border: var(--gold);
+
   /* Status washes, both at 0.12 so a correct and an incorrect answer
      read at the same strength side by side in the quiz. */
   --good-wash: rgba(95, 158, 122, 0.12);
@@ -378,6 +465,26 @@
      against the scene. */
   --start-btn-bg: #1a1030;
   --start-btn-bg-hover: var(--night-violet);
+
+  /* The quiz cards' day-only tokens revert to the ordinary shared roles
+     here rather than restating night-specific literals. Aliasing means
+     both quiz cards resolve through exactly the same custom-property
+     chain they did before these tokens existed, so nothing about them
+     can drift from the rest of the night theme by accident. The two
+     text-on-quiz-card tokens are identical by day and split here, which
+     is the whole reason there are two of them. */
+  --quiz-card-bg: var(--surface-card);
+  --quiz-card-content-bg: var(--surface-field);
+  --text-on-quiz-card: var(--text-primary);
+  --text-on-quiz-card-secondary: var(--text-secondary);
+  --text-on-quiz-notice: var(--text-primary);
+  --good-on-quiz-card: var(--good);
+  --bad-on-quiz-card: var(--bad);
+  --good-on-quiz-content: var(--good);
+  --bad-on-quiz-content: var(--bad);
+  --accent-on-quiz-content: var(--accent);
+  --text-hint-on-quiz-content: var(--text-hint);
+  --quiz-card-btn-border: var(--btn-primary-bg);
 
   /* Elevation. The day shadows are dark ink at 5-8% alpha, which is a
      technique that only works when the surface is lighter than the

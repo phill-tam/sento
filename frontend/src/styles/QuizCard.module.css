@@ -1,9 +1,18 @@
 .card {
   width: 680px;
   max-width: 100%;
-  height: 560px;
+  /* min-height, not height. The fixed 560px forced .options to scroll,
+     and a scroll container that is ALSO justify-content:center overflows
+     at BOTH ends — the top overflow sits at a negative scroll offset the
+     user can never reach, so the first option was permanently clipped
+     with no way to bring it into view. Padding on the scroll port cannot
+     fix that; the content is outside the scrollable region, not merely
+     tight against its edge. Letting the card grow removes the overflow
+     that caused it, and the min-height keeps the familiar size for the
+     ordinary four-short-options case. */
+  min-height: 560px;
   margin: 0 auto;
-  background: var(--surface-card);
+  background: var(--quiz-card-bg);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 36px 40px;
@@ -41,7 +50,7 @@
   border-radius: 14px;
   border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-on-quiz-card-secondary);
   font-family: var(--font-body);
   font-size: 11.5px;
   letter-spacing: 0.06em;
@@ -51,8 +60,10 @@
 }
 
 .quitBtn:hover {
-  border-color: var(--bad);
-  color: var(--bad);
+  /* Not --bad: 3.07:1 on the dark card. Same hue, lifted — see
+     --bad-on-quiz-card in tokens.css. */
+  border-color: var(--bad-on-quiz-card);
+  color: var(--bad-on-quiz-card);
 }
 
 /* Same approach as the flashcard ✓ and the sentence row's controls: the
@@ -79,13 +90,13 @@
 .jp {
   font-family: var(--font-display);
   font-size: 34px;
-  color: var(--text-primary);
+  color: var(--text-on-quiz-card);
   display: block;
 }
 
 .reading {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-on-quiz-card-secondary);
   margin-top: 8px;
   display: block;
 }
@@ -93,31 +104,51 @@
 /* epic 009 — sized to match the flashcard's treatment. The quiz prompt
    has the whole card width to itself, so this one wraps normally rather
    than running off the edge the way the flashcard's has to. */
+/* No opacity, unlike the flashcard's romaji. The gold is solved to
+   5.01:1 against the card; painting it at 85% drops the EFFECTIVE
+   rendered colour to 4.04:1, which fails. Italic already carries the
+   "supporting line" distinction the opacity was adding. */
 .romaji {
   font-size: 14px;
-  color: var(--text-secondary);
-  opacity: 0.85;
+  color: var(--text-on-quiz-card-secondary);
   margin-top: 6px;
   display: block;
   letter-spacing: 0.03em;
   font-style: italic;
 }
 
+/* No overflow-y and no min-height:0 — both existed only to make the
+   options scroll inside a fixed-height card, and scrolling is what
+   clipped the first option (see .card). The card grows instead.
+   justify-content:center is now safe precisely because nothing
+   overflows: it only centres when there is spare room. */
 .options {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 14px;
-  overflow-y: auto;
-  min-height: 0;
+  /* Breathing room for each option's --shadow-field and its 1px hover
+     lift, which sat flush against the container edge before. */
+  padding: 10px 0;
 }
 
 .option {
-  padding: 16px 20px;
+  padding: 15px 19px;
   border-radius: 10px;
-  border: 1px solid var(--border-field);
-  background: var(--surface-field);
+  /* 2px, not 1px. The verdict is now carried by the border alone — the
+     marked answer keeps its cream background — and 1px of colour was too
+     thin to register against a light box. Set on EVERY option rather
+     than only the marked ones so the box never changes size when it is
+     marked; the padding drops by the same 1px so the overall footprint
+     is unchanged from the 1px/16px version. */
+  border: 2px solid var(--border-field);
+  /* Beige, not the white this used to be. Polarity flips back to
+     dark-on-light in here, so --text-primary is unchanged and still
+     reads at 10.42:1. See --quiz-card-content-bg for why it is a warmer
+     beige than --cream: a near-white box left the verdict border with
+     nothing to sit against. */
+  background: var(--quiz-card-content-bg);
   color: var(--text-primary);
   font-family: var(--font-body);
   font-size: 14px;
@@ -136,16 +167,37 @@
   cursor: default;
 }
 
+/* A marked answer gets a thin status tint over the beige, plus the
+   coloured border and text. The border alone was too quiet in day mode.
+
+   The tint is painted as a background-IMAGE, not background-color, and
+   that is the whole trick. These rules originally set
+   `background: var(--good-wash)`, a shorthand that REPLACES .option's
+   background-color outright (same element, equal specificity, declared
+   later) — so the semi-transparent wash had nothing beneath it but the
+   card and composited against that instead of against the box. A
+   flat-stop gradient layers over the untouched background-color, which
+   is what "a tint on top of the box" actually requires.
+
+   --good-wash/--bad-wash are reused rather than replaced by new tokens:
+   a 12% status wash is exactly what they are, and their only problem was
+   ever the surface they landed on. Over #efe1c4 that leaves the body
+   text at 9.46:1 and the status text and border at 4.92:1 / 4.83:1.
+   Luminance barely moves (1.10:1 against the untinted box) — it is the
+   hue shift that reads, which is what a tint is for.
+
+   The tones are the darkened beige-ground pair, not the lifted
+   card-ground one: on this box --good is 2.68:1 and --bad 3.15:1. */
 .correct {
-  border-color: var(--good);
-  background: var(--good-wash);
-  color: var(--good);
+  background-image: linear-gradient(var(--good-wash), var(--good-wash));
+  border-color: var(--good-on-quiz-content);
+  color: var(--good-on-quiz-content);
 }
 
 .incorrect {
-  border-color: var(--bad);
-  background: var(--bad-wash);
-  color: var(--bad);
+  background-image: linear-gradient(var(--bad-wash), var(--bad-wash));
+  border-color: var(--bad-on-quiz-content);
+  color: var(--bad-on-quiz-content);
 }
 
 .footer {
@@ -156,7 +208,8 @@
 
 .score {
   font-size: 12.5px;
-  color: var(--text-secondary);
+  /* Sits on the card itself, not inside an .option box. */
+  color: var(--text-on-quiz-card-secondary);
 }
 
 .nextBtn {
@@ -164,7 +217,10 @@
   margin-top: 14px;
   padding: 10px 24px;
   border-radius: 20px;
-  border: 1px solid var(--btn-primary-bg);
+  /* The fill is 1.30:1 against the card, so the pill's own edge
+     disappears even though its label is fine. A gold border restores the
+     boundary at 5.01:1 without changing the dark-pill treatment. */
+  border: 1px solid var(--quiz-card-btn-border);
   background: var(--btn-primary-bg);
   color: var(--btn-primary-fg);
   font-family: var(--font-body);
