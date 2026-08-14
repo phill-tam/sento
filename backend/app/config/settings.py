@@ -41,9 +41,16 @@ class Settings(BaseSettings):
     # "development" -> Gemini, "production" -> Claude. See
     # services/sentence_generation_service.py for the switch itself.
     environment: str = "development"
-    gemini_api_key: str = ""
+    # Uppercase, unlike every other field on this class. A deliberate
+    # exception: these two hold secrets pulled straight from the
+    # environment and nowhere else, so the field name mirrors the env
+    # var it reads (GEMINI_API_KEY / ANTHROPIC_API_KEY) rather than
+    # following the lowercase convention the rest of the class uses.
+    # Functionally identical either way — pydantic-settings matches env
+    # vars case-insensitively — this is naming only.
+    GEMINI_API_KEY: str = ""
     gemini_model: str = DEFAULT_GEMINI_MODEL
-    anthropic_api_key: str = ""
+    ANTHROPIC_API_KEY: str = ""
     anthropic_model: str = DEFAULT_ANTHROPIC_MODEL
 
     def resolved_migrations_url(self) -> str:
