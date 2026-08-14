@@ -6,6 +6,14 @@ import styles from "../../styles/ConfirmDialog.module.css";
  * Not quiz-specific: epic 004's quiz-in-progress guard is the first
  * caller, but this component has no knowledge of quizzes.
  *
+ * confirmLabel/cancelLabel (epic 012): both default to the generic words
+ * this shipped with, so every existing caller is unchanged. They exist
+ * because the word-pairs entry warning is not a discard confirmation —
+ * it explains that answers are sent to an AI provider, and "Confirm"
+ * against that reads as agreeing to a warning rather than choosing to
+ * begin. A dialog whose buttons name the action is answerable without
+ * re-reading the message.
+ *
  * epic 011 — portalled to <body> so its z-index:10 lands in the ROOT
  * stacking context rather than wherever the caller happens to sit.
  * App.jsx already rendered it outside .shell to get that (CLAUDE.md:
@@ -24,7 +32,14 @@ import styles from "../../styles/ConfirmDialog.module.css";
  * clipped to the 320px drawer instead. Measured before the fix at
  * 390px: backdrop 319x788 rather than 390x844.
  */
-export default function ConfirmDialog({ open, message, onConfirm, onCancel }) {
+export default function ConfirmDialog({
+  open,
+  message,
+  onConfirm,
+  onCancel,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+}) {
   if (!open) return null;
 
   return createPortal(
@@ -33,10 +48,10 @@ export default function ConfirmDialog({ open, message, onConfirm, onCancel }) {
         <p className={styles.message}>{message}</p>
         <div className={styles.actions}>
           <button type="button" className={styles.cancelBtn} onClick={onCancel}>
-            Cancel
+            {cancelLabel}
           </button>
           <button type="button" className={styles.confirmBtn} onClick={onConfirm}>
-            Confirm
+            {confirmLabel}
           </button>
         </div>
       </div>
