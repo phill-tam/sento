@@ -1,5 +1,14 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Fallbacks only — named so a reader isn't left decoding a bare string
+# literal inside a Field default. The real override path is the env var
+# (GEMINI_MODEL / ANTHROPIC_MODEL in .env), which pydantic-settings
+# matches case-insensitively; changing which model runs is a one-line
+# .env edit and should never need a code change or a redeploy. These
+# constants exist for the case where .env sets nothing at all.
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -32,10 +41,17 @@ class Settings(BaseSettings):
     # "development" -> Gemini, "production" -> Claude. See
     # services/sentence_generation_service.py for the switch itself.
     environment: str = "development"
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.5-flash"
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-5"
+    # Uppercase, unlike every other field on this class. A deliberate
+    # exception: these two hold secrets pulled straight from the
+    # environment and nowhere else, so the field name mirrors the env
+    # var it reads (GEMINI_API_KEY / ANTHROPIC_API_KEY) rather than
+    # following the lowercase convention the rest of the class uses.
+    # Functionally identical either way — pydantic-settings matches env
+    # vars case-insensitively — this is naming only.
+    GEMINI_API_KEY: str = ""
+    gemini_model: str = DEFAULT_GEMINI_MODEL
+    ANTHROPIC_API_KEY: str = ""
+    anthropic_model: str = DEFAULT_ANTHROPIC_MODEL
 
     def resolved_migrations_url(self) -> str:
         """Falls back to database_url when no separate migrations URL is set —

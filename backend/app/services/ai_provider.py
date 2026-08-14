@@ -56,7 +56,7 @@ class GeminiProvider:
     """Dev-environment provider."""
 
     def __init__(self) -> None:
-        self._client = genai.Client(api_key=settings.gemini_api_key)
+        self._client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
     def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
         # max_tokens is accepted for protocol conformance and not sent:
@@ -89,7 +89,7 @@ class ClaudeProvider:
     """Prod-environment provider."""
 
     def __init__(self) -> None:
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
     def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
         try:
