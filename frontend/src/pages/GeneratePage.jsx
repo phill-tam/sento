@@ -5,6 +5,11 @@ import { useSentenceGenerator } from "../hooks/useSentenceGenerator";
 import SentenceList from "../components/generator/SentenceList";
 import GenerateConfigForm from "../components/generator/GenerateConfigForm";
 import SentenceReviewPanel from "../components/generator/SentenceReviewPanel";
+import {
+  DeviceStorageNote,
+  QuarantineNotice,
+  StorageUnavailableNotice,
+} from "../components/generator/StorageNotices";
 import styles from "../styles/GeneratePage.module.css";
 
 // Display-only fallback for QuizEmptyState's copy, mirrors StudyPage's
@@ -21,6 +26,9 @@ export default function GeneratePage({
   isLoadingSentences,
   onRelocateSentence,
   onDeleteSentence,
+  // epic 013 — { available, quarantined }, refreshed by App.jsx after each
+  // store read. Defaulted so the page renders standalone in a test.
+  storageStatus = { available: true, quarantined: [] },
   // epic 6 — same ModeToggle-driving props StudyPage receives, so
   // Study/Quiz/Generator work identically from this page too.
   mode,
@@ -65,8 +73,11 @@ export default function GeneratePage({
   }
 
   async function handleSave(folderId) {
-    await generator.save(folderId);
-    onRunComplete();
+    // epic 013 — a save can fail now that it writes to browser storage, and
+    // completing the run would clear the kept sentences the failure just
+    // preserved. Only advance on success; the panel renders generator.error.
+    const saved = await generator.save(folderId);
+    if (saved) onRunComplete();
   }
 
   const header = (
@@ -97,6 +108,12 @@ export default function GeneratePage({
     return (
       <div className={styles.page}>
         {header}
+        {/* epic 013 — the saved-sentence list is the one place where "these
+            live in your browser" is the relevant fact, so the notices sit
+            here rather than app-wide. */}
+        {!storageStatus.available && <StorageUnavailableNotice />}
+        <QuarantineNotice keys={storageStatus.quarantined} />
+        <DeviceStorageNote />
         {isLoadingSentences ? (
           <p className={styles.loading}>Loading…</p>
         ) : (

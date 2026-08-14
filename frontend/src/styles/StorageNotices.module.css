@@ -1,0 +1,44 @@
+/* epic 013 — three storage states, three appearances. The permanent one
+   must not read like the alarming ones; see StorageNotices.jsx. */
+
+/* Quiet by design. This line is permanent, so it has to sit under the
+   sentence list without competing with it — no box, no rule, no icon. */
+.deviceNote {
+  margin: 0 0 12px;
+  color: var(--text-hint);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.unavailable {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--bad);
+  border-radius: 6px;
+  background: var(--bad-wash);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* A warning, not an error — the data still exists. Carries the accent
+   wash rather than the bad wash so it cannot be mistaken for the
+   nothing-is-persisting case above. */
+.quarantine {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-line-panel);
+  border-radius: 6px;
+  background: var(--accent-wash-selected);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.quarantine code {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
