@@ -27,12 +27,13 @@ Japanese keyboard.
 | 009 — Romaji | Romaji on every card, romaji search, visibility toggle | Shipped — see [Romaji](#romaji) |
 | 010 — Long-content layout | Flip-list rows for grammar and long vocab | Shipped — see [Long-content layout](#long-content-layout) |
 | 011 — Responsive shell | 1024px breakpoint, top bar + overlay drawer (frontend) | Shipped — see [Responsive layout](#responsive-layout) |
+| 012 — Word Pairs | AI-graded English sentence writing, a second quiz type (backend + frontend) | Shipped — see [Word Pairs](#word-pairs) |
 
-Epics 001, 002 and 009 have write-ups in `docs/epics/`. The rest exist
-as shipped code, the GitHub issues that track them, and `epic N`
+Epics 001, 002, 009 and 012 have write-ups in `docs/epics/`. The rest
+exist as shipped code, the GitHub issues that track them, and `epic N`
 comments in the source — treat those as more current than `docs/` when
 the two disagree. Architecture decisions are recorded as ADRs in
-`docs/adr/`, currently numbered up to 017.
+`docs/adr/`, currently numbered up to 018.
 
 ---
 
@@ -135,10 +136,10 @@ if `backend/tests/**` has files.
 | `DATABASE_URL` | Yes | App runtime connection. Local dev: `postgresql+psycopg://sento:sento@localhost:5432/sento_db`. Supabase: use the transaction pooler (port `6543`). |
 | `MIGRATIONS_DATABASE_URL` | No | Alembic only. Leave blank for local dev — falls back to `DATABASE_URL`. Supabase: use the direct, non-pooler connection (port `5432`). |
 | `ADMIN_WRITES_ENABLED` | No | Default `false`. Mounts the content **write** endpoints. See [Admin writes](#admin-writes) before enabling. |
-| `ENVIRONMENT` | No | Default `development`. Selects the AI provider: `development` → Gemini, `production` → Claude. |
-| `GEMINI_API_KEY` | If generating in dev | Required when `ENVIRONMENT=development`. |
-| `GEMINI_MODEL` | No | Default `gemini-3.5-flash`. |
-| `ANTHROPIC_API_KEY` | If generating in prod | Required when `ENVIRONMENT=production`. |
+| `ENVIRONMENT` | No | Default `development`. Selects the AI provider: `development` → Gemini, `production` → Claude. One switch for **both** AI features — sentence generation and Word Pairs answer grading ([ADR 018](docs/adr/018-ai-provider-protocol-narrowed-to-complete.md)). |
+| `GEMINI_API_KEY` | If using AI features in dev | Required when `ENVIRONMENT=development`. Free-tier keys carry a per-minute quota shared by both AI features — see [Word Pairs](#word-pairs). |
+| `GEMINI_MODEL` | No | Default `gemini-3.5-flash`. A plain env var read at startup — changing the model is a `.env` edit, never a code change. |
+| `ANTHROPIC_API_KEY` | If using AI features in prod | Required when `ENVIRONMENT=production`. |
 | `ANTHROPIC_MODEL` | No | Default `claude-sonnet-4-5`. |
 
 ### Frontend (`frontend/.env`, optional)
@@ -180,9 +181,12 @@ every page load. Reading content has never needed a flag; the old
 `FEATURE_CONTENT_MANAGEMENT` coupled reads and writes into one switch,
 which is exactly what ADR 012 unpicked.
 
-**Known gap:** `POST /sentences/generate` is unconditionally mounted and
-also unauthenticated. It spends real AI provider quota per call, and the
-provider's own rate limit is the only backstop.
+**Known gap:** `POST /sentences/generate` and `POST /pair-writing/grade`
+are both unconditionally mounted and unauthenticated. Both spend real AI
+provider quota per call, both share the same provider key per
+environment, and the provider's own rate limit is the only backstop for
+either — see [Word Pairs](#word-pairs) and
+[ADR 018](docs/adr/018-ai-provider-protocol-narrowed-to-complete.md).
 
 ---
 
@@ -383,6 +387,63 @@ drawer's stacking contract (and the pre-existing modal-dialog bug its
 prototype phase caught and fixed along the way), and why this doesn't
 reopen [ADR 004](docs/adr/004-sidebar-only-navigation-topnav-dropped.md)'s
 decision against a persistent top nav so much as scope it to desktop.
+
+---
+
+## Word Pairs
+
+A second quiz type, alongside the original multiple-choice one. Where
+multiple choice tests *recognition* — pick the right meaning from four —
+Word Pairs tests *usage*: the learner picks 2–4 kanji/vocabulary items,
+every unordered pair of them becomes one task (C(n,2), so 1–6 pairs), and
+for each pair the learner writes one English sentence using both words.
+
+```
+presented:  空 (sora) — "sky"      走る (hashiru) — "to run"
+accepted:   "You can't run on the sky."
+rejected:   "Zeus runs the sky."     ← "run" = manage/operate, not 走る
+```
+
+Grading this is a word-sense judgement over free text — no string match
+reaches it, since both sentences above contain both words — so it is the
+second place in this codebase where asking an AI model is the correct
+engineering answer rather than the lazy one (the first being sentence
+romaji; see [Romaji](#romaji)).
+
+**One AI call per run, at the end, not one per question.** The learner
+writes every pair, submits, and a single `POST /pair-writing/grade` call
+carries the whole batch and returns a verdict for each — the same cost
+whether the run is one pair or six. Each verdict also carries the
+learner's own sentence translated into Japanese (kanji/kana + romaji), in
+the same response, so that costs nothing extra either. A blank or clearly
+off-task answer never reaches the provider at all — a cheap local check
+catches those first.
+
+**The quiz-type chooser lives inside the existing mode bar.** Clicking
+"Quiz me" now offers Multiple choice / Word pairs before the item picker
+opens, the same in-place-transforming pattern `ModeToggle` already used
+for `Quiz me → Start Quiz (n/20)`. A confirm dialog explains the AI
+grading before the picker opens — the one point in the flow where
+declining still costs nothing.
+
+**Grammar patterns and saved sentences are not eligible.** A pair task
+needs a *word* carrying one sense to use or misuse; a grammar pattern is
+a phrase with a structural meaning, and a saved sentence is already a
+sentence. Selecting a grammar category while building a Word Pairs run
+shows why, rather than silently refusing clicks — see
+[`docs/epics/012-pair-writing-quiz.md`](docs/epics/012-pair-writing-quiz.md)
+§2.2 and §5.
+
+This is the first mode that spends AI provider quota to **take** an
+exercise rather than to **create** content — the sentence generator is
+occasional, this is the activity you want repeated. It shares the exact
+provider-key exposure `POST /sentences/generate` already carried (see
+[Admin writes](#admin-writes)), now split across two features on one
+shared quota. [ADR 018](docs/adr/018-ai-provider-protocol-narrowed-to-complete.md)
+covers the provider-layer change this required and records that
+consequence directly; the full design, including the grading rubric and
+every rejected alternative, is in
+[`docs/epics/012-pair-writing-quiz.md`](docs/epics/012-pair-writing-quiz.md).
 
 ---
 
