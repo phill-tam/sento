@@ -300,6 +300,11 @@ function App() {
 
   const [pendingAction, setPendingAction] = useState(null);
 
+  // epic 012 — the AI-grading notice, and whether it has been answered
+  // this session. Not persisted; see handleQuizTypeChange.
+  const [pairWarningOpen, setPairWarningOpen] = useState(false);
+  const [pairWarningAcknowledged, setPairWarningAcknowledged] = useState(false);
+
   // epic 6 — selection now spans pages (Study + Generate) by design, so
   // only an ACTIVE quiz blocks navigation. "selecting" no longer does —
   // the user needs to browse both pages freely while building a
@@ -424,8 +429,32 @@ function App() {
   // grammar the pair grader would reject — beginSelection replacing the
   // whole object is what makes that impossible rather than merely
   // unlikely.
+  //
+  // Choosing pairs asks first, once per session. Every other mode in this
+  // app runs entirely on the device; this one sends what the learner
+  // writes to a third party, and that is worth saying before they write
+  // rather than after. Once per session rather than once ever: a
+  // data-sharing notice that a single click silences forever is a notice
+  // nobody has read, and unlike the display preferences in localStorage
+  // this is not a setting the learner is choosing to keep.
   function handleQuizTypeChange(nextType) {
+    if (nextType === "pairs" && !pairWarningAcknowledged) {
+      setPairWarningOpen(true);
+      return;
+    }
     beginSelection(nextType === "pairs" ? "pairs" : "quiz");
+  }
+
+  function confirmPairWarning() {
+    setPairWarningAcknowledged(true);
+    setPairWarningOpen(false);
+    beginSelection("pairs");
+  }
+
+  // Declining leaves the selection exactly as it was, still on multiple
+  // choice. Nothing is cleared, because nothing was started.
+  function cancelPairWarning() {
+    setPairWarningOpen(false);
   }
 
   // Keyed the same way as the quiz's set, and for the same reason: the
@@ -928,6 +957,21 @@ function App() {
         }
         onConfirm={confirmDiscardInProgress}
         onCancel={cancelPendingDiscard}
+      />
+
+      {/* Separate instance rather than a mode on the one above: that one
+          is a discard confirmation whose Confirm destroys work, this one
+          starts something. They can never be open at once — this is
+          reachable only while picking, and that one only guards an active
+          run — so two instances cost nothing and neither has to branch on
+          the other's meaning. */}
+      <ConfirmDialog
+        open={pairWarningOpen}
+        message="Word pairs are graded by an AI provider. The sentences you write are sent to it to be checked. Everything else in Sentō stays on your device."
+        confirmLabel="Start writing"
+        cancelLabel="Not now"
+        onConfirm={confirmPairWarning}
+        onCancel={cancelPairWarning}
       />
     </SoundProviders>
   );
