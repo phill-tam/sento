@@ -1,24 +1,10 @@
 import { API_BASE_URL } from "./config";
+import { ApiError, RateLimitError } from "./errors";
 
-export class ApiError extends Error {
-  constructor(message, { status, body } = {}) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.body = body;
-  }
-}
-
-// Thrown specifically when the backend's SentenceGenerationError shape is
-// detected on a 429 — lets useSentenceGenerator (epic 5) show the dedicated
-// rate-limit notice instead of a generic failure message, per the epic's
-// "clear error notice, not silent failure" requirement.
-export class RateLimitError extends ApiError {
-  constructor(message, opts) {
-    super(message, opts);
-    this.name = "RateLimitError";
-  }
-}
+// Declared in errors.js since epic 013 gave the app a second store that
+// throws the same shapes, and re-exported here so every existing
+// `from "./api"` import keeps working.
+export { ApiError, RateLimitError };
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
