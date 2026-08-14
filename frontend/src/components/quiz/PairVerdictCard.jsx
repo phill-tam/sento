@@ -1,3 +1,4 @@
+import { useRomaji } from "../../context/RomajiContext";
 import styles from "../../styles/PairVerdictCard.module.css";
 
 /**
@@ -18,8 +19,20 @@ import styles from "../../styles/PairVerdictCard.module.css";
  * The learner's own sentence is echoed back. Feedback that says "you used
  * 'run' to mean manage" is unreadable next to a sentence you can no
  * longer see, and by results time it may be six pairs ago.
+ *
+ * The Japanese translation renders directly beneath that sentence, since
+ * it is a rendering OF it — the pairing is the point, and putting it
+ * lower would make the reader carry the English down the card. It is of
+ * what the learner actually wrote, not a correction; `suggestion` is the
+ * corrected sentence and stays where it is.
+ *
+ * Romaji follows the global preference through RomajiContext, exactly as
+ * every card in the app does. Turning romaji off must not hide the
+ * Japanese itself, only its transliteration.
  */
 export default function PairVerdictCard({ pair, answer, verdict }) {
+  const { isVisible: showRomaji } = useRomaji();
+
   if (!pair || !verdict) return null;
 
   const kind = verdict.verdict;
@@ -39,6 +52,22 @@ export default function PairVerdictCard({ pair, answer, verdict }) {
       ) : (
         <p className={styles.noAnswer}>No sentence written.</p>
       )}
+
+      {/* Absent for skipped and off-task pairs, which never reached a
+          provider, and for any the provider declined to translate — so
+          this stays conditional rather than rendering an empty line.
+          lang="ja" so a screen reader switches voice rather than
+          spelling kanji out in English. */}
+      {verdict.translation_jp ? (
+        <div className={styles.translation}>
+          <p className={styles.translationJp} lang="ja">
+            {verdict.translation_jp}
+          </p>
+          {showRomaji && verdict.translation_romaji ? (
+            <p className={styles.translationRomaji}>{verdict.translation_romaji}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <p className={styles.feedback}>{verdict.feedback}</p>
 
