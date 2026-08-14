@@ -1,0 +1,109 @@
+/* Two options side by side, wrapping to one column when the row can't
+   hold them. No media query: the options have a sensible min width and
+   flex-wrap handles every viewport, so this needs no coordination with
+   the 1024px shell breakpoint. */
+.chooser {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.option {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.option:hover:not(.active):not(:disabled) {
+  border-color: var(--border-focus);
+}
+
+.option.active {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border-color: var(--btn-primary-bg);
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* The active fill is dark in both themes, so the hint has to come off the
+   muted role token or it drops to near-invisible on its own background. */
+.option.active .hint {
+  color: var(--btn-primary-fg);
+  opacity: 0.75;
+}
+
+/* Same animated glow ModeToggle gives the Sentence Generator, and for the
+   same reason: this option spends AI quota. Keep the two in step — a
+   glow that means "AI" in one place and something else in another stops
+   meaning anything. */
+.option.ai {
+  position: relative;
+  border-color: transparent;
+  background-clip: padding-box;
+}
+
+.option.ai::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 16px;
+  z-index: -1;
+  background: linear-gradient(120deg, var(--accent), var(--good), var(--accent-strong), var(--accent));
+  background-size: 300% 300%;
+  animation: pairGlowShift 3.5s ease-in-out infinite, pairGlowPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes pairGlowShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pairGlowPulse {
+  0%, 100% { filter: drop-shadow(0 0 2px var(--accent-glow-soft)); }
+  50% { filter: drop-shadow(0 0 7px var(--accent-glow-strong)); }
+}
+
+/* Motion here is decoration carrying no information the border and label
+   don't already give, so it goes entirely rather than slowing down. */
+@media (prefers-reduced-motion: reduce) {
+  .option.ai::before {
+    animation: none;
+  }
+}
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Full-width under both options rather than beside one, so it reads as
+   the explanation for the row and never squeezes an option's own text. */
+.reason {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}

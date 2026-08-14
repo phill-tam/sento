@@ -1,0 +1,229 @@
+/* Deliberately NOT QuizCard's fixed 560px height. That card holds four
+   options of known size; this one holds two words of wildly varying
+   length (a single kanji, or よろしくおねがいします) plus a textarea, so a
+   fixed height would either clip or leave a void. Width matches QuizCard
+   so the two read as the same surface. */
+.card {
+  width: 680px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--shadow-card-lifted);
+}
+
+/* Same three-column header as QuizCard, for the same reason: the caption
+   wraps at narrow widths and an absolutely-positioned Quit would land on
+   its second line. */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.headerText {
+  grid-column: 2;
+  text-align: center;
+}
+
+.quitBtn {
+  grid-column: 3;
+  justify-self: end;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quitBtn:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+/* Two equal columns that collapse to one when they can't both hold a
+   word. The min(220px, 100%) inside minmax is what makes the collapse
+   safe: a bare 220px floor would overflow a viewport narrower than the
+   two tracks plus the gap, which is exactly where this has to survive. */
+.words {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+}
+
+.word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-field);
+  text-align: center;
+  min-width: 0;
+}
+
+.jp {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1.25;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* No font-family — FlashcardCard's .reading inherits the body face and
+   this must match it. --font-display is the Mincho serif, right for the
+   word itself and wrong for its kana gloss. */
+.reading {
+  font-size: 13px;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.romaji {
+  font-size: 12px;
+  color: var(--text-hint);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+/* The gloss is the point of the exercise, not a hint — it gets the
+   accent, not the muted role. */
+.gloss {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.prompt {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.count {
+  color: var(--text-secondary);
+}
+
+.countFull {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.skipNote {
+  color: var(--text-hint);
+  font-style: italic;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.backBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.backBtn:hover:not(:disabled) {
+  border-color: var(--border-focus);
+}
+
+.backBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.primaryBtn {
+  padding: 9px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
+  .card {
+    padding: 24px 20px;
+    gap: 14px;
+  }
+
+  .jp {
+    font-size: 26px;
+  }
+}

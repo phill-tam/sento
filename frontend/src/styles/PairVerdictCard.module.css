@@ -1,0 +1,138 @@
+/* The verdict is carried by the left border and the badge, never by
+   colour alone — "Correct" / "Not quite" / "Not checked" / "Skipped" are
+   readable without seeing any of it. */
+.card {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+
+.correct {
+  border-left-color: var(--good);
+  background: var(--good-wash);
+}
+
+.incorrect {
+  border-left-color: var(--bad);
+  background: var(--bad-wash);
+}
+
+/* Unchecked and skipped share the neutral treatment on purpose: neither
+   is a wrong answer, and giving either the "incorrect" red would tell the
+   learner they failed something nobody marked. */
+.ungradeable,
+.skipped {
+  border-left-color: var(--border-focus);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.words {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.correct .badge {
+  color: var(--good);
+}
+
+.incorrect .badge {
+  color: var(--bad);
+}
+
+.answer {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  font-style: italic;
+}
+
+.noAnswer {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-hint);
+  font-style: italic;
+}
+
+.feedback {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.wordList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.wordRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.wordOk {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.wordBad {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.wordJp {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.wordNote {
+  color: var(--text-hint);
+}
+
+.suggestion {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.suggestionLabel {
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 4px;
+}
