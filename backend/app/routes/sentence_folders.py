@@ -14,15 +14,21 @@ from app.schemas.sentence_folder import (
     SentenceFolderRename,
 )
 
-router = APIRouter(prefix="/sentence-folders", tags=["sentence-folders"])
+# Named `persistence_router`, not `router`, because this whole file is
+# persistence: there is no read-only half to keep mounted the way
+# /sentences keeps generation. Folders exist to organise saved sentences,
+# and those live in the browser as of epic 013, so the entire module is
+# gated behind sentence_persistence_enabled. See routes/sentences.py for
+# the split's reasoning.
+persistence_router = APIRouter(prefix="/sentence-folders", tags=["sentence-folders"])
 
 
-@router.get("", response_model=list[SentenceFolderRead])
+@persistence_router.get("", response_model=list[SentenceFolderRead])
 def get_sentence_folders(db: Annotated[Session, Depends(get_db)]) -> list[SentenceFolder]:
     return list(db.scalars(select(SentenceFolder)))
 
 
-@router.post("", response_model=SentenceFolderRead)
+@persistence_router.post("", response_model=SentenceFolderRead)
 def create_sentence_folder(
     payload: SentenceFolderCreate,
     db: Annotated[Session, Depends(get_db)],
@@ -34,7 +40,7 @@ def create_sentence_folder(
     return folder
 
 
-@router.patch("/{folder_id}", response_model=SentenceFolderRead)
+@persistence_router.patch("/{folder_id}", response_model=SentenceFolderRead)
 def rename_sentence_folder(
     folder_id: UUID,
     payload: SentenceFolderRename,
@@ -49,7 +55,7 @@ def rename_sentence_folder(
     return folder
 
 
-@router.delete("/{folder_id}", status_code=204)
+@persistence_router.delete("/{folder_id}", status_code=204)
 def delete_sentence_folder(
     folder_id: UUID,
     db: Annotated[Session, Depends(get_db)],

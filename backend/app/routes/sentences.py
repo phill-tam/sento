@@ -23,7 +23,21 @@ from app.services.ai_provider import (
 from app.services.content_resolver import resolve_source_items
 from app.services.sentence_generation_service import generate_sentences
 
+# Two routers, mounted independently — the same split kanji/vocab/grammar
+# use for `router` vs `admin_router`, and for the same reason: what
+# separates them is whether an unauthenticated caller reaching the
+# endpoint is acceptable, not which feature they belong to.
+#
+# `router` is generation only. It has no persistence, the app cannot work
+# without it, and it is mounted unconditionally.
 router = APIRouter(prefix="/sentences", tags=["sentences"])
+
+# `persistence_router` writes and reads the shared, unattributed
+# generated_sentences table. Saved sentences moved into the browser in
+# epic 013, so nothing calls these; they are mounted only where
+# sentence_persistence_enabled says a stray caller is acceptable. Keep new
+# persistence endpoints here and new generation endpoints on `router`.
+persistence_router = APIRouter(prefix="/sentences", tags=["sentences"])
 
 
 @router.post("/generate", response_model=GenerateSentencesResponse)
@@ -46,7 +60,7 @@ def generate_sentences_endpoint(
     return GenerateSentencesResponse(candidates=candidates)
 
 
-@router.post("", response_model=SaveSentencesResponse)
+@persistence_router.post("", response_model=SaveSentencesResponse)
 def save_sentences(
     payload: SaveSentencesRequest,
     db: Annotated[Session, Depends(get_db)],
@@ -80,7 +94,7 @@ def save_sentences(
     return SaveSentencesResponse(saved=[GeneratedSentenceRead.model_validate(e) for e in saved])
 
 
-@router.get("", response_model=list[GeneratedSentenceRead])
+@persistence_router.get("", response_model=list[GeneratedSentenceRead])
 def get_sentences(
     db: Annotated[Session, Depends(get_db)],
     folder_id: UUID | None = None,
@@ -91,7 +105,7 @@ def get_sentences(
     return list(db.scalars(stmt))
 
 
-@router.patch("/{sentence_id}", response_model=GeneratedSentenceRead)
+@persistence_router.patch("/{sentence_id}", response_model=GeneratedSentenceRead)
 def relocate_sentence(
     sentence_id: UUID,
     payload: SentenceRelocate,
@@ -112,7 +126,7 @@ def relocate_sentence(
     return entry
 
 
-@router.delete("/{sentence_id}", status_code=204)
+@persistence_router.delete("/{sentence_id}", status_code=204)
 def delete_sentence(
     sentence_id: UUID,
     db: Annotated[Session, Depends(get_db)],
