@@ -27,13 +27,24 @@
 --      database you mean:
 --        SELECT current_database(), current_user, inet_server_addr();
 --
--- HOW TO RUN
+-- HOW TO RUN — INTERACTIVELY, NOT WITH -f
 --
---   psql "$PRODUCTION_DATABASE_URL" -f purge_production_sentences.sql
+--   psql "$PROD_DB"
+--   \i backend/scripts/purge_production_sentences.sql
+--   -- read the counts, then type COMMIT; or ROLLBACK;
 --
--- The final COMMIT is deliberately left commented out, so piping this
--- file into psql cannot complete the deletion on its own. Read the
--- counts, then type COMMIT (or ROLLBACK) yourself.
+-- `psql -f` does NOT work here and will silently purge nothing: it runs
+-- the file and exits, and an open transaction at session close is rolled
+-- back. That is the same property that makes this file safe to read and
+-- fatal to trust blindly — the commented-out COMMIT only means something
+-- if there is a prompt left to type it at.
+--
+-- The connection string must be the plain libpq form. The app's
+-- DATABASE_URL is SQLAlchemy's `postgresql+psycopg://…`, and psql
+-- rejects the `+psycopg`. Strip it. On Supabase use the DIRECT
+-- connection (the one MIGRATIONS_DATABASE_URL holds), not the
+-- transaction pooler — interactive transactions and pg_dump both need
+-- it.
 
 BEGIN;
 

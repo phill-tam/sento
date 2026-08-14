@@ -39,11 +39,17 @@ into the table you just emptied.
 ## 1. Confirm the target
 
 ```bash
-psql "$PRODUCTION_DATABASE_URL" -c "SELECT current_database(), current_user, inet_server_addr();"
+psql "$PROD_DB" -c "SELECT current_database(), current_user, inet_server_addr();"
 ```
 
-Supabase note: use the **direct** connection, not the transaction pooler.
-Interactive transactions and `pg_dump` both want the non-pooled port.
+Two things about that connection string:
+
+- **Strip the driver.** The app's `DATABASE_URL` is SQLAlchemy's
+  `postgresql+psycopg://…`. `psql` and `pg_dump` reject the `+psycopg`
+  and want plain `postgresql://…`.
+- **Use the direct connection, not the transaction pooler** — the one
+  `MIGRATIONS_DATABASE_URL` holds. Interactive transactions and
+  `pg_dump` both need the non-pooled port.
 
 ## 2. Dump both tables
 
@@ -69,14 +75,27 @@ delete from.
 
 ## 3. Purge
 
+**Interactively. Not with `-f`.**
+
 ```bash
-psql "$PRODUCTION_DATABASE_URL" -f backend/scripts/purge_production_sentences.sql
+psql "$PROD_DB"
+```
+
+Then at the prompt:
+
+```
+\i backend/scripts/purge_production_sentences.sql
 ```
 
 The script opens a transaction, prints the before-counts, deletes
 sentences then folders (that order is forced — the FK is
 `ON DELETE RESTRICT`), and prints the after-counts. **It does not
 commit.** Read the counts, then type `COMMIT;` or `ROLLBACK;` yourself.
+
+`psql -f` would purge **nothing**: it runs the file and exits, and an
+open transaction at session close is rolled back. The commented-out
+`COMMIT` is only a safety property if there is a prompt left to type it
+at — with `-f` it is just a no-op that looks like it worked.
 
 Leaving the session without typing either rolls back.
 
