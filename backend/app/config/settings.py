@@ -15,6 +15,19 @@ class Settings(BaseSettings):
     # does not have. Leave false anywhere reachable by anyone else.
     admin_writes_enabled: bool = False
 
+    # Mounts the unauthenticated sentence/folder persistence endpoints
+    # (save, list, relocate, delete, and all of /sentence-folders). Same
+    # category as admin_writes_enabled — access control standing in for
+    # the auth this project does not have (ADR 012), not an epic gate.
+    #
+    # Saved sentences live in the user's browser as of epic 013, so
+    # nothing calls these; left mounted they are an unattributed shared
+    # pile anyone can write into whatever database they point at, which
+    # is the exact thing that epic exists to stop. The auth epic turns
+    # this on again behind a user_id. POST /sentences/generate is NOT
+    # gated by it — that endpoint has no persistence and the app needs it.
+    sentence_persistence_enabled: bool = False
+
     # Sentence Generator (epic 5) — selects the AI provider at runtime.
     # "development" -> Gemini, "production" -> Claude. See
     # services/sentence_generation_service.py for the switch itself.
