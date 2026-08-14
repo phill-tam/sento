@@ -77,3 +77,23 @@
   font-family: var(--font-body);
   font-size: 13px;
 }
+/* epic 012 — the quiz-type chooser, shown only while picking cards. Sits
+   between the page head and the progress strip so the choice reads as
+   part of setting up the run, above the cards it applies to. */
+.quizTypeRow {
+  margin-bottom: 16px;
+}
+
+/* epic 012 — why the cards on this line don't tick. Sits directly under
+   the chooser so the explanation is next to the choice that caused it. */
+.selectionBlocked {
+  margin: 10px 0 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent-wash-hover);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}

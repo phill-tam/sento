@@ -27,6 +27,9 @@ import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
 import QuizCard from "./components/quiz/QuizCard";
 import QuizSummary from "./components/quiz/QuizSummary";
+import PairPromptCard from "./components/quiz/PairPromptCard";
+import PairQuizSummary from "./components/quiz/PairQuizSummary";
+import { usePairWriting } from "./hooks/usePairWriting";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
@@ -57,6 +60,19 @@ const MIN_QUIZ_ITEMS = 4;
 
 const GENERATOR_SELECTION_CAP = 5;
 const GENERATOR_MIN_SELECTION = 2;
+
+// epic 012 — 4 rather than 5 because every unordered pair becomes one
+// writing task: C(4,2) is six free-text sentences in a sitting, and
+// C(5,2) would be ten, longer than anything else in the app.
+const PAIR_SELECTION_CAP = 4;
+const PAIR_MIN_SELECTION = 2;
+
+// Word pairs are built from single words carrying one sense. A grammar
+// pattern is a phrase with a structural meaning and a saved sentence is
+// already a sentence — neither has a sense to use or misuse. Mirrors
+// PAIR_ELIGIBLE_LINES in the backend's pair_writing schema, which rejects
+// the others outright; this stops them being pickable in the first place.
+const PAIR_ELIGIBLE_LINES = new Set(["kanji", "vocab"]);
 
 // Module-level so their identity is stable across renders — `selectedIds`
 // and `generatorSelectedIds` are derived below and feed useMemo
@@ -195,6 +211,60 @@ function QuizRunner({ selectedItems, globalPool, onFinish, onQuit }) {
   );
 }
 
+/**
+ * Active word-pairs run (epic 012), mounted in the same slot as
+ * QuizRunner and for the same reason: App.jsx intercepts an active run
+ * above the view switch, so StudyPage never mounts underneath one.
+ *
+ * usePairWriting freezes its pairs at mount, so this component must not
+ * be remounted mid-run — the slot below is keyed on nothing and the
+ * branch is stable for the life of the run, which is what keeps that
+ * true.
+ */
+function PairWritingRunner({ selectedItems, onFinish, onQuit }) {
+  const run = usePairWriting(selectedItems);
+
+  if (run.phase === "complete") {
+    return (
+      <PairQuizSummary
+        pairs={run.pairs}
+        answers={run.answers}
+        verdicts={run.verdicts}
+        results={run.results}
+        onFinish={onFinish}
+      />
+    );
+  }
+
+  return (
+    <PairPromptCard
+      pair={run.currentPair}
+      value={run.answers[run.currentPair?.pairId] ?? ""}
+      onChange={(text) => run.setAnswer(run.currentPair.pairId, text)}
+      onNext={run.goNext}
+      onBack={run.goBack}
+      onSubmit={run.submitRun}
+      onQuit={onQuit}
+      pairNumber={run.pairNumber}
+      totalPairs={run.totalPairs}
+      isLastPair={run.isLastPair}
+      isGrading={run.phase === "grading"}
+      // The copy is composed here rather than in the hook, which reports
+      // the two failures separately and stays free of user-facing strings.
+      // Both say the answers survived, because that is the fact the
+      // learner needs and the reason the hook never clears them.
+      error={
+        run.rateLimitError
+          ? "The AI grader is busy right now. Your sentences are safe — try again in a moment."
+          : run.error
+          ? "Grading couldn't be reached. Your sentences are safe — try again."
+          : null
+      }
+      isRateLimit={Boolean(run.rateLimitError)}
+    />
+  );
+}
+
 function App() {
   const [mode, setMode] = useState("study");
   const [view, setView] = useState("study");
@@ -249,20 +319,40 @@ function App() {
 
   const [pendingAction, setPendingAction] = useState(null);
 
+  // epic 012 — the AI-grading notice, and whether it has been answered
+  // this session. Not persisted; see handleQuizTypeChange.
+  const [pairWarningOpen, setPairWarningOpen] = useState(false);
+  const [pairWarningAcknowledged, setPairWarningAcknowledged] = useState(false);
+
   // epic 6 — selection now spans pages (Study + Generate) by design, so
   // only an ACTIVE quiz blocks navigation. "selecting" no longer does —
   // the user needs to browse both pages freely while building a
   // cross-page, cross-type selection before starting.
-  // Derived so every child keeps the exact prop contract it already had —
-  // this refactor is contained to this file. `selection.kind` stays "quiz"
-  // through the active run, which is what keeps selectedQuizItems
-  // populated after Start.
-  const selectedIds = selection.kind === "quiz" ? selection.ids : NO_SELECTION_IDS;
+  // Derived so every child keeps the exact prop contract it already had.
+  // `selection.kind` stays "quiz"/"pairs" through the active run, which is
+  // what keeps selectedQuizItems populated after Start.
+  //
+  // epic 012 — "pairs" is the third kind. It shares the quiz's picker,
+  // phase and Start button because it IS a quiz from the shell's point of
+  // view; only the cap, which lines are eligible, and what gets mounted at
+  // the end differ. Adding it needed no exclusivity code at all: entering
+  // any picker replaces the whole selection object, so a generator
+  // selection cannot survive into a pair run and vice versa.
+  const isPairSelection = selection.kind === "pairs";
+  const isQuizSelection = selection.kind === "quiz" || isPairSelection;
+
+  const selectedIds = isQuizSelection ? selection.ids : NO_SELECTION_IDS;
   const generatorSelectedIds =
     selection.kind === "generator" ? selection.ids : NO_SELECTION_IDS;
   const quizPhase =
-    quizRunPhase === "active" ? "active" : selection.kind === "quiz" ? "selecting" : "idle";
+    quizRunPhase === "active" ? "active" : isQuizSelection ? "selecting" : "idle";
   const generatorSelectionPhase = selection.kind === "generator" ? "selecting" : "idle";
+
+  // The chooser is a view onto selection.kind rather than a second piece
+  // of state, so the two cannot disagree about which run is being built.
+  const quizType = isPairSelection ? "pairs" : "choice";
+  const quizSelectionCap = isPairSelection ? PAIR_SELECTION_CAP : SELECTION_CAP;
+  const quizMinSelection = isPairSelection ? PAIR_MIN_SELECTION : MIN_QUIZ_ITEMS;
 
   const quizInProgress = quizRunPhase === "active";
   const generatorInProgress =
@@ -339,8 +429,51 @@ function App() {
     });
   }
 
+  // One entry point for both quiz kinds, because the card doesn't know
+  // which run it is being picked for — the active selection decides the
+  // cap and, for pairs, refuses lines that have no single sense to grade.
+  // The refusal is silent here; the next commit explains it on screen.
   function toggleSelectItem(itemType, itemId) {
+    if (isPairSelection) {
+      if (!PAIR_ELIGIBLE_LINES.has(itemType)) return;
+      toggleSelectionItem("pairs", PAIR_SELECTION_CAP, itemType, itemId);
+      return;
+    }
     toggleSelectionItem("quiz", SELECTION_CAP, itemType, itemId);
+  }
+
+  // Switching type starts a fresh selection rather than carrying one
+  // across. The two differ in cap (4 vs 20) and in which lines are
+  // eligible, so a carried-over selection could be over cap or contain
+  // grammar the pair grader would reject — beginSelection replacing the
+  // whole object is what makes that impossible rather than merely
+  // unlikely.
+  //
+  // Choosing pairs asks first, once per session. Every other mode in this
+  // app runs entirely on the device; this one sends what the learner
+  // writes to a third party, and that is worth saying before they write
+  // rather than after. Once per session rather than once ever: a
+  // data-sharing notice that a single click silences forever is a notice
+  // nobody has read, and unlike the display preferences in localStorage
+  // this is not a setting the learner is choosing to keep.
+  function handleQuizTypeChange(nextType) {
+    if (nextType === "pairs" && !pairWarningAcknowledged) {
+      setPairWarningOpen(true);
+      return;
+    }
+    beginSelection(nextType === "pairs" ? "pairs" : "quiz");
+  }
+
+  function confirmPairWarning() {
+    setPairWarningAcknowledged(true);
+    setPairWarningOpen(false);
+    beginSelection("pairs");
+  }
+
+  // Declining leaves the selection exactly as it was, still on multiple
+  // choice. Nothing is cleared, because nothing was started.
+  function cancelPairWarning() {
+    setPairWarningOpen(false);
   }
 
   // Keyed the same way as the quiz's set, and for the same reason: the
@@ -522,6 +655,33 @@ function App() {
   );
 
   const canQuizGlobally = globalQuizPool.length >= MIN_QUIZ_ITEMS;
+
+  // epic 012 — word pairs needs two eligible items to exist at all, not
+  // two to be selected. Counted across the whole pool rather than the
+  // open category, matching how quiz eligibility already works.
+  const pairEligibleCount = useMemo(
+    () => globalQuizPool.filter((item) => PAIR_ELIGIBLE_LINES.has(item.lineId)).length,
+    [globalQuizPool]
+  );
+  const pairsDisabled = pairEligibleCount < PAIR_MIN_SELECTION;
+  const pairsDisabledReason = pairsDisabled
+    ? `Word pairs need at least ${PAIR_MIN_SELECTION} kanji or vocabulary cards. There ${
+        pairEligibleCount === 1 ? "is 1" : `are ${pairEligibleCount}`
+      } available.`
+    : undefined;
+
+  // Why the cards on this line don't tick, said on the line where the
+  // learner is trying to tick them. Null on every eligible line, and null
+  // outside a pair selection, so it costs nothing anywhere else.
+  const pairLineBlockedReason =
+    isPairSelection && activeLineId && !PAIR_ELIGIBLE_LINES.has(activeLineId)
+      ? `Word pairs are built from single words with one meaning, so ${
+          // Resolved from CONTENT_LINES rather than `activeLine`, which is
+          // declared further down — reading it here would be a temporal
+          // dead zone crash, not a silent undefined.
+          CONTENT_LINES.find((l) => l.id === activeLineId)?.label?.toLowerCase() ?? "these"
+        } can't be paired. Switch to Kanji or Vocabulary to pick words.`
+      : null;
 
   // Study and Generate are always available. The CMS drives
   // unauthenticated write endpoints, so it stays opt-in (ADR 012).
@@ -753,7 +913,13 @@ function App() {
           </>
         }
       >
-        {quizPhase === "active" ? (
+        {quizPhase === "active" && isPairSelection ? (
+          <PairWritingRunner
+            selectedItems={selectedQuizItems}
+            onFinish={handleFinishQuiz}
+            onQuit={handleQuitQuiz}
+          />
+        ) : quizPhase === "active" ? (
           <QuizRunner
             selectedItems={selectedQuizItems}
             globalPool={globalQuizPool}
@@ -782,6 +948,13 @@ function App() {
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
             onCancelSelection={handleCancelSelection}
+            quizType={quizType}
+            onQuizTypeChange={handleQuizTypeChange}
+            quizSelectionCap={quizSelectionCap}
+            quizMinSelection={quizMinSelection}
+            pairsDisabled={pairsDisabled}
+            pairsDisabledReason={pairsDisabledReason}
+            pairLineBlockedReason={pairLineBlockedReason}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}
@@ -837,6 +1010,21 @@ function App() {
         }
         onConfirm={confirmDiscardInProgress}
         onCancel={cancelPendingDiscard}
+      />
+
+      {/* Separate instance rather than a mode on the one above: that one
+          is a discard confirmation whose Confirm destroys work, this one
+          starts something. They can never be open at once — this is
+          reachable only while picking, and that one only guards an active
+          run — so two instances cost nothing and neither has to branch on
+          the other's meaning. */}
+      <ConfirmDialog
+        open={pairWarningOpen}
+        message="Word pairs are graded by an AI provider. The sentences you write are sent to it to be checked. Everything else in Sentō stays on your device."
+        confirmLabel="Start writing"
+        cancelLabel="Not now"
+        onConfirm={confirmPairWarning}
+        onCancel={cancelPairWarning}
       />
     </SoundProviders>
   );

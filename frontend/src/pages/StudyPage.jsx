@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import ModeToggle from "../components/layouts/ModeToggle";
 import FlashcardGrid from "../components/study/FlashcardGrid";
 import QuizEmptyState from "../components/quiz/QuizEmptyState";
+import QuizTypeChooser from "../components/quiz/QuizTypeChooser";
 import { layoutForCategory } from "../utils/categoryLayout";
 import styles from "../styles/StudyPage.module.css";
 
@@ -29,6 +30,13 @@ export default function StudyPage({
   onToggleSelect,
   onStartQuiz,
   onCancelSelection,
+  quizType = "choice",
+  onQuizTypeChange,
+  quizSelectionCap = 20,
+  quizMinSelection = 4,
+  pairsDisabled = false,
+  pairsDisabledReason,
+  pairLineBlockedReason = null,
   generatorSelectionPhase = "idle",
   generatorSelectedIds = new Set(),
   onToggleGeneratorSelect,
@@ -51,7 +59,15 @@ export default function StudyPage({
 
   const isSelecting = quizPhase === "selecting";
   const isGeneratorSelecting = generatorSelectionPhase === "selecting";
+
   const activeSelectionMode = isSelecting ? "quiz" : isGeneratorSelecting ? "generator" : null;
+
+  // A line the pair grader can't use stays IN selection mode with every
+  // card refused, rather than dropping out of it. Outside selection the ✓
+  // is the mastery toggle, so leaving would silently repurpose the control
+  // a learner is reaching for. App.jsx decides which lines these are and
+  // supplies the reason rendered beside the chooser.
+  const selectionLocked = Boolean(pairLineBlockedReason);
 
   // Both selection sets are global, composite-key Sets ("lineId:itemId")
   // owned by App.jsx — FlashcardGrid stays generic, only ever dealing in
@@ -112,6 +128,8 @@ export default function StudyPage({
             onGeneratorClick={onGeneratorClick}
             quizPhase={quizPhase}
             selectedCount={selectedIds.size}
+            selectionCap={quizSelectionCap}
+            minSelection={quizMinSelection}
             onStartQuiz={onStartQuiz}
             onCancelSelection={onCancelSelection}
             generatorPhase={generatorSelectionPhase}
@@ -122,6 +140,26 @@ export default function StudyPage({
           />
         )}
       </div>
+
+      {/* Only while picking. It is a property of the run being built, so
+          once a run starts App.jsx has unmounted this page anyway, and
+          showing it outside selection would offer a choice with nothing
+          to apply it to. */}
+      {isSelecting ? (
+        <div className={styles.quizTypeRow}>
+          <QuizTypeChooser
+            value={quizType}
+            onChange={onQuizTypeChange}
+            pairsDisabled={pairsDisabled}
+            pairsDisabledReason={pairsDisabledReason}
+          />
+          {pairLineBlockedReason ? (
+            <p className={styles.selectionBlocked} role="status">
+              {pairLineBlockedReason}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={styles.progressStrip}>
         <span>
@@ -164,7 +202,10 @@ export default function StudyPage({
               ? handleToggleGeneratorSelect
               : undefined
           }
-          selectionCap={activeSelectionMode === "generator" ? generatorSelectionCap : 20}
+          selectionLocked={selectionLocked}
+          selectionCap={
+            activeSelectionMode === "generator" ? generatorSelectionCap : quizSelectionCap
+          }
           layout={layout}
         />
       )}
