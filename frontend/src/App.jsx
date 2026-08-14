@@ -9,6 +9,7 @@ import {
   deleteSentenceFolder,
   getSentenceFolders,
   getSentences,
+  getStorageStatus,
   moveSentence,
   renameSentenceFolder,
 } from "./sentenceStore";
@@ -304,6 +305,12 @@ function App() {
   const [generatorSentences, setGeneratorSentences] = useState([]);
   const [isLoadingGeneratorSentences, setIsLoadingGeneratorSentences] = useState(true);
 
+  // epic 013 — whether browser storage works, and whether anything
+  // unreadable had to be set aside. Both are decided inside the store as a
+  // side effect of reading, so this is refreshed after a read rather than
+  // subscribed to; there is no event to subscribe to.
+  const [storageStatus, setStorageStatus] = useState(() => getStorageStatus());
+
   // epic 6 — every saved sentence, unscoped by folder, feeding the
   // global quiz pool. Distinct from generatorSentences (the
   // folder-scoped browsing list) — different audience, different
@@ -526,6 +533,9 @@ function App() {
     setIsLoadingGeneratorSentences(true);
     const data = await getSentences(folderId ? { folderId } : undefined);
     setGeneratorSentences(data);
+    // A read is what discovers unreadable data and quarantines it, so the
+    // status can only have changed by now — not before the call.
+    setStorageStatus(getStorageStatus());
     setIsLoadingGeneratorSentences(false);
   }
 
@@ -963,6 +973,7 @@ function App() {
             isLoadingSentences={isLoadingGeneratorSentences}
             onRelocateSentence={handleRelocateSentence}
             onDeleteSentence={handleDeleteSentence}
+            storageStatus={storageStatus}
             mode={mode}
             onModeChange={handleModeChange}
             canQuiz={canQuizGlobally}
