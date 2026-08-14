@@ -1,5 +1,9 @@
 import { useCallback, useState } from "react";
-import { RateLimitError, generateSentences, saveSentences } from "../api";
+// Generation stays on the server — it needs a provider API key. Saving
+// does not, and goes to the browser instead (epic 013). This one split
+// import is the whole local/remote boundary made visible.
+import { RateLimitError, generateSentences } from "../api";
+import { saveSentences } from "../sentenceStore";
 
 /**
  * Generator run state machine over a fixed set of source item refs
