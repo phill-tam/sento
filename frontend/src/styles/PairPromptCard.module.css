@@ -90,6 +90,7 @@
   line-height: 1.25;
   color: var(--text-primary);
   overflow-wrap: anywhere;
+  font-weight: 600;
 }
 
 /* No font-family — FlashcardCard's .reading inherits the body face and
@@ -100,6 +101,7 @@
   color: var(--text-secondary);
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
+  font-weight: 500;
 }
 
 .romaji {
@@ -107,6 +109,7 @@
   color: var(--text-hint-on-quiz-content);
   font-style: italic;
   overflow-wrap: anywhere;
+  font-weight: 500;
 }
 
 /* The gloss is the point of the exercise, not a hint — it gets the
@@ -123,6 +126,7 @@
   font-family: var(--font-body);
   font-size: 13.5px;
   color: var(--text-on-quiz-card);
+  font-weight: 500;
 }
 
 .input {
@@ -138,6 +142,7 @@
   font-size: 14px;
   line-height: 1.5;
   transition: border-color 0.15s ease;
+  font-weight: 500;
 }
 
 .input:focus {
@@ -161,6 +166,7 @@
 
 .count {
   color: var(--text-on-quiz-card-secondary);
+  font-weight: 500;
 }
 
 .countFull {
@@ -171,6 +177,7 @@
 .skipNote {
   color: var(--text-on-quiz-card-secondary);
   font-style: italic;
+  font-weight: 500;
 }
 
 .actions {

@@ -92,6 +92,7 @@
   font-size: 34px;
   color: var(--text-on-quiz-card);
   display: block;
+  font-weight: 600;
 }
 
 .reading {
@@ -99,6 +100,7 @@
   color: var(--text-on-quiz-card-secondary);
   margin-top: 8px;
   display: block;
+  font-weight: 500;
 }
 
 /* epic 009 — sized to match the flashcard's treatment. The quiz prompt
@@ -115,6 +117,7 @@
   display: block;
   letter-spacing: 0.03em;
   font-style: italic;
+  font-weight: 500;
 }
 
 /* No overflow-y and no min-height:0 — both existed only to make the
@@ -136,18 +139,17 @@
 .option {
   padding: 15px 19px;
   border-radius: 10px;
-  /* 2px, not 1px. The verdict is now carried by the border alone — the
-     marked answer keeps its cream background — and 1px of colour was too
-     thin to register against a light box. Set on EVERY option rather
-     than only the marked ones so the box never changes size when it is
-     marked; the padding drops by the same 1px so the overall footprint
-     is unchanged from the 1px/16px version. */
+  /* 2px, not 1px — 1px of colour was too thin to register against a
+     light box. Set on EVERY option rather than only the marked ones so
+     the box never changes size when it is marked; the padding drops by
+     the same 1px so the overall footprint is unchanged from the
+     1px/16px version. */
   border: 2px solid var(--border-field);
   /* Beige, not the white this used to be. Polarity flips back to
      dark-on-light in here, so --text-primary is unchanged and still
      reads at 10.42:1. See --quiz-card-content-bg for why it is a warmer
-     beige than --cream: a near-white box left the verdict border with
-     nothing to sit against. */
+     beige than --cream: a near-white box left the verdict with nothing
+     to sit against. */
   background: var(--quiz-card-content-bg);
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -156,6 +158,7 @@
   cursor: pointer;
   box-shadow: var(--shadow-field);
   transition: all 0.15s ease;
+  font-weight: 500;
 }
 
 .option:hover:not(:disabled) {
@@ -210,6 +213,7 @@
   font-size: 12.5px;
   /* Sits on the card itself, not inside an .option box. */
   color: var(--text-on-quiz-card-secondary);
+  font-weight: 500;
 }
 
 .nextBtn {
