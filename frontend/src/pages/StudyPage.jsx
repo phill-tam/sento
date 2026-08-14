@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import ModeToggle from "../components/layouts/ModeToggle";
 import FlashcardGrid from "../components/study/FlashcardGrid";
 import QuizEmptyState from "../components/quiz/QuizEmptyState";
+import QuizTypeChooser from "../components/quiz/QuizTypeChooser";
 import { layoutForCategory } from "../utils/categoryLayout";
 import styles from "../styles/StudyPage.module.css";
 
@@ -29,6 +30,10 @@ export default function StudyPage({
   onToggleSelect,
   onStartQuiz,
   onCancelSelection,
+  quizType = "choice",
+  onQuizTypeChange,
+  quizSelectionCap = 20,
+  quizMinSelection = 4,
   generatorSelectionPhase = "idle",
   generatorSelectedIds = new Set(),
   onToggleGeneratorSelect,
@@ -112,6 +117,8 @@ export default function StudyPage({
             onGeneratorClick={onGeneratorClick}
             quizPhase={quizPhase}
             selectedCount={selectedIds.size}
+            selectionCap={quizSelectionCap}
+            minSelection={quizMinSelection}
             onStartQuiz={onStartQuiz}
             onCancelSelection={onCancelSelection}
             generatorPhase={generatorSelectionPhase}
@@ -122,6 +129,16 @@ export default function StudyPage({
           />
         )}
       </div>
+
+      {/* Only while picking. It is a property of the run being built, so
+          once a run starts App.jsx has unmounted this page anyway, and
+          showing it outside selection would offer a choice with nothing
+          to apply it to. */}
+      {isSelecting ? (
+        <div className={styles.quizTypeRow}>
+          <QuizTypeChooser value={quizType} onChange={onQuizTypeChange} />
+        </div>
+      ) : null}
 
       <div className={styles.progressStrip}>
         <span>
@@ -164,7 +181,9 @@ export default function StudyPage({
               ? handleToggleGeneratorSelect
               : undefined
           }
-          selectionCap={activeSelectionMode === "generator" ? generatorSelectionCap : 20}
+          selectionCap={
+            activeSelectionMode === "generator" ? generatorSelectionCap : quizSelectionCap
+          }
           layout={layout}
         />
       )}

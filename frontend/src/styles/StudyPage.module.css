@@ -77,3 +77,9 @@
   font-family: var(--font-body);
   font-size: 13px;
 }
+/* epic 012 — the quiz-type chooser, shown only while picking cards. Sits
+   between the page head and the progress strip so the choice reads as
+   part of setting up the run, above the cards it applies to. */
+.quizTypeRow {
+  margin-bottom: 16px;
+}

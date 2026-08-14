@@ -26,6 +26,9 @@ import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
 import QuizCard from "./components/quiz/QuizCard";
 import QuizSummary from "./components/quiz/QuizSummary";
+import PairPromptCard from "./components/quiz/PairPromptCard";
+import PairQuizSummary from "./components/quiz/PairQuizSummary";
+import { usePairWriting } from "./hooks/usePairWriting";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
@@ -56,6 +59,19 @@ const MIN_QUIZ_ITEMS = 4;
 
 const GENERATOR_SELECTION_CAP = 5;
 const GENERATOR_MIN_SELECTION = 2;
+
+// epic 012 — 4 rather than 5 because every unordered pair becomes one
+// writing task: C(4,2) is six free-text sentences in a sitting, and
+// C(5,2) would be ten, longer than anything else in the app.
+const PAIR_SELECTION_CAP = 4;
+const PAIR_MIN_SELECTION = 2;
+
+// Word pairs are built from single words carrying one sense. A grammar
+// pattern is a phrase with a structural meaning and a saved sentence is
+// already a sentence — neither has a sense to use or misuse. Mirrors
+// PAIR_ELIGIBLE_LINES in the backend's pair_writing schema, which rejects
+// the others outright; this stops them being pickable in the first place.
+const PAIR_ELIGIBLE_LINES = new Set(["kanji", "vocab"]);
 
 // Module-level so their identity is stable across renders — `selectedIds`
 // and `generatorSelectedIds` are derived below and feed useMemo
@@ -194,6 +210,48 @@ function QuizRunner({ selectedItems, globalPool, onFinish, onQuit }) {
   );
 }
 
+/**
+ * Active word-pairs run (epic 012), mounted in the same slot as
+ * QuizRunner and for the same reason: App.jsx intercepts an active run
+ * above the view switch, so StudyPage never mounts underneath one.
+ *
+ * usePairWriting freezes its pairs at mount, so this component must not
+ * be remounted mid-run — the slot below is keyed on nothing and the
+ * branch is stable for the life of the run, which is what keeps that
+ * true.
+ */
+function PairWritingRunner({ selectedItems, onFinish, onQuit }) {
+  const run = usePairWriting(selectedItems);
+
+  if (run.phase === "complete") {
+    return (
+      <PairQuizSummary
+        pairs={run.pairs}
+        answers={run.answers}
+        verdicts={run.verdicts}
+        results={run.results}
+        onFinish={onFinish}
+      />
+    );
+  }
+
+  return (
+    <PairPromptCard
+      pair={run.currentPair}
+      value={run.answers[run.currentPair?.pairId] ?? ""}
+      onChange={(text) => run.setAnswer(run.currentPair.pairId, text)}
+      onNext={run.goNext}
+      onBack={run.goBack}
+      onSubmit={run.submitRun}
+      onQuit={onQuit}
+      pairNumber={run.pairNumber}
+      totalPairs={run.totalPairs}
+      isLastPair={run.isLastPair}
+      isGrading={run.phase === "grading"}
+    />
+  );
+}
+
 function App() {
   const [mode, setMode] = useState("study");
   const [view, setView] = useState("study");
@@ -246,16 +304,31 @@ function App() {
   // only an ACTIVE quiz blocks navigation. "selecting" no longer does —
   // the user needs to browse both pages freely while building a
   // cross-page, cross-type selection before starting.
-  // Derived so every child keeps the exact prop contract it already had —
-  // this refactor is contained to this file. `selection.kind` stays "quiz"
-  // through the active run, which is what keeps selectedQuizItems
-  // populated after Start.
-  const selectedIds = selection.kind === "quiz" ? selection.ids : NO_SELECTION_IDS;
+  // Derived so every child keeps the exact prop contract it already had.
+  // `selection.kind` stays "quiz"/"pairs" through the active run, which is
+  // what keeps selectedQuizItems populated after Start.
+  //
+  // epic 012 — "pairs" is the third kind. It shares the quiz's picker,
+  // phase and Start button because it IS a quiz from the shell's point of
+  // view; only the cap, which lines are eligible, and what gets mounted at
+  // the end differ. Adding it needed no exclusivity code at all: entering
+  // any picker replaces the whole selection object, so a generator
+  // selection cannot survive into a pair run and vice versa.
+  const isPairSelection = selection.kind === "pairs";
+  const isQuizSelection = selection.kind === "quiz" || isPairSelection;
+
+  const selectedIds = isQuizSelection ? selection.ids : NO_SELECTION_IDS;
   const generatorSelectedIds =
     selection.kind === "generator" ? selection.ids : NO_SELECTION_IDS;
   const quizPhase =
-    quizRunPhase === "active" ? "active" : selection.kind === "quiz" ? "selecting" : "idle";
+    quizRunPhase === "active" ? "active" : isQuizSelection ? "selecting" : "idle";
   const generatorSelectionPhase = selection.kind === "generator" ? "selecting" : "idle";
+
+  // The chooser is a view onto selection.kind rather than a second piece
+  // of state, so the two cannot disagree about which run is being built.
+  const quizType = isPairSelection ? "pairs" : "choice";
+  const quizSelectionCap = isPairSelection ? PAIR_SELECTION_CAP : SELECTION_CAP;
+  const quizMinSelection = isPairSelection ? PAIR_MIN_SELECTION : MIN_QUIZ_ITEMS;
 
   const quizInProgress = quizRunPhase === "active";
   const generatorInProgress =
@@ -332,8 +405,27 @@ function App() {
     });
   }
 
+  // One entry point for both quiz kinds, because the card doesn't know
+  // which run it is being picked for — the active selection decides the
+  // cap and, for pairs, refuses lines that have no single sense to grade.
+  // The refusal is silent here; the next commit explains it on screen.
   function toggleSelectItem(itemType, itemId) {
+    if (isPairSelection) {
+      if (!PAIR_ELIGIBLE_LINES.has(itemType)) return;
+      toggleSelectionItem("pairs", PAIR_SELECTION_CAP, itemType, itemId);
+      return;
+    }
     toggleSelectionItem("quiz", SELECTION_CAP, itemType, itemId);
+  }
+
+  // Switching type starts a fresh selection rather than carrying one
+  // across. The two differ in cap (4 vs 20) and in which lines are
+  // eligible, so a carried-over selection could be over cap or contain
+  // grammar the pair grader would reject — beginSelection replacing the
+  // whole object is what makes that impossible rather than merely
+  // unlikely.
+  function handleQuizTypeChange(nextType) {
+    beginSelection(nextType === "pairs" ? "pairs" : "quiz");
   }
 
   // Keyed the same way as the quiz's set, and for the same reason: the
@@ -743,7 +835,13 @@ function App() {
           </>
         }
       >
-        {quizPhase === "active" ? (
+        {quizPhase === "active" && isPairSelection ? (
+          <PairWritingRunner
+            selectedItems={selectedQuizItems}
+            onFinish={handleFinishQuiz}
+            onQuit={handleQuitQuiz}
+          />
+        ) : quizPhase === "active" ? (
           <QuizRunner
             selectedItems={selectedQuizItems}
             globalPool={globalQuizPool}
@@ -772,6 +870,10 @@ function App() {
             onToggleSelect={toggleSelectItem}
             onStartQuiz={handleStartQuiz}
             onCancelSelection={handleCancelSelection}
+            quizType={quizType}
+            onQuizTypeChange={handleQuizTypeChange}
+            quizSelectionCap={quizSelectionCap}
+            quizMinSelection={quizMinSelection}
             generatorSelectionPhase={generatorSelectionPhase}
             generatorSelectedIds={generatorSelectedIds}
             onToggleGeneratorSelect={toggleGeneratorSelectItem}
