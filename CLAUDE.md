@@ -5,25 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 Sento is a JLPT N5 Japanese study platform: vocabulary/kanji/grammar
-flashcards, a mixed-type quiz mode, and an AI sentence generator that
-produces practice sentences (with reading + English meaning) from
-user-selected content items.
+flashcards, a mixed-type quiz mode with two quiz types (multiple-choice
+recognition and AI-graded Word Pairs sentence writing), and an AI
+sentence generator that produces practice sentences (with reading +
+English meaning) from user-selected content items.
 
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Eleven epics have shipped: Foundation, Content Management, Flashcards,
+Twelve epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
 in code comments), Sound, Theming, Romaji, the Long-Content Layout
-(flip-list rows, #116), and the Responsive Shell (1024px breakpoint,
-top bar + overlay drawer, #122). None of them are behind feature flags
-any more — see the section below.
+(flip-list rows, #116), the Responsive Shell (1024px breakpoint,
+top bar + overlay drawer, #122), and Word Pairs (AI-graded sentence
+writing as a second quiz type, #126). None of them are behind feature
+flags any more — see the section below.
 
-Only epics 001, 002 and 009 have write-ups in `docs/epics/`; the rest
-exist as shipped code, the GitHub issues tracking them, and `epic N`
-comments in the source. ADRs run to 017. Treat in-code comments as the
-more current source of truth than `docs/epics/`, and verify docs against
-`git log` / the code itself before relying on them.
+Only epics 001, 002, 009 and 012 have write-ups in `docs/epics/`; the
+rest exist as shipped code, the GitHub issues tracking them, and
+`epic N` comments in the source. ADRs run to 018. Treat in-code
+comments as the more current source of truth than `docs/epics/`, and
+verify docs against `git log` / the code itself before relying on them.
 
 ## Commands
 
@@ -77,10 +79,15 @@ in this project.
 - The two layers are enforced independently. `VITE_ADMIN_WRITES_ENABLED` only decides whether the CMS UI is offered; setting it without the backend var gives you a page whose requests 404.
 - Never suggest enabling `ADMIN_WRITES_ENABLED` in a publicly reachable environment — see `docs/adr/011-no-auth-feature-flag-gated-only.md`.
 
-`POST /sentences/generate` is unconditionally mounted and also
-unauthenticated. It spends real AI provider quota per call, with the
-provider's own rate limit as the only backstop — a known, accepted gap
-(ADR 012), not an oversight to route around.
+`POST /sentences/generate` and `POST /pair-writing/grade` (epic 012) are
+both unconditionally mounted and also unauthenticated. Both spend real
+AI provider quota per call, both draw on the *same* provider key per
+environment (`get_provider()` in `app/services/ai_provider.py`), with the
+provider's own rate limit as the only backstop for either — a known,
+accepted gap (ADR 012), widened rather than newly created by the second
+endpoint, and specifically the subject of ADR 018. Don't propose a
+per-endpoint kill switch or a `FEATURE_PAIR_WRITING` flag for this —
+ADR 018 already covers why that's the wrong shape.
 
 ## Backend architecture
 
@@ -129,22 +136,58 @@ provider's own rate limit as the only backstop — a known, accepted gap
   line's route supplies its own `row_parser` callback; the service
   only owns the iterate/isolate/count/commit mechanics. See
   `docs/adr/009-csv-upload-partial-success-commit-strategy.md`.
-- **Sentence generation provider switch:**
-  `app/services/sentence_generation_service.py` picks Gemini
+- **AI provider layer is shared by two features, not owned by one.**
+  `app/services/ai_provider.py` (extracted from
+  `sentence_generation_service.py` in epic 012, ADR 018) picks Gemini
   (`settings.environment == "development"`) or Claude (`"production"`)
-  behind a shared `SentenceProvider` protocol — `get_provider()` is
-  the *only* place that branches on environment; routes and schemas
-  never know which provider served a request. Raises
-  `SentenceGenerationRateLimitExceeded` (429) vs
-  `SentenceGenerationFailedError` (502) as distinct exception types so
-  the route layer can return different responses for each.
+  behind an `AiProvider` protocol narrowed to
+  `complete(*, prompt: str, max_tokens: int = 1024) -> str` — prompt in,
+  raw text out, nothing sentence-shaped or verdict-shaped baked into the
+  interface. `get_provider()` is *still* the only place that branches on
+  `settings.environment`; routes and schemas never know which provider
+  served a request. Raises `AiProviderRateLimitExceeded` (429) vs
+  `AiProviderFailedError` (502) — renamed off "SentenceGeneration" in the
+  same move, since a Gemini 429 during answer grading has nothing to do
+  with sentences. **Both callers own their own prompt-building and
+  response-parsing**: `sentence_generation_service.generate_sentences`
+  (`_build_prompt` → `provider.complete` → `_parse_candidates`) and
+  `answer_grading_service.grade_pair_answers` (its own prompt →
+  `provider.complete` → `_parse_verdicts`, realigning verdicts by
+  `pair_id`, never by position — a provider that reorders or drops one
+  must not silently shift feedback onto the wrong answer). Adding a
+  third AI-backed feature means adding a third `_build_prompt`/`_parse_X`
+  pair in that feature's own service, not a new method on the shared
+  protocol and not a second `get_provider()`-style switch.
+  **`GeminiProvider.complete` accepts `max_tokens` and does not send
+  it** — that SDK takes the ceiling inside a `GenerationConfig` object,
+  not as a call argument, and wiring it up was judged out of scope for a
+  behaviour-preserving refactor. Known gap, not an oversight; see
+  ADR 018.
+- **Content-line resolution is shared too.** `app/services/content_resolver.py`
+  (`LINE_RESOLVERS`, `resolve_source_items`) turns a `SourceItemRef`
+  (`line_id`, `item_id`) into real Japanese text — extracted from
+  `routes/sentences.py`'s `_LINE_RESOLVERS` once `routes/pair_writing.py`
+  needed the identical mapping. Raises `HTTPException` directly from a
+  service function, matching this codebase's existing
+  "404/409/501 handled at the service layer" convention rather than
+  introducing a new one.
 - **Settings:** `app/config/settings.py` (Pydantic Settings, reads
   `backend/.env`). `MIGRATIONS_DATABASE_URL` falls back to
   `DATABASE_URL` when unset (local dev has no pooler/direct split;
-  Supabase needs the distinction). Note `backend/.env.example` doesn't
-  list the Gemini/Anthropic/environment keys that `settings.py`
-  actually reads — check `settings.py` directly, not just the example
-  file, when setting up `.env`.
+  Supabase needs the distinction). `GEMINI_API_KEY` and
+  `ANTHROPIC_API_KEY` are the only two fields on the class in
+  UPPERCASE — deliberate, scoped to exactly those two: they're secrets
+  read straight from the environment and nowhere else, so the field
+  name mirrors the env var it reads rather than following the lowercase
+  convention every other field (`database_url`, `gemini_model`,
+  `admin_writes_enabled`...) uses. Functionally inert either way —
+  pydantic-settings matches env vars case-insensitively regardless of
+  field case — so don't read it as a precedent for renaming the rest of
+  the class. `DEFAULT_GEMINI_MODEL` / `DEFAULT_ANTHROPIC_MODEL` are
+  named module-level fallbacks, not magic strings inline in the `Field`
+  defaults; changing which model runs should always be a `.env` edit
+  (`GEMINI_MODEL=...`, matched case-insensitively) and never require
+  touching this file.
 - **CORS:** allowed origins are hardcoded in
   `app/middleware/cors.py`, not env-driven — update that list directly
   when adding a new deployed frontend origin.
@@ -295,14 +338,54 @@ provider's own rate limit as the only backstop — a known, accepted gap
   which is also how a `<select>` opens). This softens epic 5's "list
   display, not grid" posture on purpose — see the phase 4 addendum in
   `docs/adr/016-per-category-layout-and-flip-height.md`.
-- **Selection model spans pages.** Both quiz-item selection
-  (`selectedIds`, keyed `"${itemType}:${itemId}"` since ids alone
-  can't disambiguate kanji vs. vocab vs. sentence) and the generator's
-  source-item selection are lifted to `App.jsx` state so a user can
-  build a selection while browsing both Study and Generate before
-  starting. Only an *active* quiz or an in-progress generator run
-  blocks navigation (`guardNavigation`/`ConfirmDialog`) — merely being
-  in "selecting" mode does not.
+- **One selection state, not one per picker.** `App.jsx` holds a single
+  `selection = { kind: null | "quiz" | "generator" | "pairs", ids: Set }`
+  rather than a separate phase+ids pair per picker (epic 012 unified what
+  used to be two independent pairs, hand-synchronised at every entry
+  point — see the git history on `handleGeneratorClick`/`handleModeChange`
+  if you need the "why" in more detail than this bullet). `ids` is keyed
+  `"${itemType}:${itemId}"` since a bare id can't disambiguate kanji vs.
+  vocab vs. sentence once selection spans lines. **Entering any picker
+  replaces the whole object** via `beginSelection(kind)` — there is no
+  second set left over to remember to clear, which is what makes a third
+  (and someday fourth) picker free instead of another six pairwise
+  clears. `quizPhase`, `generatorSelectedIds` etc. that child components
+  still receive as props are *derived* from `selection` each render, not
+  held separately — `StudyPage`, `FlashcardGrid` and `ModeToggle` all
+  keep their pre-existing prop contracts and don't know this unification
+  happened. Selection is lifted to `App.jsx` so a user can build one
+  while browsing both Study and Generate before starting; only an
+  *active* quiz or an in-progress generator run blocks navigation
+  (`guardNavigation`/`ConfirmDialog`) — merely being in "selecting" mode
+  does not.
+- **Word Pairs (epic 012) is the second quiz type, not a second quiz
+  mode.** `App.jsx`'s `quizType` (`"choice" | "pairs"`) is derived from
+  `selection.kind === "pairs"`, not held as separate state, so the
+  type-chooser (`QuizTypeChooser`) and the selection it's building can
+  never disagree about which run is under construction. `PAIR_SELECTION_CAP`
+  (4, not the quiz's 20 — every unordered pair becomes a task, C(4,2)=6
+  is already the longest run in the app) and `PAIR_ELIGIBLE_LINES`
+  (`kanji`/`vocab` only — a grammar pattern is a phrase with a
+  structural meaning, not a word with a sense to misuse) live in
+  `App.jsx` beside the quiz's own constants. Picking pairs on a grammar
+  category **stays in selection mode with every card refused**
+  (`FlashcardGrid`'s `selectionLocked` prop) rather than dropping out of
+  selection mode — outside selection mode the ✓ is the *mastery* toggle,
+  so leaving would silently repurpose the control a learner is reaching
+  for. `usePairWriting` (the run state machine: pairs frozen at mount via
+  `utils/wordPairs.js`'s `buildPairs`, phase `writing → grading →
+  complete`) and `utils/answerPrecheck.js` (the local pre-check that
+  resolves blank/off-task answers without spending a provider call — it
+  is built to *under*-trigger, since a false positive tells a learner who
+  wrote a correct sentence that they didn't, which is worse than the
+  call it would have saved) are the two pieces of real logic; everything
+  else under `components/quiz/Pair*.jsx` is presentation. Verdicts from
+  the backend are matched to pairs **by identity** (`pair.words.find` on
+  `line_id`/`item_id`), never by array position — the backend itself
+  refuses to align positionally for the same reason, and a rendering bug
+  caught exactly this class of mismatch during development (reversed
+  word order in a test fixture put the ✕ on the wrong word while still
+  reading as confident feedback).
 - **Global quiz pool:** `App.jsx`'s `globalQuizPool` flattens every
   kanji/vocab/grammar entry across all categories plus every saved
   `GeneratedSentence` into one shared item shape
@@ -319,8 +402,10 @@ provider's own rate limit as the only backstop — a known, accepted gap
   (`request()`); `RateLimitError` is a distinct subclass of `ApiError`
   detected from the backend's specific 429 body shape
   (`body.detail.error === "rate_limit_exceeded"`), letting
-  `useSentenceGenerator` show a dedicated rate-limit message instead
-  of a generic failure.
+  `useSentenceGenerator` **and** `usePairWriting` (epic 012's
+  `gradePairAnswers`) both show a dedicated rate-limit message instead
+  of a generic failure, with no per-feature detection code — both AI
+  endpoints return the identical 429 shape on purpose (ADR 018).
 - **Sound is two independent systems, on purpose.** Background music
   (`context/BacksoundContext.jsx`, a looped `Audio` element) and card
   flip effects (`utils/cardSoundEffects.js`, a module-level Web Audio
@@ -386,6 +471,41 @@ provider's own rate limit as the only backstop — a known, accepted gap
   light pages, `--teal-deep` was the chrome background *and* the
   primary button fill. `grep 'var(--teal\|--gold\|--cream\|--ink\|--mist'
   src/styles/*.module.css` should stay empty.
+- **A component can get its own day-only role tokens, scoped to it
+  alone, rather than repointing a shared one.** `QuizCard` and
+  `PairPromptCard` (epic 012) both restyle to a dark teal fill with gold
+  type by day — a look no other card in the app uses. The tokens
+  (`--quiz-card-bg`, `--quiz-card-content-bg`, `--text-on-quiz-card`,
+  `--good-on-quiz-content`/`--bad-on-quiz-content`, etc.) are still role
+  tokens living in the same `:root` block as everything else, not a
+  third layer — the pattern that's new is that **night's block
+  re-points every one of them straight back to the ordinary shared
+  token** (`--quiz-card-bg: var(--surface-card)`, `--text-on-quiz-card:
+  var(--text-primary)`, ...), so at night these two cards render through
+  the *exact same* custom-property chain they would if the tokens didn't
+  exist. Repointing `--surface-card`/`--surface-field` directly was
+  rejected because those are shared by every card, dialog and field in
+  the app — this restyle is scoped to two screens. Follow this shape for
+  a future component-specific look: new role tokens, day gets the
+  bespoke value, night aliases back to the existing shared token, never
+  the other way around.
+- **A tinted status background needs `background-image`, not
+  `background-color`, once two rules can both set the element's
+  background.** `.option` sets `background: var(--quiz-card-content-bg)`;
+  `.correct`/`.incorrect` used to set `background: var(--good-wash)` —
+  same property, same specificity, declared later, so the wash rule won
+  outright and REPLACED the box colour rather than tinting it, and the
+  now-unopposed semi-transparent wash composited against whatever was
+  behind the whole option (the card), not against the box. Invisible
+  while the card and the box happened to be the same colour; wrong the
+  moment they weren't. Fixed by painting the tint as a flat-stop
+  `linear-gradient(var(--good-wash), var(--good-wash))` on
+  `background-image`, a distinct CSS property from `background-color`
+  that layers on top of it instead of overriding it. If a future status
+  state needs to tint a surface that already has its own background
+  colour, this is the shape — verify with
+  `getComputedStyle(el).backgroundColor` still reading the untinted
+  value, not just that the rendered colour looks different.
 - **The night theme is one block, not a second stylesheet.**
   `:root[data-theme="dark"]` at the bottom of `tokens.css` re-points the
   role layer and nothing else, so no component knows a theme exists.
@@ -422,13 +542,15 @@ provider's own rate limit as the only backstop — a known, accepted gap
 ## Docs
 
 - `docs/epics/` — problem statement + architecture per epic (currently
-  only 001, 002 and 009 are written up; other epics exist only as
-  shipped code + ADRs + in-code "epic N" comments).
+  only 001, 002, 009 and 012 are written up; other epics exist only
+  as shipped code + ADRs + in-code "epic N" comments).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
   the token layer (013), theme resolution (014), where romaji comes
   from (015), which layout a category gets and how a variable-height
-  row flips (016), or the shell's breakpoint and the drawer's stacking
-  contract (017) — the "why not the obvious alternative" is usually
-  already answered there.
+  row flips (016), the shell's breakpoint and the drawer's stacking
+  contract (017), or the AI provider protocol and the quota it now
+  shares between sentence generation and Word Pairs grading (018) —
+  the "why not the obvious alternative" is usually already answered
+  there.
