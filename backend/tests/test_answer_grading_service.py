@@ -185,12 +185,16 @@ class TestParsing:
 
 
 def test_grading_raises_the_claude_ceiling(monkeypatch):
-    """Six verdicts with per-word notes do not reliably fit Claude's
-    hardcoded 1024, and a truncated response is unparseable JSON — a 502,
-    not a short answer."""
+    """Six verdicts with per-word notes, a suggestion and a Japanese
+    translation do not fit Claude's hardcoded 1024, and a truncated
+    response is unparseable JSON — a 502, not a short answer.
+
+    3072 rather than the original 2048: CJK costs roughly a token per
+    character, so the translation and its romaji add ~50 tokens a verdict.
+    """
     record: dict = {}
     stub_provider(monkeypatch, json.dumps([verdict_json("p1")]), record)
 
     svc.grade_pair_answers([make_item()])
 
-    assert record["max_tokens"] == svc.GRADING_MAX_TOKENS == 2048
+    assert record["max_tokens"] == svc.GRADING_MAX_TOKENS == 3072

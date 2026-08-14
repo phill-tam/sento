@@ -79,6 +79,26 @@ class PairAnswerVerdict(BaseModel):
     feedback: str
     suggestion: str | None = None
 
+    # How the learner's own sentence reads in Japanese. Both optional, and
+    # optional for two different reasons rather than one.
+    #
+    # A provider that ignores the instruction degrades to a verdict with no
+    # translation instead of raising and discarding the round — the same
+    # call GeneratedSentenceCandidate.romaji makes, and for the same
+    # reason: a missing nicety must not cost a learner their graded run.
+    #
+    # They are also legitimately absent. Skipped and locally-resolved
+    # answers never reach a provider at all, and an off-task answer has
+    # nothing worth translating, so every render site stays conditional.
+    #
+    # translation_romaji is provider-supplied and NOT computed. ADR 015:
+    # to_romaji transliterates kana with no word segmentation, so a whole
+    # sentence comes back as `watashihagakuseidesu`. The prompt pins the
+    # same kana-faithful rules the generation prompt uses so the two
+    # can't drift.
+    translation_jp: str | None = None
+    translation_romaji: str | None = None
+
 
 class GradePairAnswersResponse(BaseModel):
     verdicts: list[PairAnswerVerdict]
