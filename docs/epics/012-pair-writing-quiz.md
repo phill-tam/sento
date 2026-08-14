@@ -50,6 +50,18 @@ and a different epic.
 
 ## 2. Architecture Overview
 
+**Scope note, added during the phase 9 docs pass:** two changes that
+shipped on the same branch as this epic's later phases are deliberately
+**not** described anywhere below — an AI-settings naming refactor
+(`DEFAULT_GEMINI_MODEL`/`DEFAULT_ANTHROPIC_MODEL`, the uppercase
+`GEMINI_API_KEY`/`ANTHROPIC_API_KEY` fields) and a quiz-card day-mode
+restyle (`--quiz-card-*` tokens, the `background-image` tint fix). Both
+are real, both shipped, both are documented — in CLAUDE.md, and in their
+own commit messages and PRs (`refactor/ai-settings-naming`,
+`style/quiz-card-day-mode-restyle`) — but neither is part of *this
+epic's design*, and folding them in here would conflate Word Pairs'
+actual decisions with unrelated cleanup that happened to share a branch.
+
 ### 2.1 The pairing is combinatorial and frozen at mount
 
 The learner picks **2–4 items**; the run is every unordered pair of them,
@@ -666,7 +678,17 @@ mode surfaced the question directly. Landed the same way every other
 phase did — its own branch, its own PR (#143), `Refs #126` — rather than
 as a follow-up patch with no paper trail.
 
-### Phase 7 — Docs
+### Phase 9 — Docs
+
+Numbered 9, not 7, in the branch/PR sequence: two phases outside epic
+012's own scope — an AI-settings naming refactor
+(`refactor/ai-settings-naming`) and a quiz-card day-mode restyle
+(`style/quiz-card-day-mode-restyle`) — landed as phases 7 and 8 in
+between, each its own branch and PR, stacked the same way every other
+phase in this epic is. Neither is documented in this file; see the scope
+note at the top of §2 for why, and CLAUDE.md for where they're recorded
+instead. The phases below this line (0–6) keep their original numbers —
+they are epic 012's own build sequence and did not move.
 
 - ADR 018 (provider protocol + the shared-quota exposure note)
 - `.env.example`: the AI provider comment updated to name both features
