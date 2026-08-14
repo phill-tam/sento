@@ -184,6 +184,118 @@ class TestParsing:
         assert svc.grade_pair_answers([make_item()])[0].suggestion is None
 
 
+class TestTranslation:
+    """The Japanese rendering of the learner's own sentence.
+
+    Nothing here asserts translation *quality* — that is a judgement from
+    a model and belongs in the same hand-run fixture check as grading
+    quality. What is tested is the contract: what we ask for, and what we
+    do with every shape that can come back.
+    """
+
+    def test_prompt_asks_for_both_fields(self):
+        prompt = svc._build_prompt([make_item()])
+        assert "translation_jp" in prompt
+        assert "translation_romaji" in prompt
+
+    def test_prompt_asks_for_what_was_written_not_a_correction(self):
+        # A wrong-sense sentence must translate to Japanese carrying that
+        # wrong sense — that mismatch is the feedback. The corrected
+        # sentence has its own field.
+        assert "not a corrected version of it" in svc._build_prompt([make_item()])
+
+    def test_romaji_rules_match_the_generation_prompt_exactly(self):
+        """Not a style preference. Macron romaji here would put "tōkyō" on
+        a verdict card next to "toukyou" on a vocab card in the same app,
+        and this cannot be computed instead — to_romaji has no word
+        segmentation, so a sentence yields `watashihagakuseidesu`
+        (ADR 015). If these lines change, they change in both prompts."""
+        from app.services import sentence_generation_service as gen
+
+        grading = svc._build_prompt([make_item()])
+        generation = gen._build_prompt(["猫 (cat)"], 1, None)
+
+        for rule in (
+            "Transliterate the kana literally rather than marking long ",
+            'vowels: write "ou" and "uu", never "ō" or "ū".',
+            'Romanise particles by how they are pronounced: は as "wa", ',
+            'へ as "e", を as "o".',
+        ):
+            assert rule in generation, rule
+            assert rule in grading, rule
+
+    def test_both_fields_are_carried_through(self, monkeypatch):
+        stub_provider(
+            monkeypatch,
+            json.dumps(
+                [
+                    verdict_json(
+                        "p1",
+                        translation_jp="毎日太陽が見えます。",
+                        translation_romaji="mainichi taiyou ga miemasu.",
+                    )
+                ]
+            ),
+        )
+        out = svc.grade_pair_answers([make_item()])[0]
+        assert out.translation_jp == "毎日太陽が見えます。"
+        assert out.translation_romaji == "mainichi taiyou ga miemasu."
+
+    @pytest.mark.parametrize(
+        "extra",
+        [
+            {},
+            {"translation_jp": None, "translation_romaji": None},
+            {"translation_jp": "", "translation_romaji": ""},
+            {"translation_jp": "   ", "translation_romaji": "  "},
+            {"translation_jp": 123, "translation_romaji": {"a": 1}},
+        ],
+        ids=["absent", "null", "empty", "whitespace", "not-a-string"],
+    )
+    def test_missing_or_junk_translations_become_none(self, monkeypatch, extra):
+        """A provider that ignores the instruction must cost a translation,
+        never the run."""
+        stub_provider(monkeypatch, json.dumps([verdict_json("p1", **extra)]))
+        out = svc.grade_pair_answers([make_item()])[0]
+        assert out.translation_jp is None
+        assert out.translation_romaji is None
+        assert out.verdict == "correct"
+
+    def test_romaji_without_japanese_is_dropped(self, monkeypatch):
+        # Romaji with nothing above it reads as a rendering bug.
+        stub_provider(
+            monkeypatch, json.dumps([verdict_json("p1", translation_romaji="mainichi")])
+        )
+        assert svc.grade_pair_answers([make_item()])[0].translation_romaji is None
+
+    def test_japanese_without_romaji_is_kept(self, monkeypatch):
+        # Exactly what a learner with the romaji preference off already
+        # sees on every other card, so there is nothing to suppress.
+        stub_provider(monkeypatch, json.dumps([verdict_json("p1", translation_jp="毎日")]))
+        out = svc.grade_pair_answers([make_item()])[0]
+        assert out.translation_jp == "毎日"
+        assert out.translation_romaji is None
+
+    def test_surrounding_whitespace_is_trimmed(self, monkeypatch):
+        stub_provider(
+            monkeypatch,
+            json.dumps(
+                [verdict_json("p1", translation_jp="  毎日  ", translation_romaji=" mainichi ")]
+            ),
+        )
+        out = svc.grade_pair_answers([make_item()])[0]
+        assert (out.translation_jp, out.translation_romaji) == ("毎日", "mainichi")
+
+    def test_a_dropped_pair_has_no_translation(self, monkeypatch):
+        # Locally-resolved and provider-dropped pairs never had a sentence
+        # translated, so the fields must be absent rather than empty text.
+        stub_provider(monkeypatch, json.dumps([verdict_json("p1")]))
+        out = svc.grade_pair_answers([make_item("p1"), make_item("p2")])[1]
+        assert out.verdict == "ungradeable"
+        assert out.translation_jp is None
+        assert out.translation_romaji is None
+
+
 def test_grading_raises_the_claude_ceiling(monkeypatch):
     """Six verdicts with per-word notes, a suggestion and a Japanese
     translation do not fit Claude's hardcoded 1024, and a truncated
