@@ -13,17 +13,18 @@ English meaning) from user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Twelve epics have shipped: Foundation, Content Management, Flashcards,
+Thirteen epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
 in code comments), Sound, Theming, Romaji, the Long-Content Layout
 (flip-list rows, #116), the Responsive Shell (1024px breakpoint,
-top bar + overlay drawer, #122), and Word Pairs (AI-graded sentence
-writing as a second quiz type, #126). None of them are behind feature
-flags any more — see the section below.
+top bar + overlay drawer, #122), Word Pairs (AI-graded sentence
+writing as a second quiz type, #126), and Local Sentence Storage (saved
+sentences moved out of the database and into the user's browser, #128).
+None of them are behind feature flags any more — see the section below.
 
-Only epics 001, 002, 009 and 012 have write-ups in `docs/epics/`; the
-rest exist as shipped code, the GitHub issues tracking them, and
-`epic N` comments in the source. ADRs run to 018. Treat in-code
+Only epics 001, 002, 009, 012 and 013 have write-ups in `docs/epics/`;
+the rest exist as shipped code, the GitHub issues tracking them, and
+`epic N` comments in the source. ADRs run to 019. Treat in-code
 comments as the more current source of truth than `docs/epics/`, and
 verify docs against `git log` / the code itself before relying on them.
 
@@ -68,16 +69,28 @@ Sentence Generator and the global quiz pool are unconditionally on, and
 the app runs with no environment configuration at all. Don't add a
 `FEATURE_*` flag back for an epic — finish it on a branch instead.
 
-**The one remaining switch is access control, not a feature flag.**
-`ADMIN_WRITES_ENABLED` (backend, `app/config/settings.py`) and
-`VITE_ADMIN_WRITES_ENABLED` (frontend, `src/config/adminMode.js`), both
-default `false`. They gate the content **write** endpoints, which have
-no authentication in front of them — there is no `User` model anywhere
-in this project.
+**The two remaining switches are access control, not feature flags.**
+Both default `false`, and both gate endpoints with no authentication in
+front of them — there is no `User` model anywhere in this project.
+
+**1. `ADMIN_WRITES_ENABLED`** (backend, `app/config/settings.py`) and
+`VITE_ADMIN_WRITES_ENABLED` (frontend, `src/config/adminMode.js`) gate
+the content **write** endpoints.
 
 - `app/routes/{kanji,vocab,grammar}.py` each expose **two** routers: `router` (the `GET` list endpoint, always mounted, since Study fetches it on every page load) and `admin_router` (`POST /upload`, `PATCH /{id}/status`, mounted only when the switch is on). Keep new read endpoints on `router` and new write endpoints on `admin_router`.
 - The two layers are enforced independently. `VITE_ADMIN_WRITES_ENABLED` only decides whether the CMS UI is offered; setting it without the backend var gives you a page whose requests 404.
 - Never suggest enabling `ADMIN_WRITES_ENABLED` in a publicly reachable environment — see `docs/adr/011-no-auth-feature-flag-gated-only.md`.
+
+**2. `SENTENCE_PERSISTENCE_ENABLED`** (backend only, same file) gates
+saving, listing, relocating and deleting sentences, plus the whole of
+`/sentence-folders`. **Saved sentences live in the user's browser as of
+epic 013** (`docs/epics/013-local-sentence-storage.md`, ADR 019), so
+nothing calls these — mounted, they are an unattributed shared pile any
+visitor can write into, which is what that epic exists to stop.
+
+- `app/routes/sentences.py` exposes **two** routers, same split as the content lines: `router` (`POST /generate`, always mounted) and `persistence_router` (save/list/relocate/delete, gated). `app/routes/sentence_folders.py` is persistence in its entirety, so its router is named `persistence_router` and the whole module is gated.
+- The tables and their Alembic history are untouched and **reserved** for the auth epic, which adds `user_id` and turns the switch back on. The production rows were purged by hand — `backend/scripts/purge_production_sentences.md`, deliberately not a migration, since a revision would run against local databases too.
+- Set it `True` in a local `.env` only, to exercise the server path.
 
 `POST /sentences/generate` and `POST /pair-writing/grade` (epic 012) are
 both unconditionally mounted and also unauthenticated. Both spend real
@@ -405,7 +418,47 @@ ADR 018 already covers why that's the wrong shape.
   `useSentenceGenerator` **and** `usePairWriting` (epic 012's
   `gradePairAnswers`) both show a dedicated rate-limit message instead
   of a generic failure, with no per-feature detection code — both AI
-  endpoints return the identical 429 shape on purpose (ADR 018).
+  endpoints return the identical 429 shape on purpose (ADR 018). Both
+  error classes are **declared in `src/errors.js`** and re-exported
+  here, so the local sentence store can throw the same shapes without
+  importing the fetch client; import them from either place.
+- **Saved sentences do not come from the API — import them from
+  `src/sentenceStore.js`.** That module is the boundary (epic 013,
+  ADR 019): it re-exports `src/localSentenceStore.js`, a `localStorage`
+  implementation of the same eight functions `api.js` declares, with
+  identical signatures and identical error shapes (404, 409) so callers
+  cannot tell them apart. `api.js` keeps its own now-unused copies for
+  the auth epic, which is when `sentenceStore.js` gains an actual
+  branch — **it deliberately has none today**, since the remote arm is
+  unreachable until there is a user to scope it to. Generation is *not*
+  behind this seam: `generateSentences` still comes straight from
+  `api.js`, because it needs a provider key and cannot move
+  client-side. `useSentenceGenerator`'s split import is that line drawn
+  in one place.
+- **The local store's rules, none of which are incidental.** Sentences
+  are keyed per folder (`sento:sentences:{folderId}`, plus a literal
+  `sento:sentences:uncategorized` since `null` can't be a key segment),
+  so a save rewrites one folder rather than the library. Three
+  consequences: the unscoped read (the global quiz pool's) fans out
+  across every key; **relocate writes the destination before removing
+  from the source**, because with no transaction available a
+  mid-failure duplicate is recoverable and a mid-failure loss is not;
+  and deleting a folder must delete its sentence key too. **Unreadable
+  data is quarantined, never dropped** — an unknown envelope version, a
+  failed parse or a bad shape renames the key to
+  `…:quarantine:{timestamp}` rather than returning `[]`, because the
+  obvious reader destroys the user's whole library exactly when
+  something has already gone wrong. And **storage failure is surfaced,
+  not swallowed**: reads degrade to empty but writes throw, unlike every
+  preference in the app, because this is the only copy of the user's
+  data. `getStorageStatus()` feeds the notices in
+  `components/generator/StorageNotices.jsx`.
+- **Anything that would drop saved sentences must confirm first.** The
+  browser holds the only copy, so `SentenceListItem`'s delete goes
+  through `ConfirmDialog` — it had no confirmation at all while the
+  server was the store, which was fine then and is not now. The same
+  rule binds the auth epic's login-time import, which clears local
+  storage on success.
 - **Sound is two independent systems, on purpose.** Background music
   (`context/BacksoundContext.jsx`, a looped `Audio` element) and card
   flip effects (`utils/cardSoundEffects.js`, a module-level Web Audio
