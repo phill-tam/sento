@@ -227,3 +227,28 @@
     font-size: 26px;
   }
 }
+
+/* Failure copy. Both say the same reassuring thing and differ only in
+   cause, so they share a shape and differ in accent — a rate limit is a
+   "wait a moment", a 502 is a "that went wrong". */
+.error,
+.rateLimit {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.error {
+  border-left-color: var(--bad);
+  background: var(--bad-wash);
+}
+
+.rateLimit {
+  border-left-color: var(--accent);
+  background: var(--accent-wash-hover);
+}

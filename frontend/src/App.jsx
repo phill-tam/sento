@@ -248,6 +248,18 @@ function PairWritingRunner({ selectedItems, onFinish, onQuit }) {
       totalPairs={run.totalPairs}
       isLastPair={run.isLastPair}
       isGrading={run.phase === "grading"}
+      // The copy is composed here rather than in the hook, which reports
+      // the two failures separately and stays free of user-facing strings.
+      // Both say the answers survived, because that is the fact the
+      // learner needs and the reason the hook never clears them.
+      error={
+        run.rateLimitError
+          ? "The AI grader is busy right now. Your sentences are safe — try again in a moment."
+          : run.error
+          ? "Grading couldn't be reached. Your sentences are safe — try again."
+          : null
+      }
+      isRateLimit={Boolean(run.rateLimitError)}
     />
   );
 }

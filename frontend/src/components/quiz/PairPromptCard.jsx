@@ -30,6 +30,8 @@ export default function PairPromptCard({
   isLastPair = false,
   maxLength = 300,
   isGrading = false,
+  error = null,
+  isRateLimit = false,
 }) {
   const { isVisible: showRomaji } = useRomaji();
 
@@ -91,6 +93,18 @@ export default function PairPromptCard({
         {isBlank ? <span className={styles.skipNote}>Leave blank to skip this pair.</span> : null}
       </div>
 
+      {/* Sits above the actions, next to the button that retries, and
+          says outright that nothing was lost — the whole point of the
+          failure path is that six sentences of the learner's own writing
+          survive a 502. role="alert" because this appears in response to
+          an action the learner just took and there is nothing else on
+          screen to signal it. */}
+      {error ? (
+        <p className={isRateLimit ? styles.rateLimit : styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+
       <div className={styles.actions}>
         <button
           type="button"
@@ -107,7 +121,7 @@ export default function PairPromptCard({
             onClick={onSubmit}
             disabled={isGrading}
           >
-            {isGrading ? "Grading…" : "Submit run"}
+            {isGrading ? "Grading…" : error ? "Try again" : "Submit run"}
           </button>
         ) : (
           <button type="button" className={styles.primaryBtn} onClick={onNext} disabled={isGrading}>
