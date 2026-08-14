@@ -1,0 +1,97 @@
+.summary {
+  width: 680px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.scoreBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 24px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card-lifted);
+  text-align: center;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.score {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.score strong {
+  font-size: 46px;
+  color: var(--accent);
+}
+
+.scoreNote {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Skipped and unchecked counts, stated rather than folded into the
+   score — the denominator above only counts graded pairs, so this is
+   what makes the arithmetic add up on screen. */
+.asides {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: var(--text-hint);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.finishBtn {
+  align-self: center;
+  padding: 11px 28px;
+  border-radius: 22px;
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.finishBtn:hover {
+  background: var(--btn-primary-bg-hover);
+}
+
+@media (max-width: 1024px) {
+  .scoreBlock {
+    padding: 22px 16px;
+  }
+
+  .score {
+    font-size: 28px;
+  }
+
+  .score strong {
+    font-size: 38px;
+  }
+}
