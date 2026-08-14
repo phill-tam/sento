@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ADMIN_WRITES_ENABLED } from "./config/adminMode";
+import { getGrammar, getKanji, getVocab } from "./api";
+// Saved sentences and folders live in the user's browser, not the
+// server's tables (epic 013) — but only sentenceStore.js knows that.
 import {
-  getGrammar,
-  getKanji,
-  getVocab,
   createSentenceFolder,
   deleteSentence,
   deleteSentenceFolder,
@@ -11,7 +11,7 @@ import {
   getSentences,
   moveSentence,
   renameSentenceFolder,
-} from "./api";
+} from "./sentenceStore";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
 import { useMediaQuery } from "./hooks/useMediaQuery";
