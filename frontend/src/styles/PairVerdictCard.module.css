@@ -13,14 +13,26 @@
   background: var(--surface-card);
 }
 
+/* background-image, not background-color. .card already sets
+   `background: var(--surface-card)`; a second `background` shorthand
+   here on the same element would REPLACE that outright — same property,
+   same specificity, declared later — leaving the semi-transparent wash
+   with nothing beneath it but whatever sits behind the whole list (the
+   page, --sky), not the card. That composited to a barely-tinted sky
+   blue only 1.12:1 from the plain card colour — the card was
+   technically "there" but read as almost transparent, which is the bug
+   this fixes. A flat-stop gradient on background-image layers on top of
+   background-color instead of overriding it. See --pair-verdict-*-wash
+   in tokens.css for why the alpha is 0.10 here — deliberately close to
+   the shared --good-wash/--bad-wash's 0.12, not a large jump from it. */
 .correct {
-  border-left-color: var(--good);
-  background: var(--good-wash);
+  border-left-color: var(--good-on-pair-verdict);
+  background-image: linear-gradient(var(--pair-verdict-good-wash), var(--pair-verdict-good-wash));
 }
 
 .incorrect {
-  border-left-color: var(--bad);
-  background: var(--bad-wash);
+  border-left-color: var(--bad-on-pair-verdict);
+  background-image: linear-gradient(var(--pair-verdict-bad-wash), var(--pair-verdict-bad-wash));
 }
 
 /* Unchecked and skipped share the neutral treatment on purpose: neither
@@ -54,12 +66,18 @@
   color: var(--text-secondary);
 }
 
+/* Not raw --good/--bad: those were never solved against this card's own
+   background at all and read at 2.61:1 / 3.02:1 even on the plain
+   cream --surface-card, well under the 4.5 floor for text this size.
+   --good-on-pair-verdict/--bad-on-pair-verdict are darkened specifically
+   against the tinted background above, not against plain cream — see
+   the tokens.css comment. */
 .correct .badge {
-  color: var(--good);
+  color: var(--good-on-pair-verdict);
 }
 
 .incorrect .badge {
-  color: var(--bad);
+  color: var(--bad-on-pair-verdict);
 }
 
 .answer {
@@ -102,13 +120,16 @@
   color: var(--text-secondary);
 }
 
+/* Same reasoning as .correct/.incorrect .badge above — these sit on the
+   identical tinted background (they're inside the same card), so the
+   same darkened tokens apply. */
 .wordOk {
-  color: var(--good);
+  color: var(--good-on-pair-verdict);
   font-weight: 700;
 }
 
 .wordBad {
-  color: var(--bad);
+  color: var(--bad-on-pair-verdict);
   font-weight: 700;
 }
 
