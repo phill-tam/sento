@@ -288,6 +288,53 @@
   --good-line: rgba(95, 158, 122, 0.3);
   --bad-wash: rgba(199, 107, 86, 0.12);
 
+  /* PairVerdictCard's own wash, day only — 0.10, not the shared 0.12.
+     Word Pairs' results screen sat directly on the page (--sky) rather
+     than on --surface-card: `.correct`/`.incorrect` set their own
+     `background`, which — same property, same specificity, declared
+     later — replaced `.card`'s background outright rather than tinting
+     it, the identical bug QuizCard's `.correct`/`.incorrect` had before
+     that commit. Fixed the same way here — background-image layered
+     over the untouched background-color, not a strength change alone.
+     0.10 is deliberately CLOSE to the shared 0.12 rather than a large
+     jump: the card only needs to read as a card again, tinted at a
+     level that stays a wash rather than becoming its own saturated
+     surface. 1.10:1 / 1.11:1 from a plain card, --text-primary at
+     11.38:1 / 11.21:1. (An earlier pass at 0.30 was visibly too strong
+     — noted here rather than left unexplained, since the number moved
+     once already and a future reader comparing this to the commit
+     history should know why.) Night is untouched: aliased back to the
+     ordinary --good-wash/--bad-wash below, so the fix there is layering
+     only, not intensity — nobody asked for night to change and the
+     shared wash was already safe once it landed on the right surface
+     (verified: 9.46–12.26:1). */
+  --pair-verdict-good-wash: rgba(95, 158, 122, 0.1);
+  --pair-verdict-bad-wash: rgba(199, 107, 86, 0.1);
+
+  /* The badge, left border and per-word ✓/✕ used raw --good/--bad
+     directly, which were never solved against this card at all — on
+     plain --surface-card they were already marginal (2.61:1 / 3.02:1,
+     below the 4.5 floor for text this size), and any wash strength
+     above zero pushes them lower still, since text and background
+     converge in hue as the tint deepens.
+
+     Aliased to --good-on-quiz-content/--bad-on-quiz-content rather than
+     re-derived — genuinely the same design need solved twice (a status
+     tone that survives on a lightly-tinted cream surface), so an alias
+     rather than a coincidentally-matching hex is what keeps the two
+     from drifting apart if either is retuned later. Re-verified against
+     THIS card's own background before reusing them, not assumed safe
+     from where they were solved originally: 5.92:1 / 5.82:1 here,
+     comfortably clear of the floor a wash strength change could
+     otherwise have quietly broken.
+
+     Night aliases back to the ordinary --good/--bad, which already
+     resolve to --good-night/--bad-night at night (see the dark block)
+     and were verified against the layered night background at
+     5.59:1 / 5.08:1 — no new night tokens needed. */
+  --good-on-pair-verdict: var(--good-on-quiz-content);
+  --bad-on-pair-verdict: var(--bad-on-quiz-content);
+
   /* Primary button — dark fill on a light page, so it tracks the chrome
      ground but is a separate role: a theme may keep buttons dark while
      the surrounding surface changes. */
@@ -446,6 +493,15 @@
   --good-wash: rgba(127, 192, 155, 0.14);
   --good-line: rgba(127, 192, 155, 0.35);
   --bad-wash: rgba(229, 146, 121, 0.14);
+
+  /* PairVerdictCard's day-only intensity bump doesn't apply here — the
+     layering fix does (see the day block), the strength doesn't. Nobody
+     asked for night's wash to darken, and it was already safe once
+     layered onto the card instead of the page. */
+  --pair-verdict-good-wash: var(--good-wash);
+  --pair-verdict-bad-wash: var(--bad-wash);
+  --good-on-pair-verdict: var(--good);
+  --bad-on-pair-verdict: var(--bad);
 
   /* Primary button. By day a dark fill on a light page; at night that
      would vanish into the page, so it inverts to the lit treatment. */
