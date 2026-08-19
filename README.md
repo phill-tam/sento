@@ -620,3 +620,12 @@ sento/
     ├── adr/     # Architecture Decision Records
     └── images/  # Screenshots used by this README
 ```
+
+---
+
+## License
+
+This project doesn't have a license yet, so please treat it as "all
+rights reserved" for now — That said, I'm generally happy to chat about
+it! If there's a part of this project you'd like to use, just reach out
+and ask — I'm happy to talk through how you'd like to use this project.
