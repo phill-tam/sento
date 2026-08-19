@@ -1,14 +1,26 @@
 # Sento
 
 A JLPT N5 Japanese language learning platform — vocabulary, kanji, and
-grammar study lines, a mixed-type quiz mode, and an AI sentence
-generator that produces practice sentences (with reading and English
-meaning) from user-selected content items. Every study item also carries
-romaji, shown by default and searchable, so the app is usable without a
-Japanese keyboard.
+grammar study lines, a mixed-type quiz mode with two quiz types
+(multiple-choice recognition and AI-graded sentence writing), and an AI
+sentence generator that produces practice sentences (with reading and
+English meaning) from user-selected content items. Every study item also
+carries romaji, shown by default and searchable, so the app is usable
+without a Japanese keyboard.
+
+It runs with no accounts and no configuration: study progress, theme,
+romaji visibility and saved sentences are all per-browser.
 
 - **Frontend:** React 19 + Vite, plain CSS Modules
 - **Backend:** FastAPI + uv + Alembic + PostgreSQL (local) / Supabase (staging/prod)
+
+![The study view — the kanji Places category in the day theme, with two
+cards flipped to their meaning side](docs/images/study-grid-day.png)
+
+The study surface: an icon rail and a two-tier category sidebar on the
+left, a grid of flip cards on the right. Every card carries romaji under
+its readings, and the check in the corner marks an item mastered — or
+picks it, once you are building a quiz.
 
 ---
 
@@ -28,12 +40,13 @@ Japanese keyboard.
 | 010 — Long-content layout | Flip-list rows for grammar and long vocab | Shipped — see [Long-content layout](#long-content-layout) |
 | 011 — Responsive shell | 1024px breakpoint, top bar + overlay drawer (frontend) | Shipped — see [Responsive layout](#responsive-layout) |
 | 012 — Word Pairs | AI-graded English sentence writing, a second quiz type (backend + frontend) | Shipped — see [Word Pairs](#word-pairs) |
+| 013 — Local Sentence Storage | Saved sentences move out of the database and into the browser (backend + frontend) | Shipped — see [Saved sentences](#saved-sentences-live-in-the-browser) |
 
-Epics 001, 002, 009 and 012 have write-ups in `docs/epics/`. The rest
-exist as shipped code, the GitHub issues that track them, and `epic N`
-comments in the source — treat those as more current than `docs/` when
-the two disagree. Architecture decisions are recorded as ADRs in
-`docs/adr/`, currently numbered up to 018.
+Epics 001, 002, 009, 012 and 013 have write-ups in `docs/epics/`. The
+rest exist as shipped code, the GitHub issues that track them, and
+`epic N` comments in the source — treat those as more current than
+`docs/` when the two disagree. Architecture decisions are recorded as
+ADRs in `docs/adr/`, currently numbered up to 019.
 
 ---
 
@@ -110,7 +123,7 @@ backend URL or turn on the content-management UI (see
 
 ```bash
 uv run ruff check .                          # lint (CI-enforced)
-uv run pytest                                # tests (none exist yet)
+uv run pytest                                # tests
 uv run alembic revision --autogenerate -m "..."   # new migration after a model change
 ```
 
@@ -121,9 +134,11 @@ npm run build   # production build (CI-enforced)
 npm run lint    # oxlint (CI-enforced; config: .oxlintrc.json)
 ```
 
-There is no `test` script yet. CI runs the frontend test step only if
-`frontend/src/**/*.test.jsx` files exist, and the backend test step only
-if `backend/tests/**` has files.
+There is no frontend `test` script yet. Both CI jobs guard their test
+step on the files existing — `backend/tests/**` for the backend,
+`frontend/src/**/*.test.jsx` for the frontend — so the backend suite
+(currently the Word Pairs grading service and its schemas) runs, and the
+frontend step is skipped.
 
 ---
 
@@ -136,6 +151,7 @@ if `backend/tests/**` has files.
 | `DATABASE_URL` | Yes | App runtime connection. Local dev: `postgresql+psycopg://sento:sento@localhost:5432/sento_db`. Supabase: use the transaction pooler (port `6543`). |
 | `MIGRATIONS_DATABASE_URL` | No | Alembic only. Leave blank for local dev — falls back to `DATABASE_URL`. Supabase: use the direct, non-pooler connection (port `5432`). |
 | `ADMIN_WRITES_ENABLED` | No | Default `false`. Mounts the content **write** endpoints. See [Admin writes](#admin-writes) before enabling. |
+| `SENTENCE_PERSISTENCE_ENABLED` | No | Default `false`. Mounts the sentence and folder **persistence** endpoints. Nothing calls them — saved sentences live in the browser. See [Saved sentences](#saved-sentences-live-in-the-browser). |
 | `ENVIRONMENT` | No | Default `development`. Selects the AI provider: `development` → Gemini, `production` → Claude. One switch for **both** AI features — sentence generation and Word Pairs answer grading ([ADR 018](docs/adr/018-ai-provider-protocol-narrowed-to-complete.md)). |
 | `GEMINI_API_KEY` | If using AI features in dev | Required when `ENVIRONMENT=development`. Free-tier keys carry a per-minute quota shared by both AI features — see [Word Pairs](#word-pairs). |
 | `GEMINI_MODEL` | No | Default `gemini-3.5-flash`. A plain env var read at startup — changing the model is a `.env` edit, never a code change. |
@@ -158,12 +174,19 @@ There are **no feature flags.** Every epic shipped, so the per-epic
 are always on, and the app runs with no environment configuration. See
 [`docs/adr/012-feature-flags-removed-admin-write-gate.md`](docs/adr/012-feature-flags-removed-admin-write-gate.md).
 
-One switch remains, and it is access control rather than epic gating:
+Two switches remain, and both are access control rather than epic
+gating — they stand in for the authentication this project does not
+have:
 
 | Variable | Layer | Default | Gates |
 |---|---|---|---|
 | `ADMIN_WRITES_ENABLED` | Backend | `false` | `POST /{line}/upload`, `PATCH /{line}/{id}/status` |
 | `VITE_ADMIN_WRITES_ENABLED` | Frontend | `false` | Whether the content-management UI is offered |
+| `SENTENCE_PERSISTENCE_ENABLED` | Backend | `false` | Save, list, relocate and delete for sentences, plus all of `/sentence-folders` |
+
+The rest of this section is about the first two. The third gets its own
+section — [Saved sentences](#saved-sentences-live-in-the-browser) —
+because *why* it is off is the whole point of epic 013.
 
 **The content write endpoints have no authentication.** There is no
 `User` model or auth mechanism anywhere in this project, so keeping
@@ -190,6 +213,41 @@ either — see [Word Pairs](#word-pairs) and
 
 ---
 
+## Study and quiz
+
+Study and Quiz are the same surface. Clicking **Quiz me** turns the mode
+bar into a quiz-type chooser and turns every flashcard's check from a
+mastery toggle into a picker, so a run is built out of the cards you were
+already looking at rather than in a separate screen.
+
+![The item picker in quiz mode — a Multiple choice / Word pairs chooser
+above the grid, four kanji cards ticked, and the button reading Start
+Quiz (4/20)](docs/images/selection-phase-for-quiz.png)
+
+Selection is held in one place for the whole app, so a run can be built
+across Kanji, Vocabulary, Grammar *and* the generator's saved sentences
+before it starts — the quiz pool is cross-line by design (epic 006).
+Multiple choice caps a run at 20 items; Word Pairs caps at 4, because
+every unordered pair of the selection becomes its own task.
+
+![A multiple-choice question — the kanji 何 with its readings and romaji,
+four English options, one marked wrong and the correct one
+highlighted](docs/images/during-multiple-choice-quiz.png)
+
+Multiple choice tests *recognition* and is graded on the client, with no
+AI call and no network round trip. Distractors are drawn from same-line
+peers; for a saved sentence they are resolved from the items that
+sentence was generated out of.
+
+![The end-of-run card reading Quiz complete, 2 / 4, 50%
+correct](docs/images/multiple-choice-quiz-review.png)
+
+A run ends on a score card, and nothing about it is persisted. Mastery is
+the check on the card, kept per browser under `sento:mastered:{lineId}`,
+and a quiz result deliberately does not write to it.
+
+---
+
 ## Theming
 
 The app ships a day and a night theme. Nothing to configure — the theme
@@ -203,6 +261,14 @@ disagree:
   can be picked before the app opens
 - the **Theme** row in the settings popover, behind the gear at the
   bottom of the icon rail, for changing it mid-session
+
+![The same study view in the night theme — deep blue chrome and content
+surfaces, the two flipped cards in gold](docs/images/study-grid-night.png)
+
+Night is not an inversion of day. The rail and sidebar were already dark
+against a light content area, so at night the chrome shifts hue and stays
+where it is while the content surfaces come down to meet it; the gold
+accent is shared by both themes on purpose.
 
 `sento:theme` holds `light` or `dark` and defaults to `light`, so a
 first-time visitor always meets the day theme — the app deliberately
@@ -356,6 +422,10 @@ away from the content — the fix for a real bug, not a cosmetic
 narrow-screen pass: at 375px, before this epic, the content area
 measured **0px** wide.
 
+![The app at a narrow viewport — the icon rail laid out as a horizontal
+top bar carrying the drawer trigger, search and the brand mark, above a
+two-column card grid](docs/images/narrow-viewport.png)
+
 Nothing new was added to get there. The top bar is the same icon rail
 component, restyled — not a second nav bar built alongside it — so
 there's still exactly one view switcher and one settings gear in the
@@ -404,11 +474,26 @@ accepted:   "You can't run on the sky."
 rejected:   "Zeus runs the sky."     ← "run" = manage/operate, not 走る
 ```
 
+![A Word Pairs task — the kanji 山 and 川 side by side with readings,
+romaji and meanings, above a text box holding the learner's English
+sentence](docs/images/during-word-pairs-quiz.png)
+
 Grading this is a word-sense judgement over free text — no string match
 reaches it, since both sentences above contain both words — so it is the
 second place in this codebase where asking an AI model is the correct
 engineering answer rather than the lazy one (the first being sentence
 romaji; see [Romaji](#romaji)).
+
+![A Word Pairs results screen — 2 of 3, one card marked Not quite with a
+per-word right sense / wrong sense breakdown and a suggested rewrite, one
+marked Correct](docs/images/word-pairs-quiz-review.png)
+
+A verdict names *which* word was misused rather than marking the whole
+sentence wrong, and carries the learner's own sentence translated into
+Japanese with romaji. Verdicts are matched back to pairs by word identity
+on both sides of the wire, never by array position — a provider that
+reorders or drops one must not put the ✕ on the wrong word while still
+reading as confident feedback.
 
 **One AI call per run, at the end, not one per question.** The learner
 writes every pair, submits, and a single `POST /pair-writing/grade` call
@@ -447,6 +532,66 @@ every rejected alternative, is in
 
 ---
 
+## Saved sentences live in the browser
+
+The sentence generator takes the items you selected — up to five — and
+asks an AI provider for practice sentences, each with a kana reading,
+romaji and an English meaning. A round is ephemeral until you keep
+something from it.
+
+![The generator mid-round — one kept sentence above, one fresh candidate
+below with Keep and Discard buttons, a folder dropdown and
+Save](docs/images/generating-sentence-phase.png)
+
+**Generation is a server call; saving is not.** As of epic 013 the
+browser is the store of record for saved sentences and folders. The
+production tables were writable by anyone who could reach the API and
+there is no `User` model to attribute a row to, so two people on the
+deployed frontend saw, relocated and deleted each other's sentences.
+
+![The saved-sentence library — a notice reading "Saved in this browser",
+and two sentences in a folder called life, each with a folder dropdown
+and a delete button](docs/images/generated-sentences.png)
+
+That split is drawn in one module. `frontend/src/sentenceStore.js` is
+where every caller imports persistence from, and it re-exports a
+`localStorage` implementation with the same eight function signatures and
+the same error shapes the API used — so no component knows the change
+happened. Generation stays in `api.js`, because it needs a provider key
+and cannot move client-side.
+
+Consequences worth knowing before relying on it:
+
+- **Sentences do not follow you between devices or browsers**, and the
+  app says so permanently rather than in a dismissible banner. The
+  failure it prevents — an empty library on your phone, months later —
+  is silent and delayed, so the notice has to survive being read.
+- **Writes fail loudly.** Reads degrade to empty, but a failed save
+  throws, unlike every other preference in the app. This is the only
+  copy of the data, so private browsing or a full disk has to surface
+  rather than be swallowed.
+- **Unreadable data is quarantined, never dropped.** A failed parse or
+  an unknown envelope version renames the key to
+  `…:quarantine:{timestamp}` instead of returning an empty list, and the
+  generator says where it went.
+- **Deleting a sentence now asks first**, which it did not need to while
+  the server held a copy.
+
+The tables, their Alembic history and the endpoints all still exist —
+unmounted behind `SENTENCE_PERSISTENCE_ENABLED` (default `false`) and
+reserved for the auth epic, which adds a `user_id` and turns the switch
+back on. The existing production rows were purged by hand rather than in
+a migration, since a revision would have run against local databases too:
+[`backend/scripts/purge_production_sentences.md`](backend/scripts/purge_production_sentences.md).
+
+[`019 — The browser is the store of record for anonymous sentences`](docs/adr/019-browser-is-store-of-record-for-anonymous-sentences.md)
+and [`docs/epics/013-local-sentence-storage.md`](docs/epics/013-local-sentence-storage.md)
+have the full reasoning, including why a Redis cache — the original
+sketch for this work — was the wrong shape: it would have moved one
+unattributed shared pile from Postgres onto another server we run.
+
+---
+
 ## Deployment
 
 The frontend is deployed to Vercel. Allowed CORS origins are hardcoded
@@ -472,5 +617,6 @@ sento/
 ├── frontend/    # React + Vite application
 └── docs/
     ├── epics/   # Epic summaries — problem statement, architecture, decisions
-    └── adr/     # Architecture Decision Records
+    ├── adr/     # Architecture Decision Records
+    └── images/  # Screenshots used by this README
 ```
