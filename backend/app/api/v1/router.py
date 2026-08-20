@@ -1,7 +1,15 @@
 from fastapi import APIRouter
 
 from app.config.settings import settings
-from app.routes import grammar, kanji, pair_writing, sentence_folders, sentences, vocab
+from app.routes import (
+    grammar,
+    kanji,
+    leaderboard,
+    pair_writing,
+    sentence_folders,
+    sentences,
+    vocab,
+)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -12,6 +20,12 @@ router.include_router(vocab.router)
 router.include_router(grammar.router)
 router.include_router(sentences.router)
 router.include_router(pair_writing.router)
+
+# Also unconditional, but for a different reason than the five above —
+# see leaderboard.py's own comment. Those five are unauthenticated
+# because auth doesn't exist yet; this one is unauthenticated because
+# public reachability is the feature (epic 015, ADR 021).
+router.include_router(leaderboard.router)
 
 # Both remaining gates are access control rather than epic gating: these
 # endpoints have no authentication in front of them, so keeping them out
