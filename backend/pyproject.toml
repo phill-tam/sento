@@ -22,6 +22,12 @@ dependencies = [
 dev = [
     "ruff>=0.6",
     "pytest>=8.0",
+    # starlette.testclient (imported via fastapi.testclient in
+    # tests/conftest.py) now prefers httpx2 over httpx, warning on the
+    # old path — httpx itself stays in the tree regardless, pulled in
+    # transitively by anthropic/google-genai/fastapi[standard] for their
+    # own HTTP calls, so this is a second client used only by tests.
+    "httpx2>=2.12",
 ]
 
 [build-system]
