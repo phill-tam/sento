@@ -16,7 +16,6 @@ import {
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
 import { useMediaQuery } from "./hooks/useMediaQuery";
-import { useQuiz } from "./hooks/useQuiz";
 import { toStudyTreeShape } from "./utils/studyTreeAdapter";
 import { buildSearchIndex, searchIndex } from "./utils/searchIndex";
 import AppShell from "./components/layouts/AppShell";
@@ -25,11 +24,8 @@ import IconRail from "./components/layouts/IconRail";
 import TopBarSearch from "./components/layouts/TopBarSearch";
 import SentenceFolderTree from "./components/generator/SentenceFolderTree";
 import SearchResults from "./components/study/SearchResults";
-import QuizCard from "./components/quiz/QuizCard";
-import QuizSummary from "./components/quiz/QuizSummary";
-import PairPromptCard from "./components/quiz/PairPromptCard";
-import PairQuizSummary from "./components/quiz/PairQuizSummary";
-import { usePairWriting } from "./hooks/usePairWriting";
+import QuizRunner from "./components/quiz/QuizRunner";
+import PairWritingRunner from "./components/quiz/PairWritingRunner";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
@@ -170,99 +166,6 @@ function toSentenceQuizItems(sentences) {
     example: null,
     source_item_refs: s.source_item_refs,
   }));
-}
-
-/**
- * Active-quiz view, promoted from StudyPage (epic 6) so it renders
- * regardless of which page (Study or Generate) the quiz was launched
- * from — App.jsx intercepts quizPhase === "active" above the view
- * switch, so StudyPage/GeneratePage never mount while a quiz is active.
- */
-function QuizRunner({ selectedItems, globalPool, onFinish, onQuit }) {
-  const quiz = useQuiz(selectedItems, globalPool);
-
-  useEffect(() => {
-    quiz.start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (quiz.phase === "complete") {
-    return (
-      <QuizSummary score={quiz.score} totalQuestions={quiz.totalQuestions} onFinish={onFinish} />
-    );
-  }
-
-  if (quiz.phase === "idle") {
-    return null;
-  }
-
-  return (
-    <QuizCard
-      question={quiz.currentQuestion}
-      phase={quiz.phase}
-      selectedOptionId={quiz.selectedOptionId}
-      onAnswer={quiz.answer}
-      onNext={quiz.next}
-      questionNumber={quiz.questionNumber}
-      totalQuestions={quiz.totalQuestions}
-      score={quiz.score}
-      onQuit={onQuit}
-    />
-  );
-}
-
-/**
- * Active word-pairs run (epic 012), mounted in the same slot as
- * QuizRunner and for the same reason: App.jsx intercepts an active run
- * above the view switch, so StudyPage never mounts underneath one.
- *
- * usePairWriting freezes its pairs at mount, so this component must not
- * be remounted mid-run — the slot below is keyed on nothing and the
- * branch is stable for the life of the run, which is what keeps that
- * true.
- */
-function PairWritingRunner({ selectedItems, onFinish, onQuit }) {
-  const run = usePairWriting(selectedItems);
-
-  if (run.phase === "complete") {
-    return (
-      <PairQuizSummary
-        pairs={run.pairs}
-        answers={run.answers}
-        verdicts={run.verdicts}
-        results={run.results}
-        onFinish={onFinish}
-      />
-    );
-  }
-
-  return (
-    <PairPromptCard
-      pair={run.currentPair}
-      value={run.answers[run.currentPair?.pairId] ?? ""}
-      onChange={(text) => run.setAnswer(run.currentPair.pairId, text)}
-      onNext={run.goNext}
-      onBack={run.goBack}
-      onSubmit={run.submitRun}
-      onQuit={onQuit}
-      pairNumber={run.pairNumber}
-      totalPairs={run.totalPairs}
-      isLastPair={run.isLastPair}
-      isGrading={run.phase === "grading"}
-      // The copy is composed here rather than in the hook, which reports
-      // the two failures separately and stays free of user-facing strings.
-      // Both say the answers survived, because that is the fact the
-      // learner needs and the reason the hook never clears them.
-      error={
-        run.rateLimitError
-          ? "The AI grader is busy right now. Your sentences are safe — try again in a moment."
-          : run.error
-          ? "Grading couldn't be reached. Your sentences are safe — try again."
-          : null
-      }
-      isRateLimit={Boolean(run.rateLimitError)}
-    />
-  );
 }
 
 function App() {
