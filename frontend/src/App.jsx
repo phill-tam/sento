@@ -12,7 +12,7 @@ import {
   getStorageStatus,
   moveSentence,
   renameSentenceFolder,
-} from "./sentenceStore";
+} from "./stores/sentenceStore";
 import { CONTENT_LINES } from "./constants/contentLines";
 import { useMastered } from "./hooks/useMastered";
 import { useMediaQuery } from "./hooks/useMediaQuery";

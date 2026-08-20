@@ -423,8 +423,8 @@ ADR 018 already covers why that's the wrong shape.
   here, so the local sentence store can throw the same shapes without
   importing the fetch client; import them from either place.
 - **Saved sentences do not come from the API — import them from
-  `src/sentenceStore.js`.** That module is the boundary (epic 013,
-  ADR 019): it re-exports `src/localSentenceStore.js`, a `localStorage`
+  `src/stores/sentenceStore.js`.** That module is the boundary (epic 013,
+  ADR 019): it re-exports `src/stores/localSentenceStore.js`, a `localStorage`
   implementation of the same eight functions `api.js` declares, with
   identical signatures and identical error shapes (404, 409) so callers
   cannot tell them apart. `api.js` keeps its own now-unused copies for

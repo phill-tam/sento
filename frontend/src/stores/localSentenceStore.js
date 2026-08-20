@@ -1,4 +1,4 @@
-import { ApiError } from "./errors";
+import { ApiError } from "../errors";
 
 /**
  * localStorage implementation of the saved-sentence store (epic 013).
