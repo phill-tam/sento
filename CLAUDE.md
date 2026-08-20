@@ -542,11 +542,15 @@ ADR 018 already covers why that's the wrong shape.
   `backsound:volume`, `cardsound:muted` / `cardsound:volume`,
   `sento:theme`, `sento:romaji`, and `hooks/useMastered.js`'s
   `sento:mastered:{lineId}`. Each preference gets its own key; there is
-  no single `sento:prefs` blob, deliberately.
+  no single `sento:prefs` blob, deliberately. `sento:deviceId` (epic 015,
+  minted on first load, read by both the leaderboard and epic 016's
+  per-device AI quota) and `sento:displayName` (epic 015, leaderboard
+  only) are two more of these, not one shared `sento:profile` record —
+  the two fields turned out to have different consumers and different
+  lifecycles, not a single "identity" lifecycle, once 016 was scoped.
 - **A *record* is not a preference, and takes one key for the whole
   thing.** `sento:folders` holds the folder list, `sento:scores` the run
-  history, and epic 015's `sento:profile` will hold `{displayName,
-  deviceId}`. The one-key-per-value rule above governs *settings* —
+  history. The one-key-per-value rule above governs *settings* —
   independent values a user flips one at a time. A record's fields are
   always read and written as a unit, so splitting them buys no isolation
   and only invents half-written states. The test is whether any
