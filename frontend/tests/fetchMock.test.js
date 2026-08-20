@@ -44,3 +44,17 @@ it("turns the rate-limit body shape into RateLimitError, same as a real 429", as
 it("leaves no mocked fetch behind for the next test", () => {
   expect(global.fetch).toBeUndefined();
 });
+
+it("keeps recording calls against the same spy across a drained-then-refilled queue", async () => {
+  // Regression case for the exact bug epic 015's leaderboard sync test
+  // caught: an earlier version re-installed a fresh vi.fn() (with an
+  // empty .mock.calls) whenever the queue transitioned from empty to
+  // non-empty, silently losing every call made before the refill.
+  mockFetchOnce({ status: 200, body: "first" });
+  await getKanji();
+
+  mockFetchOnce({ status: 200, body: "second" });
+  await getKanji();
+
+  expect(global.fetch).toHaveBeenCalledTimes(2);
+});

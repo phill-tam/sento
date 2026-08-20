@@ -30,7 +30,9 @@ const DISPLAY_NAME_KEY = "sento:displayName";
 
 // A label, not an identifier — ADR 021 deliberately enforces nothing
 // past "renders sanely in a list." Names are not unique or verified.
-const MAX_DISPLAY_NAME_LENGTH = 20;
+// Exported so the name-entry dialog (phase 3) can cap the input at the
+// same length rather than duplicating the number.
+export const MAX_DISPLAY_NAME_LENGTH = 20;
 
 function readKey(key) {
   try {

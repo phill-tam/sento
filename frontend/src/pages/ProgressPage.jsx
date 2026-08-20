@@ -1,13 +1,17 @@
 import { useState } from "react";
 
+import { useLeaderboard } from "../hooks/useLeaderboard";
 import { clearRuns, readRuns, readStats } from "../stores/scoreStore";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+import LeaderboardList from "../components/progress/LeaderboardList";
+import LeaderboardSyncDialog from "../components/progress/LeaderboardSyncDialog";
 import ProgressStats from "../components/progress/ProgressStats";
 import RunList from "../components/progress/RunList";
 import styles from "../styles/ProgressPage.module.css";
 
 /**
- * Quiz history (epic 014) — the fourth top-level view.
+ * Quiz history (epic 014) — the fourth top-level view. Epic 015 adds a
+ * leaderboard section below the local history.
  *
  * Storage is read once at mount rather than watched. App.jsx
  * switch-renders the views, so this component is unmounted whenever the
@@ -25,12 +29,43 @@ function load() {
 export default function ProgressPage() {
   const [{ runs, stats }, setData] = useState(load);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const leaderboard = useLeaderboard();
 
   function handleClear() {
     clearRuns();
     setData(load());
     setConfirmingClear(false);
   }
+
+  async function handleSync(name) {
+    const ok = await leaderboard.sync(name);
+    // Stays open on failure so syncError renders inside the dialog —
+    // closing it would hide the message the user needs to see.
+    if (ok) setSyncDialogOpen(false);
+  }
+
+  // The leaderboard is a public read with no dependency on the
+  // learner's own history, so it renders in both branches below rather
+  // than only after local runs exist — a new learner with nothing
+  // recorded yet can still see where the board stands.
+  const leaderboardSection = (
+    <>
+      <div className={styles.header}>
+        <h3 className={styles.subheading}>Leaderboard</h3>
+        <button
+          type="button"
+          className={styles.secondaryBtn}
+          onClick={() => setSyncDialogOpen(true)}
+          disabled={runs.length === 0}
+          title={runs.length === 0 ? "Finish a quiz first — there's nothing to sync yet" : undefined}
+        >
+          Sync to leaderboard
+        </button>
+      </div>
+      <LeaderboardList entries={leaderboard.entries} loading={leaderboard.boardPhase === "loading"} />
+    </>
+  );
 
   if (runs.length === 0) {
     return (
@@ -42,6 +77,8 @@ export default function ProgressPage() {
             They stay in this browser.
           </p>
         </div>
+
+        {leaderboardSection}
       </div>
     );
   }
@@ -54,7 +91,7 @@ export default function ProgressPage() {
             saved sentence cannot be deleted without confirming either. */}
         <button
           type="button"
-          className={styles.clearBtn}
+          className={styles.secondaryBtn}
           onClick={() => setConfirmingClear(true)}
         >
           Clear history
@@ -66,12 +103,23 @@ export default function ProgressPage() {
       <h3 className={styles.subheading}>Recent runs</h3>
       <RunList runs={runs} />
 
+      {leaderboardSection}
+
       <ConfirmDialog
         open={confirmingClear}
         message={`Delete all ${runs.length} recorded runs? This browser holds the only copy.`}
         confirmLabel="Clear history"
         onConfirm={handleClear}
         onCancel={() => setConfirmingClear(false)}
+      />
+
+      <LeaderboardSyncDialog
+        open={syncDialogOpen}
+        initialName={leaderboard.displayName}
+        syncPhase={leaderboard.syncPhase}
+        syncError={leaderboard.syncError}
+        onSync={handleSync}
+        onCancel={() => setSyncDialogOpen(false)}
       />
     </div>
   );

@@ -10,12 +10,23 @@
  * scored against.
  */
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import ProgressPage from "../src/pages/ProgressPage";
 import { readRuns, recordRun } from "../src/stores/scoreStore";
+import { mockFetchOnce } from "./fetchMock";
 
 describe("ProgressPage", () => {
+  // Epic 015: mounting ProgressPage now fires one GET /leaderboard on
+  // mount via useLeaderboard. Without this, Node's native global fetch
+  // (available since Node 18, no polyfill needed) would make a real
+  // network call in every test below — one that fails silently inside
+  // the hook's own catch, so nothing here would ever fail loudly, but
+  // it's a real unmocked connection attempt racing each test regardless.
+  beforeEach(() => {
+    mockFetchOnce({ status: 200, body: { entries: [] } });
+  });
+
   it("shows an empty state rather than zeroes before any run is finished", () => {
     render(<ProgressPage />);
 

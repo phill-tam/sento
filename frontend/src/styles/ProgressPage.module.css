@@ -26,7 +26,7 @@
   margin: 28px 0 10px;
 }
 
-.clearBtn {
+.secondaryBtn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -36,9 +36,14 @@
   cursor: pointer;
 }
 
-.clearBtn:hover {
+.secondaryBtn:hover {
   color: var(--text-primary);
   border-color: var(--text-secondary);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .empty {
