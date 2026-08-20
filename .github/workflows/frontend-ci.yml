@@ -48,8 +48,16 @@ jobs:
       - name: Build
         run: npm run build
 
+      # frontend/tests/, not frontend/src/ — tests live in their own tree,
+      # the same way backend/tests/ does, and vite.config.js pins Vitest's
+      # `include` to match.
+      #
+      # Both patterns are needed and neither is redundant: @actions/glob
+      # does not do brace expansion, so a single '*.test.{js,jsx}' would
+      # match nothing at all — the step would skip and the run would go
+      # green having executed zero tests.
       - name: Run tests
-        if: hashFiles('frontend/src/**/*.test.jsx') != ''
+        if: hashFiles('frontend/tests/**/*.test.js', 'frontend/tests/**/*.test.jsx') != ''
         run: npm run test
 
   # Always reports a status, regardless of whether frontend-lint-and-build
