@@ -29,6 +29,7 @@ import PairWritingRunner from "./components/quiz/PairWritingRunner";
 import ContentManagementPage from "./pages/ContentManagementPage";
 import StudyPage from "./pages/StudyPage";
 import GeneratePage from "./pages/GeneratePage";
+import ProgressPage from "./pages/ProgressPage";
 import StartGate from "./components/common/StartGate";
 import ConfirmDialog from "./components/common/ConfirmDialog";
 import styles from "./styles/Sidebar.module.css";
@@ -39,6 +40,10 @@ const VIEWS = [
   { id: "study", icon: "学", label: "Study" },
   { id: "cms", icon: "文", label: "Manage Content" },
   { id: "generate", icon: "✧", label: "Generate" },
+  // epic 014. 成績 — results. Unconditional, like study and generate:
+  // epics do not get flags (ADR 012), and the page carries its own empty
+  // state for a learner who has not finished a run yet.
+  { id: "progress", icon: "績", label: "Progress" },
 ];
 
 const FETCHERS = { kanji: getKanji, vocab: getVocab, grammar: getGrammar };
@@ -866,6 +871,8 @@ function App() {
             onGeneratorClick={handleGeneratorClick}
             onContinueGenerator={handleContinueGenerator}
           />
+        ) : view === "progress" ? (
+          <ProgressPage />
         ) : view === "generate" ? (
           <GeneratePage
             workflowPhase={generatorWorkflowPhase}
