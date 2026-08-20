@@ -414,3 +414,6 @@ dist/
 # holding real keys is one `git add -A` away from being committed.
 .env.local
 .env.*.local
+
+# ─── Claude Code (local dev only, not pushed to remote) ───
+.claude/skills/
