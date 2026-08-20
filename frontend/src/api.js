@@ -166,3 +166,24 @@ export function gradePairAnswers({ answers }) {
     body: JSON.stringify({ answers }),
   });
 }
+
+/**
+ * Syncs a device's whole (capped) run history to the leaderboard in one
+ * call (epic 015, ADR 021). `runs` is already backend-shaped —
+ * [{ id, quiz_type, score, total, completed_at }] — matching how
+ * generateSentences takes source_item_refs rather than converting here;
+ * the shaping from a scoreStore record happens in useLeaderboard.
+ *
+ * Idempotent server-side by each run's own id, so calling this again
+ * with the same history is safe and changes nothing already stored.
+ */
+export function submitLeaderboardRuns({ deviceId, displayName, runs }) {
+  return request("/api/v1/leaderboard", {
+    method: "POST",
+    body: JSON.stringify({ device_id: deviceId, display_name: displayName, runs }),
+  });
+}
+
+export function fetchLeaderboard() {
+  return request("/api/v1/leaderboard");
+}
