@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 // does not, and goes to the browser instead (epic 013). This one split
 // import is the whole local/remote boundary made visible.
 import { RateLimitError, generateSentences } from "../api";
-import { saveSentences } from "../sentenceStore";
+import { saveSentences } from "../stores/sentenceStore";
 
 /**
  * Generator run state machine over a fixed set of source item refs
