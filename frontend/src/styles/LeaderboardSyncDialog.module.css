@@ -1,0 +1,106 @@
+/* Restates ConfirmDialog.module.css's backdrop/dialog/actions/button
+   rules rather than importing them — CSS Modules can't share a rule and
+   composes: is used nowhere in this codebase (see SentenceListItem for
+   the same precedent). */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: var(--scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog {
+  background: var(--surface-card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: var(--shadow-dialog);
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.input {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-field);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 12px;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.error {
+  margin: 0 0 12px;
+  color: var(--bad);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancelBtn:hover {
+  border-color: var(--border-focus);
+}
+
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.confirmBtn {
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--btn-primary-bg-hover);
+}
+
+.confirmBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
