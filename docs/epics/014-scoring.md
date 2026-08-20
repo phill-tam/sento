@@ -23,7 +23,7 @@ that ships alone:
 | epic | what | needs a server? |
 |---|---|---|
 | **014** (this) | run history in the browser, Progress view | no |
-| 015 — Ranking | `sento:profile`, `POST /leaderboard` | yes |
+| 015 — Ranking | `sento:deviceId`, `sento:displayName`, `POST /leaderboard` | yes |
 | 016 — AI quota | per-device budgets on the two AI endpoints | yes |
 
 Splitting them was the first decision of the epic and is recorded in §6.1.
