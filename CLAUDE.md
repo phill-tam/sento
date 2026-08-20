@@ -13,20 +13,22 @@ English meaning) from user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Thirteen epics have shipped: Foundation, Content Management, Flashcards,
+Fourteen epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
 in code comments), Sound, Theming, Romaji, the Long-Content Layout
 (flip-list rows, #116), the Responsive Shell (1024px breakpoint,
 top bar + overlay drawer, #122), Word Pairs (AI-graded sentence
-writing as a second quiz type, #126), and Local Sentence Storage (saved
-sentences moved out of the database and into the user's browser, #128).
+writing as a second quiz type, #126), Local Sentence Storage (saved
+sentences moved out of the database and into the user's browser, #128),
+and Scoring (durable quiz run history plus a Progress view, #155).
 None of them are behind feature flags any more — see the section below.
 
-Only epics 001, 002, 009, 012 and 013 have write-ups in `docs/epics/`;
-the rest exist as shipped code, the GitHub issues tracking them, and
-`epic N` comments in the source. ADRs run to 019. Treat in-code
-comments as the more current source of truth than `docs/epics/`, and
-verify docs against `git log` / the code itself before relying on them.
+Only epics 001, 002, 009, 012, 013 and 014 have write-ups in
+`docs/epics/`; the rest exist as shipped code, the GitHub issues
+tracking them, and `epic N` comments in the source. ADRs run to 020.
+Treat in-code comments as the more current source of truth than
+`docs/epics/`, and verify docs against `git log` / the code itself
+before relying on them.
 
 ## Commands
 
@@ -38,7 +40,7 @@ uv run alembic upgrade head                # run migrations
 uv run python -m app.seed_data.seed_content  # seed N5 kanji/vocab/grammar (required — API returns empty lists without it)
 uvicorn app.main:app --reload              # dev server on :8000
 uv run ruff check .                        # lint (CI-enforced)
-uv run pytest                              # tests (no tests exist yet — CI only runs this step if backend/tests/** has files)
+uv run pytest                              # tests (backend/tests/ — the Word Pairs grading service and its schemas, since epic 012)
 ```
 
 To generate a new migration after changing a model: `uv run alembic revision --autogenerate -m "..."`.
@@ -50,10 +52,24 @@ npm install
 npm run dev       # dev server on :5173
 npm run build     # production build (CI-enforced)
 npm run lint       # oxlint (CI-enforced; config: frontend/.oxlintrc.json)
+npm run test       # vitest run (CI-enforced)
+npm run test:watch # vitest, for local use
 ```
 
-There is no `test` script in `package.json` yet — CI's frontend job
-only runs `npm run test` if `frontend/src/**/*.test.jsx` files exist.
+**Tests live in `frontend/tests/`, never beside the source** — mirroring
+`backend/tests/`, and Vitest's `include` in `vite.config.js` is pinned to
+that directory rather than left at its default `**/*.test.*`. The pin is
+what makes the convention self-enforcing: an unpinned runner picks up a
+stray colocated test and quietly establishes the opposite habit. CI's
+condition takes **two** `hashFiles` patterns (`*.test.js` and
+`*.test.jsx`) because `@actions/glob` does not expand braces — a single
+`*.test.{js,jsx}` matches nothing, so the step would skip and the run
+would go green having executed zero tests.
+
+`tests/setup.js` repairs `localStorage`, which is otherwise undefined in
+a default Vitest jsdom environment on Node 22.4+ — see its docblock
+before touching it. Anything rendered in a test that reaches storage
+depends on it.
 
 `.claude/launch.json` defines this dev server for Claude Code's preview
 tooling — start it from there rather than running a server through a
@@ -210,9 +226,14 @@ ADR 018 already covers why that's the wrong shape.
 - **Everything routes through `App.jsx`.** There's no router — `App.jsx`
   holds all top-level state (active view, quiz phase, generator
   workflow phase, selection sets) and switch-renders
-  `StudyPage`/`ContentManagementPage`/`GeneratePage`/`QuizRunner`
-  inside the shared `AppShell` layout. When adding a new top-level
-  view, wire it in here, not via a new router.
+  `StudyPage`/`ContentManagementPage`/`GeneratePage`/`ProgressPage`, or
+  one of the two run components (`components/quiz/QuizRunner.jsx`,
+  `PairWritingRunner.jsx`, intercepted above the view switch), inside
+  the shared `AppShell` layout. When adding a new top-level view, wire
+  it in here — a `VIEWS` entry plus a switch branch — not via a new
+  router. Progress (epic 014) needed no sidebar work, because
+  `showStudySidebar` is already `view === "study"`, so every non-Study
+  view gets a read-only search field and no tree for free.
 - **`AppShell`** (`components/layouts/AppShell.jsx`) is the one shared
   two-pane (icon rail + sidebar + main panel) layout used by every
   page — see `docs/adr/002-appshell-single-shared-layout.md`. There is
@@ -422,6 +443,37 @@ ADR 018 already covers why that's the wrong shape.
   error classes are **declared in `src/errors.js`** and re-exported
   here, so the local sentence store can throw the same shapes without
   importing the fetch client; import them from either place.
+- **Store modules live in `src/stores/`.** `sentenceStore.js`,
+  `localSentenceStore.js` and `scoreStore.js` (epic 014). `api.js` and
+  `errors.js` stay at `src/` root deliberately — the first is the HTTP
+  client rather than a store, and the second is shared by both it and
+  the local store, so moving either would assert a boundary that isn't
+  there.
+- **Quiz results are persisted client-side by
+  `src/stores/scoreStore.js`** (epic 014, ADR 020): `recordRun`,
+  `readRuns`, `readStats`, `clearRuns` over one versioned `sento:scores`
+  key, capped at 200 runs. **A stored run's `total` is the denominator
+  that was SHOWN to the learner** — `totalQuestions` for a choice quiz,
+  `gradedCount` for word pairs — because `PairQuizSummary` refuses to
+  score a partly-graded run out of its pair count, and storing the pair
+  count would recreate that exact lie on the Progress page.
+  `skippedCount`/`ungradedCount` carry the rest. The two runners build
+  their records separately for this reason; **do not unify them behind a
+  shared record-builder.** Recording happens on the transition into
+  `phase === "complete"`, not in `onFinish` (which fires on the button,
+  so closing the tab at the summary would lose the run), and each runner
+  latches with a `useRef` — not against StrictMode's mount-time
+  double-invoke, which returns early there, but against the effect
+  re-running when a dependency changes identity after completion.
+  `readStats()` derives everything; nothing computed is stored.
+- **This store quarantines on read but swallows on write**, taking one
+  half from each existing convention — see
+  `docs/adr/020-score-history-storage-conventions.md`. The two are
+  independent questions: a store rewrites its whole key on write, so an
+  empty read is the first half of a delete (hence quarantine); and a
+  failed write shouts only if the user asked for the operation (a
+  finished quiz did not, so it stays quiet). **Epic 015's leaderboard
+  submit must not inherit the swallow.**
 - **Saved sentences do not come from the API — import them from
   `src/stores/sentenceStore.js`.** That module is the boundary (epic 013,
   ADR 019): it re-exports `src/stores/localSentenceStore.js`, a `localStorage`
@@ -491,6 +543,17 @@ ADR 018 already covers why that's the wrong shape.
   `sento:theme`, `sento:romaji`, and `hooks/useMastered.js`'s
   `sento:mastered:{lineId}`. Each preference gets its own key; there is
   no single `sento:prefs` blob, deliberately.
+- **A *record* is not a preference, and takes one key for the whole
+  thing.** `sento:folders` holds the folder list, `sento:scores` the run
+  history, and epic 015's `sento:profile` will hold `{displayName,
+  deviceId}`. The one-key-per-value rule above governs *settings* —
+  independent values a user flips one at a time. A record's fields are
+  always read and written as a unit, so splitting them buys no isolation
+  and only invents half-written states. The test is whether any
+  operation touches one field and not the other; if none does, it is one
+  key. Records also carry a versioned envelope (`{ v, items }`), which
+  is the only thing that makes a future shape change migratable in a
+  store nothing can run migrations against.
 - **Romaji visibility gates display only, never search.**
   `context/RomajiContext.jsx` (`sento:romaji`, mounted in `main.jsx`
   beside `ThemeProvider`, defaults **on**) is read by the card
@@ -595,15 +658,16 @@ ADR 018 already covers why that's the wrong shape.
 ## Docs
 
 - `docs/epics/` — problem statement + architecture per epic (currently
-  only 001, 002, 009 and 012 are written up; other epics exist only
-  as shipped code + ADRs + in-code "epic N" comments).
+  only 001, 002, 009, 012, 013 and 014 are written up; other epics
+  exist only as shipped code + ADRs + in-code "epic N" comments).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
   the token layer (013), theme resolution (014), where romaji comes
   from (015), which layout a category gets and how a variable-height
   row flips (016), the shell's breakpoint and the drawer's stacking
-  contract (017), or the AI provider protocol and the quota it now
-  shares between sentence generation and Word Pairs grading (018) —
+  contract (017), the AI provider protocol and the quota it now
+  shares between sentence generation and Word Pairs grading (018), or
+  which `localStorage` error convention a new store follows (020) —
   the "why not the obvious alternative" is usually already answered
   there.
