@@ -24,12 +24,15 @@ Scoring (durable quiz run history plus a Progress view, #155), and
 Ranking (an unauthenticated, device-scoped leaderboard, #161). None of
 them are behind feature flags any more — see the section below.
 
-Only epics 001, 002, 009, 012, 013, 014 and 015 have write-ups in
-`docs/epics/`; the rest exist as shipped code, the GitHub issues
-tracking them, and `epic N` comments in the source. ADRs run to 021.
-Treat in-code comments as the more current source of truth than
-`docs/epics/`, and verify docs against `git log` / the code itself
-before relying on them.
+All fifteen epics now have write-ups in `docs/epics/`. Eight of them
+(003–008, 010, 011) were filled in after the fact from their GitHub
+issue plus the shipped code — the issue for a couple (008 Theming, 011
+Responsive Shell) was left in a stale "planned" state even though the
+epic shipped, so their write-ups were corrected against the real ADRs
+(013/014, 017) and merged PRs rather than trusting the issue text.
+ADRs run to 021. Treat in-code comments as the more current source of
+truth than `docs/epics/`, and verify docs against `git log` / the code
+itself before relying on them.
 
 ## Commands
 
