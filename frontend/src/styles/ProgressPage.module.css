@@ -1,6 +1,71 @@
 .page {
-  max-width: 720px;
+  max-width: 1080px;
   margin: 0 auto;
+}
+
+/* Desktop: leaderboard left, local history right.
+   Desktop-first, overridden below 1024px — deliberately the SAME query
+   string as the shell's other five (@media (max-width: 1024px)), not a
+   complementary min-width:1025px. CLAUDE.md warns the breakpoint lives
+   in several places with no shared source of truth and that they must
+   move together; reusing the identical string keeps that a consistent
+   find/replace instead of a pair of values that can drift a pixel apart.
+   ADR 017 already settled the boundary as narrow *at* 1024. */
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+/* Explicit placement rather than `order`, so the board can sit left
+   while staying second in the DOM — see ProgressPage.jsx's docblock. */
+.mainCol {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.boardCol {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  /* Full height of the panel's visible area: .platform's own padding is
+     36px top / 60px bottom, so the box is the viewport less those two,
+     pinned 36px down. Stated twice per the epic 011 convention in
+     AppShell.module.css — plain vh first, then svh for browsers that
+     understand it, since a mobile vh resolves to the largest viewport
+     and would overshoot. */
+  position: sticky;
+  top: 36px;
+  height: calc(100vh - 96px);
+  height: calc(100svh - 96px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* .subheading carries a 28px top margin to space it off the section
+   above it in the stacked layout. Inside the board's own header there
+   is nothing above it to clear, and the margin would drop the title
+   out of line with the sync button beside it. */
+.boardCol .header {
+  margin-bottom: 14px;
+}
+
+.boardCol .subheading {
+  margin-top: 0;
+}
+
+.boardScroll {
+  /* min-height:0 is what actually lets this scroll: a flex child's
+     default min-height is auto, which refuses to shrink below its
+     content and pushes the overflow out of the box instead of
+     scrolling it. */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .header {
@@ -72,4 +137,46 @@
   line-height: 1.6;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* Below the shell's one breakpoint the two columns stack, and the
+   leaderboard goes back to being an ordinary run of page content below
+   the local history — exactly the layout epic 015 shipped. Everything
+   the desktop rules add (the grid, the bordered box, the sticky
+   viewport-height cap, the inner scroller) is undone here rather than
+   being opt-in above, so the desktop case reads as the base and this
+   file matches the shell's other five max-width:1024px blocks.
+
+   Reverting to display:block also makes the grid-column/grid-row
+   placements above inert, so the source order — history first, board
+   second — is what renders, with no `order` to unpick. */
+@media (max-width: 1024px) {
+  .page {
+    max-width: 720px;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .boardCol {
+    display: block;
+    position: static;
+    height: auto;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .boardScroll {
+    overflow-y: visible;
+  }
+
+  .boardCol .header {
+    margin-bottom: 20px;
+  }
+
+  .boardCol .subheading {
+    margin-top: 28px;
+  }
 }
