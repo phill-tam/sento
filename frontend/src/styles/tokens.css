@@ -164,6 +164,19 @@
   --accent-wash-active: rgba(211, 165, 76, 0.16);
   --accent-ring: rgba(211, 165, 76, 0.22);
   --accent-line-active: rgba(211, 165, 76, 0.3);
+
+  /* ProgressPage's gold-bordered secondary buttons (epic 015) — a
+     day-only look, day gets the teal wash, night re-points back to
+     transparent, i.e. no special background at all. Same pattern
+     QuizCard/PairPromptCard use for their own bespoke day styling: the
+     token exists so the component CSS never branches on theme, not so
+     the wash itself is meant to appear at night. 22,64,66 is --teal-mid
+     (#164042) resolved, matching how the accent washes above resolve
+     --gold rather than trying to alpha-blend a var().
+     Not visually verified against night contrast — moot here since the
+     dark value is plain transparent, but flagging since this session had
+     no way to render either theme to check by eye. */
+  --progress-btn-bg: rgba(22, 64, 66, 0.6);
   --accent-line-panel: rgba(211, 165, 76, 0.35);
   --accent-outline: rgba(211, 165, 76, 0.8);
   --accent-strong-line: rgba(240, 211, 143, 0.25);
@@ -483,6 +496,11 @@
   --accent-wash-active: rgba(211, 165, 76, 0.14);
   --accent-ring: rgba(211, 165, 76, 0.19);
   --accent-line-active: rgba(211, 165, 76, 0.26);
+
+  /* Day-only look (see the :root definition) — re-pointed to plain
+     transparent, not a darker/lighter teal, so the button renders with
+     no special background at night at all. */
+  --progress-btn-bg: transparent;
   --accent-line-panel: rgba(211, 165, 76, 0.3);
   --accent-outline: rgba(211, 165, 76, 0.7);
   --text-on-accent: var(--night-abyss);
