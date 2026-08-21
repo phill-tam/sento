@@ -176,7 +176,7 @@
      Not visually verified against night contrast — moot here since the
      dark value is plain transparent, but flagging since this session had
      no way to render either theme to check by eye. */
-  --progress-btn-bg: rgba(22, 64, 66, 0.12);
+  --progress-btn-bg: rgba(22, 64, 66, 0.24);
   --accent-line-panel: rgba(211, 165, 76, 0.35);
   --accent-outline: rgba(211, 165, 76, 0.8);
   --accent-strong-line: rgba(240, 211, 143, 0.25);
