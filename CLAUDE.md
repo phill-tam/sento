@@ -13,19 +13,20 @@ English meaning) from user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Fourteen epics have shipped: Foundation, Content Management, Flashcards,
+Fifteen epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
 in code comments), Sound, Theming, Romaji, the Long-Content Layout
 (flip-list rows, #116), the Responsive Shell (1024px breakpoint,
 top bar + overlay drawer, #122), Word Pairs (AI-graded sentence
 writing as a second quiz type, #126), Local Sentence Storage (saved
 sentences moved out of the database and into the user's browser, #128),
-and Scoring (durable quiz run history plus a Progress view, #155).
-None of them are behind feature flags any more — see the section below.
+Scoring (durable quiz run history plus a Progress view, #155), and
+Ranking (an unauthenticated, device-scoped leaderboard, #161). None of
+them are behind feature flags any more — see the section below.
 
-Only epics 001, 002, 009, 012, 013 and 014 have write-ups in
+Only epics 001, 002, 009, 012, 013, 014 and 015 have write-ups in
 `docs/epics/`; the rest exist as shipped code, the GitHub issues
-tracking them, and `epic N` comments in the source. ADRs run to 020.
+tracking them, and `epic N` comments in the source. ADRs run to 021.
 Treat in-code comments as the more current source of truth than
 `docs/epics/`, and verify docs against `git log` / the code itself
 before relying on them.
@@ -118,6 +119,15 @@ endpoint, and specifically the subject of ADR 018. Don't propose a
 per-endpoint kill switch or a `FEATURE_PAIR_WRITING` flag for this —
 ADR 018 already covers why that's the wrong shape.
 
+**3. `POST`/`GET /leaderboard`** (epic 015) is also unconditionally
+mounted and unauthenticated, but for a different reason than the two
+gates above and the two AI endpoints just discussed. Those are all
+*interim* — access control (or an accepted gap) standing in for auth
+that doesn't exist yet. The leaderboard isn't: there is no state in
+which this endpoint being publicly reachable is a mistake, since public
+reachability is the entire feature. See ADR 021 — don't propose gating
+it behind a settings flag the way the other write endpoints are.
+
 ## Backend architecture
 
 - **Routing:** one route file per content line/resource
@@ -200,6 +210,24 @@ ADR 018 already covers why that's the wrong shape.
   service function, matching this codebase's existing
   "404/409/501 handled at the service layer" convention rather than
   introducing a new one.
+- **The leaderboard (epic 015, ADR 021) is never a stored or incremented
+  total — it's `SUM(score) GROUP BY device_id`, computed fresh on every
+  `GET`.** `app/services/leaderboard_service.py`'s `submit_runs` upserts
+  two tables with *opposite* conflict behaviour on purpose:
+  `leaderboard_devices.display_name` is `ON CONFLICT DO UPDATE` (a
+  resubmission under a new name is a rename), `leaderboard_runs` rows are
+  `ON CONFLICT DO NOTHING` keyed on **the run's own id** —
+  `scoreStore.recordRun`'s `crypto.randomUUID()`, not server-generated —
+  so a run is a historical fact that exists once and can never be
+  overwritten by a later resubmission under the same id, honest retry or
+  otherwise. Do not build a shared "upsert everything the same way"
+  helper for the two tables; that is exactly how one would end up
+  silently weakening the run table's `DO NOTHING` guarantee to `DO
+  UPDATE`. The public response never carries a raw `device_id` — it
+  functions as a bearer credential (ADR 021) — only a truncated
+  server-computed SHA-256 (`_hash_device_id`, `device_hash`), checked
+  directly by `test_never_exposes_the_raw_device_id` rather than only
+  implied by the schema.
 - **Settings:** `app/config/settings.py` (Pydantic Settings, reads
   `backend/.env`). `MIGRATIONS_DATABASE_URL` falls back to
   `DATABASE_URL` when unset (local dev has no pooler/direct split;
@@ -444,11 +472,34 @@ ADR 018 already covers why that's the wrong shape.
   here, so the local sentence store can throw the same shapes without
   importing the fetch client; import them from either place.
 - **Store modules live in `src/stores/`.** `sentenceStore.js`,
-  `localSentenceStore.js` and `scoreStore.js` (epic 014). `api.js` and
-  `errors.js` stay at `src/` root deliberately — the first is the HTTP
-  client rather than a store, and the second is shared by both it and
-  the local store, so moving either would assert a boundary that isn't
-  there.
+  `localSentenceStore.js`, `scoreStore.js` (epic 014) and
+  `identityStore.js` (epic 015 — `getDeviceId`/`getDisplayName`/
+  `setDisplayName`). `api.js` and `errors.js` stay at `src/` root
+  deliberately — the first is the HTTP client rather than a store, and
+  the second is shared by both it and the local store, so moving either
+  would assert a boundary that isn't there.
+- **`identityStore.js` is a plain module, not a hook — unlike every
+  other `sento:*` preference (`sento:theme`, `sento:romaji`).** Those
+  assume every reader is a React component: `useState(() => read())`
+  plus a write-back effect, no store module needed. `deviceId` breaks
+  that assumption — `api.js` reads it outside any component to stamp a
+  leaderboard submission, and epic 016 will read it again for its
+  per-device AI quota — so it needs the same shape `scoreStore.js` uses
+  for the identical reason. `deviceId`/`displayName` are two ordinary
+  preference keys, not a shared `sento:profile` record: that was the
+  original plan (issue #155), but it stopped holding once `deviceId`
+  gained a second, unrelated consumer in epic 016 and no longer shared a
+  single lifecycle with `displayName`.
+- **`useLeaderboard` (epic 015) loads the board unconditionally on
+  mount and treats syncing as a separate, explicit action.** Reading the
+  board needs no identity; `sync(name)` is what ADR 020 requires — a
+  leaderboard submission must not inherit `scoreStore`'s silent-swallow-
+  on-write convention, since the user asked for this one and is waiting
+  on it, so a failure sets `syncError` instead of disappearing. `sync`
+  returns `true`/`false` rather than leaving the caller to infer success
+  from state after the `await` — not guaranteed to reflect it yet — so
+  `LeaderboardSyncDialog` knows synchronously whether to close itself or
+  stay open on the error it just set.
 - **Quiz results are persisted client-side by
   `src/stores/scoreStore.js`** (epic 014, ADR 020): `recordRun`,
   `readRuns`, `readStats`, `clearRuns` over one versioned `sento:scores`
@@ -608,7 +659,9 @@ ADR 018 already covers why that's the wrong shape.
   the app — this restyle is scoped to two screens. Follow this shape for
   a future component-specific look: new role tokens, day gets the
   bespoke value, night aliases back to the existing shared token, never
-  the other way around.
+  the other way around. `--progress-btn-bg` (epic 015) is the same
+  pattern's second instance — `ProgressPage`'s secondary buttons get a
+  teal-mid wash by day, re-pointed to plain `transparent` at night.
 - **A tinted status background needs `background-image`, not
   `background-color`, once two rules can both set the element's
   background.** `.option` sets `background: var(--quiz-card-content-bg)`;
@@ -625,7 +678,14 @@ ADR 018 already covers why that's the wrong shape.
   state needs to tint a surface that already has its own background
   colour, this is the shape — verify with
   `getComputedStyle(el).backgroundColor` still reading the untinted
-  value, not just that the rendered colour looks different.
+  value, not just that the rendered colour looks different. The exact
+  same mistake happened again in epic 015: `ProgressPage.module.css`'s
+  `.secondaryBtn:hover` set `background: var(--accent-wash-hover)`
+  directly against a base rule that had just started setting
+  `background: var(--progress-btn-bg)`, caught before merge and fixed
+  the same way. Two instances is a pattern, not a coincidence, so reach
+  for `background-image` on the *first* attempt at a hover/status tint
+  over an already-coloured element, not after finding it broken.
 - **The night theme is one block, not a second stylesheet.**
   `:root[data-theme="dark"]` at the bottom of `tokens.css` re-points the
   role layer and nothing else, so no component knows a theme exists.
@@ -662,8 +722,8 @@ ADR 018 already covers why that's the wrong shape.
 ## Docs
 
 - `docs/epics/` — problem statement + architecture per epic (currently
-  only 001, 002, 009, 012, 013 and 014 are written up; other epics
-  exist only as shipped code + ADRs + in-code "epic N" comments).
+  only 001, 002, 009, 012, 013, 014 and 015 are written up; other
+  epics exist only as shipped code + ADRs + in-code "epic N" comments).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
@@ -671,7 +731,8 @@ ADR 018 already covers why that's the wrong shape.
   from (015), which layout a category gets and how a variable-height
   row flips (016), the shell's breakpoint and the drawer's stacking
   contract (017), the AI provider protocol and the quota it now
-  shares between sentence generation and Word Pairs grading (018), or
-  which `localStorage` error convention a new store follows (020) —
-  the "why not the obvious alternative" is usually already answered
-  there.
+  shares between sentence generation and Word Pairs grading (018),
+  which `localStorage` error convention a new store follows (020), or
+  what an anonymous, unauthenticated write endpoint may and may not
+  promise (021) — the "why not the obvious alternative" is usually
+  already answered there.
