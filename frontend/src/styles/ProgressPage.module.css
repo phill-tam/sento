@@ -27,18 +27,22 @@
 }
 
 .secondaryBtn {
-  background: none;
-  border: 1px solid var(--border);
+  background: var(--progress-btn-bg);
+  border: 1px solid var(--accent-strong);
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--accent-strong);
   cursor: pointer;
 }
 
 .secondaryBtn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
+  /* background-image, not background — background is already set above
+     to tint the button teal, and a second background: declaration here
+     would win outright on specificity and REPLACE that colour instead
+     of tinting it, the same trap CLAUDE.md documents for QuizCard's
+     .correct/.incorrect washes. A flat-stop gradient layers instead. */
+  background-image: linear-gradient(var(--accent-wash-hover), var(--accent-wash-hover));
 }
 
 .secondaryBtn:disabled {
