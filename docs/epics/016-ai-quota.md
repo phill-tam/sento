@@ -316,6 +316,25 @@ it. They are in the `DEFAULT_GEMINI_MODEL` mould — changing a budget is a
 | 3 | `feat/device-id-header` | [#174](https://github.com/phill-tam/sento/pull/174) — send X-Device-Id on the two metered calls |
 | 4 | `docs/epic-016` | this document |
 
+### 7.1 Deploying this needs a manual migration
+
+Merging the phases is not enough. Nothing in this project runs
+migrations on deploy — CI applies them only to its own ephemeral
+Postgres — so `e106fe5d665b_add_usage_counters_table` reaches production
+only when someone runs `alembic upgrade head` by hand against the
+direct, non-pooler connection.
+
+Until that happens, **both AI endpoints 500 on every call**: `charge()`
+runs after ref resolution and before the provider call, so it fails on
+the missing table and generation breaks for everyone. The deploy looks
+healthy, because every other route still answers.
+
+This is not hypothetical for this epic — it is exactly how epic 015
+broke in production, discovered during a smoke test on the Progress page
+while 016 was still in review. See the README's Deployment section,
+which now names the direction the additive-and-nullable convention does
+*not* protect: newer code against an older schema.
+
 ## 8. What Actually Shipped, and Where It Differed
 
 ### 8.1 Phase 0 grew from one item to three, and one of them was a real bug
