@@ -9,6 +9,31 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5"
 
+# Daily AI call budgets (epic 016, ADR 022). Named here for the same
+# reason the model names above are: a budget should be a .env edit, never
+# a code change, and a bare integer in a Field default tells a reader
+# nothing about which of the four it is.
+#
+# Counted in calls rather than tokens — ADR 018 narrowed the provider
+# protocol to prompt-in/text-out, so there is no usage metadata to meter.
+# Per endpoint rather than one weighted budget, so heavy generator use
+# cannot refuse a Word Pairs quiz for reasons a learner can't see. The
+# asymmetry between them (a grading call costs roughly three times a
+# generation) is priced into these numbers, not into a mechanism.
+#
+# Chosen so honest use never reaches them, not measured — there is no
+# usage data yet. One grading call covers a whole run of up to six pairs,
+# so ten of them is sixty written sentences in a day.
+DEFAULT_GENERATE_DEVICE_DAILY_LIMIT = 20
+DEFAULT_GRADE_DEVICE_DAILY_LIMIT = 10
+
+# The global caps are what actually bound the bill; the per-device ones
+# above exist so a single caller cannot consume these and deny everyone
+# else (ADR 022). Roughly 25 and 20 devices respectively at full personal
+# budget.
+DEFAULT_GENERATE_GLOBAL_DAILY_LIMIT = 500
+DEFAULT_GRADE_GLOBAL_DAILY_LIMIT = 200
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -67,6 +92,18 @@ class Settings(BaseSettings):
     gemini_model: str = DEFAULT_GEMINI_MODEL
     ANTHROPIC_API_KEY: str = ""
     anthropic_model: str = DEFAULT_ANTHROPIC_MODEL
+
+    # AI quota (epic 016, ADR 022). Four independent dials rather than one
+    # shared budget split by percentage: a per-device cap expressed as a
+    # share of the global one means N devices at full budget exhaust
+    # everything and the N+1th honest learner is refused. These are
+    # tuning knobs, not gates like admin_writes_enabled — the feature is
+    # unconditionally on, and setting one to 0 disables an endpoint
+    # rather than configuring it.
+    generate_device_daily_limit: int = DEFAULT_GENERATE_DEVICE_DAILY_LIMIT
+    grade_device_daily_limit: int = DEFAULT_GRADE_DEVICE_DAILY_LIMIT
+    generate_global_daily_limit: int = DEFAULT_GENERATE_GLOBAL_DAILY_LIMIT
+    grade_global_daily_limit: int = DEFAULT_GRADE_GLOBAL_DAILY_LIMIT
 
     def resolved_migrations_url(self) -> str:
         """Falls back to database_url when no separate migrations URL is set —

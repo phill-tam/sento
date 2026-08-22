@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import device_id_header
 from app.database.session import get_db
 from app.models.sentence_entry import GeneratedSentence
 from app.models.sentence_folder import SentenceFolder
@@ -20,6 +21,7 @@ from app.services.ai_provider import (
     AiProviderFailedError,
     AiProviderRateLimitExceeded,
 )
+from app.services.ai_quota_service import charge, generation_endpoint
 from app.services.content_resolver import resolve_source_items
 from app.services.sentence_generation_service import generate_sentences
 
@@ -44,12 +46,23 @@ persistence_router = APIRouter(prefix="/sentences", tags=["sentences"])
 def generate_sentences_endpoint(
     payload: GenerateSentencesRequest,
     db: Annotated[Session, Depends(get_db)],
+    device_id: Annotated[str | None, Depends(device_id_header)],
 ) -> GenerateSentencesResponse:
     resolved_items = resolve_source_items(db, payload.source_item_refs)
+
+    # Charged after resolution and before the provider call, not in a
+    # decorator dependency: the 404 above is a client error that never
+    # reaches a provider, and must not cost the caller a slot (ADR 022).
+    charged = charge(db, generation_endpoint(), device_id)
 
     try:
         candidates = generate_sentences(resolved_items, payload.count, payload.nuance)
     except AiProviderRateLimitExceeded as exc:
+        # The one knowably-free failure: the provider refused before
+        # generating, so the attempt bought nothing and the learner keeps
+        # their budget. A parse failure below does NOT refund — that
+        # response was generated and billed (ADR 022).
+        charged.refund(db)
         raise HTTPException(
             status_code=429,
             detail=SentenceGenerationError(detail=str(exc)).model_dump(),
