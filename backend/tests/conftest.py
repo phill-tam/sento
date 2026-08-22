@@ -59,6 +59,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.config.settings import settings
 from app.database.session import get_db
 from app.main import app
+from app.models.content_status import ContentSource, ContentStatus
+from app.models.grammar_entry import GrammarEntry
+from app.models.kanji_entry import KanjiEntry
+from app.models.vocab_entry import VocabEntry
+from app.schemas.sentence_entry import SourceItemRef
 from app.services import answer_grading_service, sentence_generation_service
 
 # Deliberately not app.database.session's engine — that one is bound to
@@ -113,6 +118,61 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         # its override into every test that runs after it in the same
         # process.
         del app.dependency_overrides[get_db]
+
+
+@pytest.fixture()
+def seed_content(db_session: Session) -> Callable[..., SourceItemRef]:
+    """Creates one real content row and hands back a ref pointing at it.
+
+    Both AI routes call `resolve_source_items` before anything else, and
+    it 404s on any unknown line_id or missing row. A test posting
+    invented refs therefore fails at resolution, before reaching the
+    quota counter, the provider stub or anything else it meant to
+    exercise — so a quota test needs real rows the way a leaderboard
+    test never did.
+
+    Flushes rather than commits: the row only has to be visible to this
+    session, which is the same one the `client` fixture hands the app,
+    and the outer transaction discards it either way.
+
+    Keyed by the same line ids as `content_resolver.LINE_RESOLVERS`, so
+    a new content line that needs a resolver needs a factory here too —
+    the two lists are meant to be read side by side.
+    """
+    factories: dict[str, Callable[[], object]] = {
+        "kanji": lambda: KanjiEntry(
+            character="空",
+            meaning_en="sky",
+            onyomi="クウ",
+            kunyomi="そら",
+            category="nature",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+        "vocab": lambda: VocabEntry(
+            word="走る",
+            reading="はしる",
+            meaning_en="to run",
+            category="verbs",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+        "grammar": lambda: GrammarEntry(
+            pattern="〜てください",
+            meaning_en="please do ~",
+            category="requests",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+    }
+
+    def seed(line_id: str = "kanji") -> SourceItemRef:
+        entry = factories[line_id]()
+        db_session.add(entry)
+        db_session.flush()
+        return SourceItemRef(line_id=line_id, item_id=entry.id)
+
+    return seed
 
 
 @pytest.fixture()
