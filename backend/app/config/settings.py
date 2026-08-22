@@ -18,6 +18,21 @@ class Settings(BaseSettings):
     database_url: str
     migrations_database_url: str = ""
 
+    # Tests connect here instead of database_url. The fixtures in
+    # tests/conftest.py roll back every write, but rolling back writes
+    # does not isolate *reads*: a query that aggregates over a whole
+    # table — the leaderboard's SUM ... GROUP BY, epic 016's global quota
+    # counter — still sees rows a developer committed by using the app.
+    # That is why the leaderboard tests passed in CI, whose Postgres is
+    # created empty for every run, and failed on any machine the app had
+    # actually been used on.
+    #
+    # Falls back to database_url when unset, which is exactly what CI
+    # relies on: it already points DATABASE_URL at a dedicated sento_ci
+    # database, so nothing there needs to set this. Local development is
+    # the case that does — see README/.env.example for the two commands.
+    test_database_url: str = ""
+
     # Mounts the unauthenticated content-write endpoints (CSV upload,
     # status PATCH). Not a feature flag — those were removed with ADR
     # 012 — but access control standing in for the auth this project
@@ -57,6 +72,13 @@ class Settings(BaseSettings):
         """Falls back to database_url when no separate migrations URL is set —
         true for local Postgres, where there's no pooler distinction to make."""
         return self.migrations_database_url or self.database_url
+
+    def resolved_test_url(self) -> str:
+        """Falls back to database_url when no separate test URL is set — true
+        in CI, which already runs against a throwaway database. Locally the
+        fallback is the state that produced the isolation bug this exists to
+        fix, so a developer should set TEST_DATABASE_URL."""
+        return self.test_database_url or self.database_url
 
 
 settings = Settings()

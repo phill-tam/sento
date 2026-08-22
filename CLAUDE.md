@@ -44,10 +44,24 @@ uv run alembic upgrade head                # run migrations
 uv run python -m app.seed_data.seed_content  # seed N5 kanji/vocab/grammar (required — API returns empty lists without it)
 uvicorn app.main:app --reload              # dev server on :8000
 uv run ruff check .                        # lint (CI-enforced)
-uv run pytest                              # tests (backend/tests/ — the Word Pairs grading service and its schemas, since epic 012)
+uv run pytest                              # tests (backend/tests/ — see the test-database note below)
 ```
 
 To generate a new migration after changing a model: `uv run alembic revision --autogenerate -m "..."`.
+
+**`pytest` runs against `TEST_DATABASE_URL`, a separate database from
+`DATABASE_URL`** — set it up once with the two commands in
+`backend/.env.example`, and re-run the `alembic upgrade head` line
+whenever a migration lands. `conftest.py` builds its own engine from
+`settings.resolved_test_url()` rather than importing the app's, so the
+dev database is never touched by a test run. The split is not
+belt-and-braces: the fixtures roll back every write, but rolling back
+writes does not isolate *reads*, and an aggregate query
+(`leaderboard_service.get_leaderboard`'s `SUM ... GROUP BY`, epic 016's
+global quota counter) reads rows you committed by using the app. Unset,
+the URL falls back to `DATABASE_URL` — which is why CI needs no setting
+(its Postgres is created empty per run) and why the leaderboard tests
+used to pass in CI and fail on a developer machine.
 
 ### Frontend (`frontend/`)
 

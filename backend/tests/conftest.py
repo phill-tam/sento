@@ -10,9 +10,12 @@ the same as anything using it. This file is what starts using it, and
 it is deliberately its own file rather than something invented inline
 inside the first feature test that happened to need it.
 
-Migrations are assumed already applied — `uv run alembic upgrade head`
-locally, the CI step of the same name in CI — matching how every other
-environment this project runs in works. Nothing here calls
+Migrations are assumed already applied — matching how every other
+environment this project runs in works. In CI that is the step of the
+same name. Locally it is `alembic upgrade head` run against
+`TEST_DATABASE_URL`, which is a *different database* from the one the
+dev server uses; see `.env.example` for the two commands and
+`settings.resolved_test_url()` for why the split exists. Nothing here calls
 `Base.metadata.create_all`; a model with no migration has no table
 under it here exactly as it would in dev or prod.
 
@@ -50,12 +53,20 @@ from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database.session import engine, get_db
+from app.config.settings import settings
+from app.database.session import get_db
 from app.main import app
 from app.services import answer_grading_service, sentence_generation_service
+
+# Deliberately not app.database.session's engine — that one is bound to
+# database_url, the database a developer actually uses the app against.
+# See settings.resolved_test_url() for why reads, not writes, are what
+# forced the split. The app's own engine is never reached during a test:
+# the client fixture overrides get_db with a session bound to this one.
+engine = create_engine(settings.resolved_test_url(), pool_pre_ping=True)
 
 
 @pytest.fixture()
