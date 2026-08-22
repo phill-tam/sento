@@ -10,9 +10,12 @@ the same as anything using it. This file is what starts using it, and
 it is deliberately its own file rather than something invented inline
 inside the first feature test that happened to need it.
 
-Migrations are assumed already applied — `uv run alembic upgrade head`
-locally, the CI step of the same name in CI — matching how every other
-environment this project runs in works. Nothing here calls
+Migrations are assumed already applied — matching how every other
+environment this project runs in works. In CI that is the step of the
+same name. Locally it is `alembic upgrade head` run against
+`TEST_DATABASE_URL`, which is a *different database* from the one the
+dev server uses; see `.env.example` for the two commands and
+`settings.resolved_test_url()` for why the split exists. Nothing here calls
 `Base.metadata.create_all`; a model with no migration has no table
 under it here exactly as it would in dev or prod.
 
@@ -37,17 +40,38 @@ reach the real outer transaction. Nested `db.begin_nested()` calls from
 the CSV upload path stack SAVEPOINTs the same way they do outside tests
 and are unaffected. Only this fixture's own `transaction.rollback()` at
 teardown ends the outer transaction, which discards everything.
+
+`stub_ai_provider` is the second boundary this file covers, added for
+epic 016. The database fixtures above make a route reachable; that one
+makes the two AI routes *safe* to reach, since their real code path ends
+at a paid provider call. It lives here rather than beside the first test
+needing it for the same reason the fixtures above do — it is infra for a
+boundary, not for a feature.
 """
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database.session import engine, get_db
+from app.config.settings import settings
+from app.database.session import get_db
 from app.main import app
+from app.models.content_status import ContentSource, ContentStatus
+from app.models.grammar_entry import GrammarEntry
+from app.models.kanji_entry import KanjiEntry
+from app.models.vocab_entry import VocabEntry
+from app.schemas.sentence_entry import SourceItemRef
+from app.services import answer_grading_service, sentence_generation_service
+
+# Deliberately not app.database.session's engine — that one is bound to
+# database_url, the database a developer actually uses the app against.
+# See settings.resolved_test_url() for why reads, not writes, are what
+# forced the split. The app's own engine is never reached during a test:
+# the client fixture overrides get_db with a session bound to this one.
+engine = create_engine(settings.resolved_test_url(), pool_pre_ping=True)
 
 
 @pytest.fixture()
@@ -94,3 +118,111 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         # its override into every test that runs after it in the same
         # process.
         del app.dependency_overrides[get_db]
+
+
+@pytest.fixture()
+def seed_content(db_session: Session) -> Callable[..., SourceItemRef]:
+    """Creates one real content row and hands back a ref pointing at it.
+
+    Both AI routes call `resolve_source_items` before anything else, and
+    it 404s on any unknown line_id or missing row. A test posting
+    invented refs therefore fails at resolution, before reaching the
+    quota counter, the provider stub or anything else it meant to
+    exercise — so a quota test needs real rows the way a leaderboard
+    test never did.
+
+    Flushes rather than commits: the row only has to be visible to this
+    session, which is the same one the `client` fixture hands the app,
+    and the outer transaction discards it either way.
+
+    Keyed by the same line ids as `content_resolver.LINE_RESOLVERS`, so
+    a new content line that needs a resolver needs a factory here too —
+    the two lists are meant to be read side by side.
+    """
+    factories: dict[str, Callable[[], object]] = {
+        "kanji": lambda: KanjiEntry(
+            character="空",
+            meaning_en="sky",
+            onyomi="クウ",
+            kunyomi="そら",
+            category="nature",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+        "vocab": lambda: VocabEntry(
+            word="走る",
+            reading="はしる",
+            meaning_en="to run",
+            category="verbs",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+        "grammar": lambda: GrammarEntry(
+            pattern="〜てください",
+            meaning_en="please do ~",
+            category="requests",
+            status=ContentStatus.APPROVED,
+            source=ContentSource.MANUAL,
+        ),
+    }
+
+    def seed(line_id: str = "kanji") -> SourceItemRef:
+        entry = factories[line_id]()
+        db_session.add(entry)
+        db_session.flush()
+        return SourceItemRef(line_id=line_id, item_id=entry.id)
+
+    return seed
+
+
+@pytest.fixture()
+def stub_ai_provider(monkeypatch: pytest.MonkeyPatch) -> Callable[..., dict]:
+    """Replaces the AI provider in both services that call one.
+
+    Any test reaching `/sentences/generate` or `/pair-writing/grade`
+    through `client` runs the real route body, which calls the real
+    `get_provider()` — a live SDK, a real key and real money. There is no
+    key in CI, so such a test fails on credentials rather than on
+    whatever it meant to assert. This fixture is what makes those routes
+    testable at all.
+
+    Patched per module, not on `ai_provider` itself: both services do
+    `from app.services.ai_provider import get_provider`, which binds the
+    function into their own namespace at import time, so rebinding it on
+    the source module would leave both callers holding the original.
+    Both are patched every time rather than letting the caller name one,
+    because a test asserting a provider was *never* reached (a rejected
+    request, a 404 on unresolvable refs) is only meaningful if neither
+    path could have served it.
+
+    `raises` takes an exception instance to raise instead of returning —
+    the whole point of lifting this out of test_answer_grading_service's
+    local version, whose stub could only ever succeed. Quota work needs
+    `AiProviderRateLimitExceeded` and `AiProviderFailedError` on demand,
+    since the two are refunded differently.
+
+    Returns a mutable record of what the stub saw. `calls` is the field
+    with no equivalent in the old local helper and the reason this
+    returns anything at all: "the provider was called exactly once" and
+    "the provider was never called" are assertions about metering, not
+    about output.
+    """
+
+    def install(*, payload: str = "", raises: Exception | None = None) -> dict:
+        record: dict = {"calls": 0, "prompt": None, "max_tokens": None}
+
+        class Stub:
+            def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
+                record["calls"] += 1
+                record["prompt"] = prompt
+                record["max_tokens"] = max_tokens
+                if raises is not None:
+                    raise raises
+                return payload
+
+        for module in (sentence_generation_service, answer_grading_service):
+            monkeypatch.setattr(module, "get_provider", lambda: Stub())
+
+        return record
+
+    return install

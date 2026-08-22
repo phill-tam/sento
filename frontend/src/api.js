@@ -6,10 +6,17 @@ import { ApiError, RateLimitError } from "./errors";
 // `from "./api"` import keeps working.
 export { ApiError, RateLimitError };
 
-async function request(path, options = {}) {
+// `headers` is destructured out and merged back deliberately. Spreading
+// `...options` over a `headers` default replaces the whole object rather
+// than merging into it, so the first caller to pass any header would
+// silently lose Content-Type and get a 422 whose message points at the
+// endpoint rather than at this wrapper. No caller passes one today —
+// epic 016's X-Device-Id is the first — so this is a latent trap being
+// closed ahead of its trigger, not a bug fix for observed behaviour.
+async function request(path, { headers, ...options } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: { "Content-Type": "application/json", ...headers },
   });
 
   if (!response.ok) {
