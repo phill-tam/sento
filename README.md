@@ -24,32 +24,6 @@ picks it, once you are building a quiz.
 
 ---
 
-## Project Status
-
-| Epic | Scope | Status |
-|---|---|---|
-| 001 — Foundation | Visual design system & app shell (frontend) | Shipped |
-| 002 — Content Management | CSV upload + inventory tree (backend + frontend) | Shipped — writes are opt-in, see [Admin writes](#admin-writes) |
-| 003 — Flashcards | Flip-card grid + cross-line search (frontend) | Shipped |
-| 004 — Quiz Mode | Selective-recall multiple-choice quiz (frontend) | Shipped |
-| 005 — Sentence Generator | AI sentence generation + folders (backend + frontend) | Shipped |
-| 006 — Global Quiz | Cross-line, mixed-type quiz pool incl. saved sentences (frontend) | Shipped |
-| 007 — Sound | Background music + card flip effects, per-system controls | Shipped |
-| 008 — Theming | Day/night themes with a user-selectable toggle | Shipped — see [Theming](#theming) |
-| 009 — Romaji | Romaji on every card, romaji search, visibility toggle | Shipped — see [Romaji](#romaji) |
-| 010 — Long-content layout | Flip-list rows for grammar and long vocab | Shipped — see [Long-content layout](#long-content-layout) |
-| 011 — Responsive shell | 1024px breakpoint, top bar + overlay drawer (frontend) | Shipped — see [Responsive layout](#responsive-layout) |
-| 012 — Word Pairs | AI-graded English sentence writing, a second quiz type (backend + frontend) | Shipped — see [Word Pairs](#word-pairs) |
-| 013 — Local Sentence Storage | Saved sentences move out of the database and into the browser (backend + frontend) | Shipped — see [Saved sentences](#saved-sentences-live-in-the-browser) |
-
-Epics 001, 002, 009, 012 and 013 have write-ups in `docs/epics/`. The
-rest exist as shipped code, the GitHub issues that track them, and
-`epic N` comments in the source — treat those as more current than
-`docs/` when the two disagree. Architecture decisions are recorded as
-ADRs in `docs/adr/`, currently numbered up to 019.
-
----
-
 ## Prerequisites
 
 - Python 3.12+
@@ -123,22 +97,40 @@ backend URL or turn on the content-management UI (see
 
 ```bash
 uv run ruff check .                          # lint (CI-enforced)
-uv run pytest                                # tests
+uv run pytest                                # tests (CI-enforced)
 uv run alembic revision --autogenerate -m "..."   # new migration after a model change
 ```
+
+`pytest` connects to `TEST_DATABASE_URL`, a **separate database** from
+the one the dev server uses. One-time setup:
+
+```bash
+createdb sento_test    # or: psql -c 'CREATE DATABASE sento_test'
+MIGRATIONS_DATABASE_URL="postgresql+psycopg://sento:sento@localhost:5432/sento_test" \
+  uv run alembic upgrade head
+```
+
+Re-run that second command whenever a new migration lands. Skipping the
+setup does not fail loudly — the URL falls back to `DATABASE_URL`, and
+the suite runs against your own data. The fixtures roll back every
+write, but rolling back writes does not isolate *reads*, so an aggregate
+query (the leaderboard's `SUM ... GROUP BY`, the global AI quota
+counter) sees rows you created by using the app.
 
 ### Frontend (`frontend/`)
 
 ```bash
-npm run build   # production build (CI-enforced)
-npm run lint    # oxlint (CI-enforced; config: .oxlintrc.json)
+npm run build      # production build (CI-enforced)
+npm run lint       # oxlint (CI-enforced; config: .oxlintrc.json)
+npm run test       # vitest run (CI-enforced)
+npm run test:watch # vitest, for local use
 ```
 
-There is no frontend `test` script yet. Both CI jobs guard their test
-step on the files existing — `backend/tests/**` for the backend,
-`frontend/src/**/*.test.jsx` for the frontend — so the backend suite
-(currently the Word Pairs grading service and its schemas) runs, and the
-frontend step is skipped.
+**Tests live in `frontend/tests/`, never beside the source**, mirroring
+`backend/tests/`. Vitest's `include` in `vite.config.js` is pinned to
+that directory rather than left at its default, which is what makes the
+convention self-enforcing: an unpinned runner picks up a stray colocated
+test and quietly establishes the opposite habit.
 
 ---
 
@@ -150,6 +142,7 @@ frontend step is skipped.
 |---|---|---|
 | `DATABASE_URL` | Yes | App runtime connection. Local dev: `postgresql+psycopg://sento:sento@localhost:5432/sento_db`. Supabase: use the transaction pooler (port `6543`). |
 | `MIGRATIONS_DATABASE_URL` | No | Alembic only. Leave blank for local dev — falls back to `DATABASE_URL`. Supabase: use the direct, non-pooler connection (port `5432`). |
+| `TEST_DATABASE_URL` | No, but set it locally | `pytest` only. Falls back to `DATABASE_URL`, which is what CI relies on — its Postgres is created empty per run. Locally that fallback runs the suite against your dev data, and the fixtures roll back every *write* without isolating *reads*, so aggregate queries see rows you created by using the app. See [Development](#development). |
 | `ADMIN_WRITES_ENABLED` | No | Default `false`. Mounts the content **write** endpoints. See [Admin writes](#admin-writes) before enabling. |
 | `SENTENCE_PERSISTENCE_ENABLED` | No | Default `false`. Mounts the sentence and folder **persistence** endpoints. Nothing calls them — saved sentences live in the browser. See [Saved sentences](#saved-sentences-live-in-the-browser). |
 | `ENVIRONMENT` | No | Default `development`. Selects the AI provider: `development` → Gemini, `production` → Claude. One switch for **both** AI features — sentence generation and Word Pairs answer grading ([ADR 018](docs/adr/018-ai-provider-protocol-narrowed-to-complete.md)). |
@@ -157,6 +150,19 @@ frontend step is skipped.
 | `GEMINI_MODEL` | No | Default `gemini-3.5-flash`. A plain env var read at startup — changing the model is a `.env` edit, never a code change. |
 | `ANTHROPIC_API_KEY` | If using AI features in prod | Required when `ENVIRONMENT=production`. |
 | `ANTHROPIC_MODEL` | No | Default `claude-sonnet-4-5`. |
+| `GENERATE_DEVICE_DAILY_LIMIT` | No | Default `20`. Sentence generations per device per UTC day. |
+| `GRADE_DEVICE_DAILY_LIMIT` | No | Default `10`. Graded Word Pairs runs per device per UTC day — one call grades a whole run. |
+| `GENERATE_GLOBAL_DAILY_LIMIT` | No | Default `500`. The shared daily ceiling for generation across everyone. |
+| `GRADE_GLOBAL_DAILY_LIMIT` | No | Default `200`. The same for grading. |
+
+The four budget variables are **tuning knobs, not gates** — the feature
+is unconditionally on, and setting one to `0` disables an endpoint
+rather than configuring it. The per-device limits are a *fairness*
+mechanism rather than a security one: the device id is client-supplied
+and free to re-mint, so they stop one enthusiastic learner exhausting
+the shared pool and stop nobody deliberate. The global limits are what
+bound the bill. See
+[ADR 022](docs/adr/022-ai-quota-fairness-not-security.md).
 
 ### Frontend (`frontend/.env`, optional)
 
@@ -602,10 +608,32 @@ adding a new deployed frontend origin; it is not env-driven.
 against its own ephemeral Postgres, and no deploy configuration runs it
 anywhere else — so a schema change reaches staging or production only
 when someone runs it by hand against that database's
-`MIGRATIONS_DATABASE_URL`. Migrations in this project are additive and
-nullable by convention, which keeps already-deployed code working
-against a newer schema, but the ordering is convention rather than
-something enforced.
+`MIGRATIONS_DATABASE_URL` (the direct, non-pooler connection):
+
+```bash
+cd backend
+MIGRATIONS_DATABASE_URL="postgresql+psycopg://...:5432/postgres" \
+  uv run alembic upgrade head
+```
+
+**Migrate first, then deploy the code that needs it.** Migrations here
+are additive and nullable by convention, so a *newer schema* keeps
+already-deployed code working — but that protects only one direction,
+and it is not the direction that goes wrong. Newer **code** against an
+older schema is unprotected: any endpoint whose table does not exist yet
+raises, and the deploy looks healthy because every other route still
+answers.
+
+That is not hypothetical. Epic 015 shipped to production without its
+migration, and `GET /api/v1/leaderboard` returned 500 while `/kanji`,
+`/vocab` and `/grammar` all returned 200 — so nothing about the service
+looked wrong until someone opened the Progress page. In a browser it
+surfaced as a *CORS* error, because a 500 carried no
+`Access-Control-Allow-Origin` header; that part is fixed, and an error
+response now keeps its CORS headers so the real status and body are
+visible (`backend/app/middleware/errors.py`). The underlying rule
+stands: nothing enforces the ordering, so it has to be done by hand, in
+that order.
 
 ---
 
