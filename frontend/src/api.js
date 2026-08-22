@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./config";
 import { ApiError, RateLimitError } from "./errors";
+import { getDeviceId } from "./stores/identityStore";
 
 // Declared in errors.js since epic 013 gave the app a second store that
 // throws the same shapes, and re-exported here so every existing
@@ -127,9 +128,30 @@ function buildSentenceListQuery({ folderId } = {}) {
   return qs ? `?${qs}` : "";
 }
 
+/**
+ * Identifies this browser to the AI endpoints' per-device budgets
+ * (epic 016, ADR 022).
+ *
+ * Sent only by the two metered calls, never globally. The raw device id
+ * functions as a bearer credential for the leaderboard (ADR 021) — it is
+ * why the board publishes a hash instead — so it goes only where it does
+ * something, not onto every request the app makes.
+ *
+ * A header rather than a body field, unlike submitLeaderboardRuns below.
+ * There the device id is domain data: it is the key of the row being
+ * written. Here the endpoint does not care who asked — the prompt and the
+ * response are identical either way — so it is metering metadata riding
+ * along, and keeping it out of the request schemas is what lets the
+ * backend services stay ignorant of who is paying.
+ */
+function meteredHeaders() {
+  return { "X-Device-Id": getDeviceId() };
+}
+
 export function generateSentences({ sourceItemRefs, count, nuance }) {
   return request("/api/v1/sentences/generate", {
     method: "POST",
+    headers: meteredHeaders(),
     body: JSON.stringify({ source_item_refs: sourceItemRefs, count, nuance }),
   });
 }
@@ -170,6 +192,7 @@ export function deleteSentence(sentenceId) {
 export function gradePairAnswers({ answers }) {
   return request("/api/v1/pair-writing/grade", {
     method: "POST",
+    headers: meteredHeaders(),
     body: JSON.stringify({ answers }),
   });
 }
