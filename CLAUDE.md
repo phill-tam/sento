@@ -13,24 +13,26 @@ English meaning) from user-selected content items.
 - **Frontend:** React 19 + Vite, plain CSS Modules (no Tailwind, no CSS-in-JS)
 - **Backend:** FastAPI + SQLAlchemy + Alembic + PostgreSQL (local) / Supabase (staging/prod), managed with `uv`
 
-Fifteen epics have shipped: Foundation, Content Management, Flashcards,
+Sixteen epics have shipped: Foundation, Content Management, Flashcards,
 Quiz Mode, the Sentence Generator, a global cross-type Quiz ("epic 6"
 in code comments), Sound, Theming, Romaji, the Long-Content Layout
 (flip-list rows, #116), the Responsive Shell (1024px breakpoint,
 top bar + overlay drawer, #122), Word Pairs (AI-graded sentence
 writing as a second quiz type, #126), Local Sentence Storage (saved
 sentences moved out of the database and into the user's browser, #128),
-Scoring (durable quiz run history plus a Progress view, #155), and
-Ranking (an unauthenticated, device-scoped leaderboard, #161). None of
-them are behind feature flags any more — see the section below.
+Scoring (durable quiz run history plus a Progress view, #155),
+Ranking (an unauthenticated, device-scoped leaderboard, #161), and
+AI Quota (per-device and global daily budgets on the two AI endpoints,
+#170). None of them are behind feature flags any more — see the section
+below.
 
-All fifteen epics now have write-ups in `docs/epics/`. Eight of them
+All sixteen epics now have write-ups in `docs/epics/`. Eight of them
 (003–008, 010, 011) were filled in after the fact from their GitHub
 issue plus the shipped code — the issue for a couple (008 Theming, 011
 Responsive Shell) was left in a stale "planned" state even though the
 epic shipped, so their write-ups were corrected against the real ADRs
 (013/014, 017) and merged PRs rather than trusting the issue text.
-ADRs run to 021. Treat in-code comments as the more current source of
+ADRs run to 022. Treat in-code comments as the more current source of
 truth than `docs/epics/`, and verify docs against `git log` / the code
 itself before relying on them.
 
@@ -128,13 +130,30 @@ visitor can write into, which is what that epic exists to stop.
 
 `POST /sentences/generate` and `POST /pair-writing/grade` (epic 012) are
 both unconditionally mounted and also unauthenticated. Both spend real
-AI provider quota per call, both draw on the *same* provider key per
-environment (`get_provider()` in `app/services/ai_provider.py`), with the
-provider's own rate limit as the only backstop for either — a known,
-accepted gap (ADR 012), widened rather than newly created by the second
-endpoint, and specifically the subject of ADR 018. Don't propose a
-per-endpoint kill switch or a `FEATURE_PAIR_WRITING` flag for this —
-ADR 018 already covers why that's the wrong shape.
+AI provider quota per call and both draw on the *same* provider key per
+environment (`get_provider()` in `app/services/ai_provider.py`). **They
+are metered as of epic 016** — daily per-device and global call budgets
+(ADR 022), which closes the gap ADR 018 recorded as accepted. Don't
+propose a per-endpoint kill switch or a `FEATURE_PAIR_WRITING` flag —
+ADR 018 covers why that's the wrong shape, and metering is what the
+right one turned out to be.
+
+**The four budget settings are tuning knobs, not gates.** `settings.py`
+has twice meant access control in this project, so this is worth keeping
+straight: `generate_device_daily_limit`, `grade_device_daily_limit` and
+their `*_global_*` pair configure a feature that is unconditionally on.
+Setting one to `0` disables an endpoint rather than configuring it.
+They're in the `DEFAULT_GEMINI_MODEL` mould — changing a budget is a
+`.env` edit, never a code change, and user-facing messages are built
+from the setting so a number can't go stale in a string.
+
+**Metering is fairness, not security** — the same distinction ADR 011
+draws for the admin write gate. The device id is client-supplied and
+free to re-mint, so the per-device budget stops an enthusiastic learner
+exhausting the shared pool and stops nobody deliberate; the global cap
+is what bounds the bill. Don't propose signing requests or validating
+scores to "fix" this — ADR 022 records why every intermediate defence is
+theatre without auth.
 
 **3. `POST`/`GET /leaderboard`** (epic 015) is also unconditionally
 mounted and unauthenticated, but for a different reason than the two
@@ -227,6 +246,40 @@ it behind a settings flag the way the other write endpoints are.
   service function, matching this codebase's existing
   "404/409/501 handled at the service layer" convention rather than
   introducing a new one.
+- **AI metering is two modules, and the split is the design.**
+  `app/services/usage_counter.py` is the *mechanism* — it counts
+  occurrences under an opaque string key inside a window
+  (`check_and_increment`, `refund`) and knows nothing about devices,
+  endpoints or budgets. `app/services/ai_quota_service.py` is the
+  *policy* — which keys exist (`generate:device:<uuid>`,
+  `generate:global`, and the `grade:` pair), how big each budget is, the
+  order the two counters are checked in, and what the learner is told.
+  A third AI-backed feature adds a `MeteredEndpoint` to the policy layer
+  and nothing at all to the counter; that's also how `POST /leaderboard`
+  would adopt it (the question ADR 021 deferred to epic 016). **Both
+  counter operations are one SQL statement, deliberately** — the naive
+  SELECT-compare-UPDATE has a race where two requests both read 9 and
+  both write 10, so the limit test rides in the `ON CONFLICT DO UPDATE
+  ... WHERE count < :limit` and a refused call updates no row. A zero
+  limit is answered *before* the statement, since the conflict branch
+  only runs on collision and the first call of a window would otherwise
+  be allowed. Don't refactor either into application logic, and don't
+  put a device or an endpoint name into `usage_counter.py`.
+- **The quota charge sits in the route body, not a `Depends()`, and only
+  one failure refunds.** Both AI routes call `resolve_source_items`
+  first, which 404s on unknown refs — a decorator-level check would bill
+  a client error that never reached a provider, so the charge goes after
+  resolution and before the provider call. On the way back,
+  `AiProviderRateLimitExceeded` refunds (the provider refused before
+  generating, so the attempt bought nothing) and `AiProviderFailedError`
+  does **not** (that response was generated and billed; refunding it
+  would hand unlimited billable attempts to anyone whose input reliably
+  fails to parse). A missing or malformed `X-Device-Id` shares one
+  `device:anonymous` bucket rather than being rejected or waved through,
+  so omitting the header is the worst option instead of a bypass. All
+  four of these are pinned by mutation-checked tests in
+  `tests/test_ai_quota_routes.py` — they're orderings, which a diff
+  doesn't show.
 - **The leaderboard (epic 015, ADR 021) is never a stored or incremented
   total — it's `SUM(score) GROUP BY device_id`, computed fresh on every
   `GET`.** `app/services/leaderboard_service.py`'s `submit_runs` upserts
@@ -488,6 +541,25 @@ it behind a settings flag the way the other write endpoints are.
   error classes are **declared in `src/errors.js`** and re-exported
   here, so the local sentence store can throw the same shapes without
   importing the fetch client; import them from either place.
+  `request()` **merges** a caller's `headers` under its
+  `Content-Type` default rather than spreading options over it — the
+  original spread replaced the object wholesale, so the first caller to
+  pass a header would have silently lost `Content-Type` and 422'd.
+- **Only the two AI calls send `X-Device-Id`** (epic 016) —
+  `generateSentences` and `gradePairAnswers`, via `meteredHeaders()`
+  reading `identityStore.getDeviceId()`. Never move this into
+  `request()`: the raw device id functions as a bearer credential for
+  the leaderboard (ADR 021), which is why the board publishes a hash,
+  so it goes only where it does something. Note the deliberate
+  inconsistency with `submitLeaderboardRuns`, which sends `device_id` in
+  the **body** — there it's domain data, the key of the row being
+  written; on the AI calls the endpoint doesn't care who asked, so it's
+  metering metadata and stays out of the request schemas (which is what
+  keeps the backend services ignorant of who pays, ADR 018). Both halves
+  are asserted in `tests/aiCallHeaders.test.js`, so "make it consistent"
+  has something to argue with. A budget rejection needs no client code:
+  it reuses the existing `rate_limit_exceeded` shape, so it arrives as
+  `RateLimitError` and renders through the notices both features have.
 - **Store modules live in `src/stores/`.** `sentenceStore.js`,
   `localSentenceStore.js`, `scoreStore.js` (epic 014) and
   `identityStore.js` (epic 015 — `getDeviceId`/`getDisplayName`/
@@ -738,9 +810,9 @@ it behind a settings flag the way the other write endpoints are.
 
 ## Docs
 
-- `docs/epics/` — problem statement + architecture per epic (currently
-  only 001, 002, 009, 012, 013, 014 and 015 are written up; other
-  epics exist only as shipped code + ADRs + in-code "epic N" comments).
+- `docs/epics/` — problem statement + architecture per epic. All
+  sixteen are written up; 003–008, 010 and 011 were filled in after the
+  fact (see the note at the top of this file before trusting them).
 - `docs/adr/` — numbered ADRs, one per non-obvious decision. Read the
   relevant one before changing CORS, feature-flag naming, table
   design, route structure, CSV commit strategy, sidebar navigation,
@@ -749,7 +821,8 @@ it behind a settings flag the way the other write endpoints are.
   row flips (016), the shell's breakpoint and the drawer's stacking
   contract (017), the AI provider protocol and the quota it now
   shares between sentence generation and Word Pairs grading (018),
-  which `localStorage` error convention a new store follows (020), or
+  which `localStorage` error convention a new store follows (020),
   what an anonymous, unauthenticated write endpoint may and may not
-  promise (021) — the "why not the obvious alternative" is usually
-  already answered there.
+  promise (021), or how the AI endpoints are metered and why that's
+  fairness rather than security (022) — the "why not the obvious
+  alternative" is usually already answered there.
