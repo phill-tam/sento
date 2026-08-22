@@ -37,9 +37,16 @@ reach the real outer transaction. Nested `db.begin_nested()` calls from
 the CSV upload path stack SAVEPOINTs the same way they do outside tests
 and are unaffected. Only this fixture's own `transaction.rollback()` at
 teardown ends the outer transaction, which discards everything.
+
+`stub_ai_provider` is the second boundary this file covers, added for
+epic 016. The database fixtures above make a route reachable; that one
+makes the two AI routes *safe* to reach, since their real code path ends
+at a paid provider call. It lives here rather than beside the first test
+needing it for the same reason the fixtures above do — it is infra for a
+boundary, not for a feature.
 """
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,6 +55,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.database.session import engine, get_db
 from app.main import app
+from app.services import answer_grading_service, sentence_generation_service
 
 
 @pytest.fixture()
@@ -94,3 +102,56 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
         # its override into every test that runs after it in the same
         # process.
         del app.dependency_overrides[get_db]
+
+
+@pytest.fixture()
+def stub_ai_provider(monkeypatch: pytest.MonkeyPatch) -> Callable[..., dict]:
+    """Replaces the AI provider in both services that call one.
+
+    Any test reaching `/sentences/generate` or `/pair-writing/grade`
+    through `client` runs the real route body, which calls the real
+    `get_provider()` — a live SDK, a real key and real money. There is no
+    key in CI, so such a test fails on credentials rather than on
+    whatever it meant to assert. This fixture is what makes those routes
+    testable at all.
+
+    Patched per module, not on `ai_provider` itself: both services do
+    `from app.services.ai_provider import get_provider`, which binds the
+    function into their own namespace at import time, so rebinding it on
+    the source module would leave both callers holding the original.
+    Both are patched every time rather than letting the caller name one,
+    because a test asserting a provider was *never* reached (a rejected
+    request, a 404 on unresolvable refs) is only meaningful if neither
+    path could have served it.
+
+    `raises` takes an exception instance to raise instead of returning —
+    the whole point of lifting this out of test_answer_grading_service's
+    local version, whose stub could only ever succeed. Quota work needs
+    `AiProviderRateLimitExceeded` and `AiProviderFailedError` on demand,
+    since the two are refunded differently.
+
+    Returns a mutable record of what the stub saw. `calls` is the field
+    with no equivalent in the old local helper and the reason this
+    returns anything at all: "the provider was called exactly once" and
+    "the provider was never called" are assertions about metering, not
+    about output.
+    """
+
+    def install(*, payload: str = "", raises: Exception | None = None) -> dict:
+        record: dict = {"calls": 0, "prompt": None, "max_tokens": None}
+
+        class Stub:
+            def complete(self, *, prompt: str, max_tokens: int = 1024) -> str:
+                record["calls"] += 1
+                record["prompt"] = prompt
+                record["max_tokens"] = max_tokens
+                if raises is not None:
+                    raise raises
+                return payload
+
+        for module in (sentence_generation_service, answer_grading_service):
+            monkeypatch.setattr(module, "get_provider", lambda: Stub())
+
+        return record
+
+    return install
