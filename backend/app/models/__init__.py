@@ -5,6 +5,7 @@ from app.models.leaderboard_device import LeaderboardDevice
 from app.models.leaderboard_run import LeaderboardQuizType, LeaderboardRun
 from app.models.sentence_entry import GeneratedSentence
 from app.models.sentence_folder import SentenceFolder
+from app.models.usage_counter import UsageCounter
 from app.models.vocab_entry import VocabEntry
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "LeaderboardQuizType",
     "LeaderboardRun",
     "SentenceFolder",
+    "UsageCounter",
     "VocabEntry",
 ]
